@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="850" viewBox="0 0 1200 850">
+<rect width="100%" height="100%" fill="white"/>
+<text x="44" y="42" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="24" font-weight="700" fill="#172C39" text-anchor="start">클래스 다이어그램 영양 통계와 체중 피드백</text>
+<text x="44" y="70" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="12" font-weight="400" fill="#5C6F7A" text-anchor="start">실제 타입과 주요 책임  |  화살표는 사용 또는 호출 의존성  |  구조체·열거형도 역할에 따라 함께 표기</text>
+<rect x="45" y="150" width="335" height="96" fill="white" stroke="#AABAC4"/>
+<rect x="45" y="150" width="335" height="47" fill="#EDF3F6" stroke="#AABAC4"/>
+<text x="57" y="168" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="10" font-weight="400" fill="#5C6F7A" text-anchor="start">View</text>
+<text x="57" y="187" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="14" font-weight="700" fill="#172C39" text-anchor="start">HomeView / RecordView</text>
+<text x="57" y="216" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">오늘 또는 선택 날짜의 합계</text>
+<text x="57" y="237" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">주간 그래프 / 식사별 목록</text>
+<rect x="435" y="150" width="335" height="117" fill="white" stroke="#AABAC4"/>
+<rect x="435" y="150" width="335" height="47" fill="#EDF3F6" stroke="#AABAC4"/>
+<text x="447" y="168" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="10" font-weight="400" fill="#5C6F7A" text-anchor="start">Observable ViewModel</text>
+<text x="447" y="187" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="14" font-weight="700" fill="#172C39" text-anchor="start">Home / Record ViewModel</text>
+<text x="447" y="216" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">MealRecordStore에서 조회</text>
+<text x="447" y="237" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">NutritionValues 합산</text>
+<text x="447" y="258" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">권장량 대비 비율 계산</text>
+<rect x="825" y="150" width="335" height="117" fill="white" stroke="#AABAC4"/>
+<rect x="825" y="150" width="335" height="47" fill="#EDF3F6" stroke="#AABAC4"/>
+<text x="837" y="168" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="10" font-weight="400" fill="#5C6F7A" text-anchor="start">Service</text>
+<text x="837" y="187" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="14" font-weight="700" fill="#172C39" text-anchor="start">NutritionCalculator</text>
+<text x="837" y="216" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">recommendation(for:)</text>
+<text x="837" y="237" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">성인·성장기 EER 분기</text>
+<text x="837" y="258" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">영양소 비율 및 g 환산</text>
+<rect x="45" y="480" width="335" height="117" fill="white" stroke="#AABAC4"/>
+<rect x="45" y="480" width="335" height="47" fill="#EDF3F6" stroke="#AABAC4"/>
+<text x="57" y="498" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="10" font-weight="400" fill="#5C6F7A" text-anchor="start">Value type</text>
+<text x="57" y="517" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="14" font-weight="700" fill="#172C39" text-anchor="start">NutritionRecommendation</text>
+<text x="57" y="546" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">calories</text>
+<text x="57" y="567" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">carbohydrateGrams</text>
+<text x="57" y="588" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">proteinGrams / fatGrams</text>
+<rect x="435" y="480" width="335" height="96" fill="white" stroke="#AABAC4"/>
+<rect x="435" y="480" width="335" height="47" fill="#EDF3F6" stroke="#AABAC4"/>
+<text x="447" y="498" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="10" font-weight="400" fill="#5C6F7A" text-anchor="start">Observable Store</text>
+<text x="447" y="517" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="14" font-weight="700" fill="#172C39" text-anchor="start">MealRecordStore</text>
+<text x="447" y="546" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">사용자·날짜 범위 조회</text>
+<text x="447" y="567" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">SwiftData ModelContext</text>
+<rect x="825" y="480" width="335" height="117" fill="white" stroke="#AABAC4"/>
+<rect x="825" y="480" width="335" height="47" fill="#EDF3F6" stroke="#AABAC4"/>
+<text x="837" y="498" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="10" font-weight="400" fill="#5C6F7A" text-anchor="start">Service</text>
+<text x="837" y="517" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="14" font-weight="700" fill="#172C39" text-anchor="start">Feedback Providers</text>
+<text x="837" y="546" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">HealthFeedbackProvider</text>
+<text x="837" y="567" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">WeightFeedbackProvider</text>
+<text x="837" y="588" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">규칙 기반 참고 메시지</text>
+<line x1="380" y1="198.0" x2="435" y2="208.5" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<line x1="435" y1="208.5" x2="426.30564672794327" y2="210.82555825140466" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="435" y1="208.5" x2="427.77383098019135" y2="203.1350693110574" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="770" y1="208.5" x2="825" y2="208.5" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<line x1="825" y1="208.5" x2="816.8959760788259" y2="212.41468980700108" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="825" y1="208.5" x2="816.8959760788259" y2="204.58531019299892" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="992.5" y1="267" x2="992.5" y2="426" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<line x1="992.5" y1="426" x2="212.5" y2="426" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<line x1="212.5" y1="426" x2="212.5" y2="480" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<line x1="212.5" y1="480" x2="208.58531019299892" y2="471.8959760788259" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="212.5" y1="480" x2="216.41468980700108" y2="471.8959760788259" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="602.5" y1="267" x2="602.5" y2="408" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<line x1="602.5" y1="408" x2="602.5" y2="408" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<line x1="602.5" y1="408" x2="602.5" y2="480" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<line x1="602.5" y1="480" x2="598.5853101929989" y2="471.8959760788259" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="602.5" y1="480" x2="606.4146898070011" y2="471.8959760788259" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="602.5" y1="267" x2="602.5" y2="408" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<line x1="602.5" y1="408" x2="992.5" y2="408" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<line x1="992.5" y1="408" x2="992.5" y2="480" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<line x1="992.5" y1="480" x2="988.5853101929989" y2="471.8959760788259" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="992.5" y1="480" x2="996.4146898070011" y2="471.8959760788259" stroke="#5C6F7A" stroke-width="1.25"/>
+<text x="45" y="765" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="12" font-weight="400" fill="#172C39" text-anchor="start">Home이 재진입할 때 새 데이터를 조회한다. 식단 정보·권장량의 산술 계산은 생성형 AI에 맡기지 않는다.</text>
+<text x="1140" y="827" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="10" font-weight="400" fill="#5C6F7A" text-anchor="start">4</text>
+</svg>

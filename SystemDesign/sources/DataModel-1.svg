@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="1050" viewBox="0 0 1400 1050">
+<rect width="100%" height="100%" fill="white"/>
+<text x="44" y="42" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="24" font-weight="700" fill="#172C39" text-anchor="start">데이터 구조</text>
+<text x="44" y="70" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="12" font-weight="400" fill="#5C6F7A" text-anchor="start">논리 데이터 모델  |  SwiftData 개인 데이터와 번들 SQLite 카탈로그의 저장 경계를 분리</text>
+<rect x="25" y="105" width="900" height="805" fill="#FAFCFD" stroke="#AABAC4"/>
+<text x="45" y="132" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="15" font-weight="700" fill="#172C39" text-anchor="start">개인 데이터 · SwiftData</text>
+<rect x="950" y="105" width="425" height="805" fill="#FAFCFD" stroke="#AABAC4"/>
+<text x="970" y="132" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="15" font-weight="700" fill="#172C39" text-anchor="start">음식 카탈로그 · 읽기 전용 SQLite</text>
+<rect x="55" y="180" width="360" height="264" fill="white" stroke="#AABAC4"/>
+<rect x="55" y="180" width="360" height="47" fill="#EDF3F6" stroke="#AABAC4"/>
+<text x="67" y="198" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="10" font-weight="400" fill="#5C6F7A" text-anchor="start">@Model</text>
+<text x="67" y="217" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="14" font-weight="700" fill="#172C39" text-anchor="start">UserProfile</text>
+<text x="67" y="246" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">persistentModelID: PersistentIdentifier*</text>
+<text x="67" y="267" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">kakaoUserID: Int64 (unique)</text>
+<text x="67" y="288" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">nickname: String</text>
+<text x="67" y="309" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">genderRawValue: String?</text>
+<text x="67" y="330" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">birthDate: Date?</text>
+<text x="67" y="351" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">heightCM: Int?</text>
+<text x="67" y="372" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">weightTenthsKG: Int?</text>
+<text x="67" y="393" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">activityLevelRawValue: String?</text>
+<text x="67" y="414" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">hasCompletedOnboarding: Bool</text>
+<text x="67" y="435" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">createdAt: Date</text>
+<rect x="510" y="180" width="385" height="306" fill="white" stroke="#AABAC4"/>
+<rect x="510" y="180" width="385" height="47" fill="#EDF3F6" stroke="#AABAC4"/>
+<text x="522" y="198" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="10" font-weight="400" fill="#5C6F7A" text-anchor="start">@Model</text>
+<text x="522" y="217" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="14" font-weight="700" fill="#172C39" text-anchor="start">MealRecord</text>
+<text x="522" y="246" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">persistentModelID: PersistentIdentifier*</text>
+<text x="522" y="267" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">kakaoUserID: Int64</text>
+<text x="522" y="288" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">recordedAt: Date</text>
+<text x="522" y="309" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">mealTypeRawValue: String</text>
+<text x="522" y="330" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">foodID / foodName: String</text>
+<text x="522" y="351" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">servingUnit: String</text>
+<text x="522" y="372" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">servingGrams: Double</text>
+<text x="522" y="393" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">servingMilliliters: Double</text>
+<text x="522" y="414" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">servingCount: Double</text>
+<text x="522" y="435" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">calories: Double</text>
+<text x="522" y="456" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">carbohydrateGrams: Double</text>
+<text x="522" y="477" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">proteinGrams / fatGrams: Double</text>
+<rect x="55" y="660" width="360" height="138" fill="white" stroke="#AABAC4"/>
+<rect x="55" y="660" width="360" height="47" fill="#EDF3F6" stroke="#AABAC4"/>
+<text x="67" y="678" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="10" font-weight="400" fill="#5C6F7A" text-anchor="start">@Model</text>
+<text x="67" y="697" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="14" font-weight="700" fill="#172C39" text-anchor="start">WeightRecord</text>
+<text x="67" y="726" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">persistentModelID: PersistentIdentifier*</text>
+<text x="67" y="747" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">kakaoUserID: Int64</text>
+<text x="67" y="768" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">recordedAt: Date</text>
+<text x="67" y="789" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">weightTenthsKG: Int</text>
+<rect x="975" y="180" width="375" height="222" fill="white" stroke="#AABAC4"/>
+<rect x="975" y="180" width="375" height="47" fill="#EDF3F6" stroke="#AABAC4"/>
+<text x="987" y="198" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="10" font-weight="400" fill="#5C6F7A" text-anchor="start">실제 SQLite 테이블</text>
+<text x="987" y="217" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="14" font-weight="700" fill="#172C39" text-anchor="start">foods</text>
+<text x="987" y="246" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">id: TEXT PRIMARY KEY</text>
+<text x="987" y="267" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">name / brand / category: TEXT</text>
+<text x="987" y="288" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">basis_unit: TEXT (g 또는 mL)</text>
+<text x="987" y="309" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">calories: REAL</text>
+<text x="987" y="330" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">carbohydrates / protein / fat: REAL</text>
+<text x="987" y="351" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">source / source_date: TEXT</text>
+<text x="987" y="372" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">name_key / brand_key: TEXT</text>
+<text x="987" y="393" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">priority: INTEGER</text>
+<line x1="415" y1="265" x2="510" y2="265" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<text x="427" y="252" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="12" font-weight="700" fill="#172C39" text-anchor="start">1  :  N</text>
+<line x1="235" y1="444" x2="235" y2="660" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<text x="248" y="610" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="12" font-weight="400" fill="#172C39" text-anchor="start">1 : N · kakaoUserID 조회</text>
+<line x1="895" y1="350" x2="975" y2="350" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<text x="901" y="333" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11" font-weight="700" fill="#172C39" text-anchor="start">N : 1</text>
+<text x="975" y="465" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="12" font-weight="400" fill="#172C39" text-anchor="start">모든 영양값은 100g 또는 100mL 기준</text>
+<text x="975" y="491" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="12" font-weight="400" fill="#172C39" text-anchor="start">MealRecord.foodID는 논리적 참조값이다.</text>
+<text x="975" y="517" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="12" font-weight="400" fill="#172C39" text-anchor="start">DB 간 외래키 제약은 설정되어 있지 않다.</text>
+<text x="975" y="560" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="14" font-weight="700" fill="#172C39" text-anchor="start">추가 저장소</text>
+<text x="975" y="590" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="12" font-weight="400" fill="#172C39" text-anchor="start">UserDefaults: AI 리포트 캐시·설정값</text>
+<text x="975" y="616" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="12" font-weight="400" fill="#172C39" text-anchor="start">NSCache: 음식 분량 AI 문구</text>
+<text x="975" y="642" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="12" font-weight="400" fill="#172C39" text-anchor="start">카카오 SDK: 인증·세션 처리</text>
+<text x="45" y="942" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="12" font-weight="400" fill="#172C39" text-anchor="start">* persistentModelID는 SwiftData가 관리하는 식별자이며, 직접 선언한 UUID 필드가 아니다.</text>
+<text x="45" y="967" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="12" font-weight="400" fill="#172C39" text-anchor="start">점선 관계는 앱의 ID 필터 조회를 나타낸다. @Relationship 및 강제 외래키 관계로 구현되어 있지 않다.</text>
+<text x="45" y="992" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="12" font-weight="400" fill="#172C39" text-anchor="start">식단은 저장 시점의 음식명·분량·영양값을 보존한다. 카탈로그 변경으로 과거 기록을 다시 계산하지 않는다.</text>
+<text x="1340" y="1027" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="10" font-weight="400" fill="#5C6F7A" text-anchor="start">1</text>
+</svg>

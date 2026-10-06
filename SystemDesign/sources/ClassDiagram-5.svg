@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="850" viewBox="0 0 1200 850">
+<rect width="100%" height="100%" fill="white"/>
+<text x="44" y="42" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="24" font-weight="700" fill="#172C39" text-anchor="start">클래스 다이어그램 온디바이스 AI와 캐시</text>
+<text x="44" y="70" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="12" font-weight="400" fill="#5C6F7A" text-anchor="start">실제 타입과 주요 책임  |  화살표는 사용 또는 호출 의존성  |  구조체·열거형도 역할에 따라 함께 표기</text>
+<rect x="45" y="150" width="335" height="96" fill="white" stroke="#AABAC4"/>
+<rect x="45" y="150" width="335" height="47" fill="#EDF3F6" stroke="#AABAC4"/>
+<text x="57" y="168" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="10" font-weight="400" fill="#5C6F7A" text-anchor="start">View</text>
+<text x="57" y="187" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="14" font-weight="700" fill="#172C39" text-anchor="start">HomeView / WeeklyReportView</text>
+<text x="57" y="216" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">모델 가용성·기록 유무 확인</text>
+<text x="57" y="237" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">피드백·상세 리포트 표시</text>
+<rect x="435" y="150" width="335" height="117" fill="white" stroke="#AABAC4"/>
+<rect x="435" y="150" width="335" height="47" fill="#EDF3F6" stroke="#AABAC4"/>
+<text x="447" y="168" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="10" font-weight="400" fill="#5C6F7A" text-anchor="start">Service</text>
+<text x="447" y="187" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="14" font-weight="700" fill="#172C39" text-anchor="start">AIWeeklyReportService</text>
+<text x="447" y="216" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">generateReport(for:)</text>
+<text x="447" y="237" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">짧은 피드백 생성</text>
+<text x="447" y="258" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">UserDefaults 캐시</text>
+<rect x="825" y="150" width="335" height="117" fill="white" stroke="#AABAC4"/>
+<rect x="825" y="150" width="335" height="47" fill="#EDF3F6" stroke="#AABAC4"/>
+<text x="837" y="168" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="10" font-weight="400" fill="#5C6F7A" text-anchor="start">Service</text>
+<text x="837" y="187" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="14" font-weight="700" fill="#172C39" text-anchor="start">AIWeeklyDetailReportService</text>
+<text x="837" y="216" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">요약·패턴 2개·실천 제안</text>
+<text x="837" y="237" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">@Generable 구조화 출력</text>
+<text x="837" y="258" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">UserDefaults 캐시</text>
+<rect x="45" y="480" width="335" height="96" fill="white" stroke="#AABAC4"/>
+<rect x="45" y="480" width="335" height="47" fill="#EDF3F6" stroke="#AABAC4"/>
+<text x="57" y="498" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="10" font-weight="400" fill="#5C6F7A" text-anchor="start">View</text>
+<text x="57" y="517" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="14" font-weight="700" fill="#172C39" text-anchor="start">FoodQuantityView</text>
+<text x="57" y="546" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">대표 분량 없는 음식 대상</text>
+<text x="57" y="567" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">AI 추정 참고 문구 표시</text>
+<rect x="435" y="480" width="335" height="117" fill="white" stroke="#AABAC4"/>
+<rect x="435" y="480" width="335" height="47" fill="#EDF3F6" stroke="#AABAC4"/>
+<text x="447" y="498" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="10" font-weight="400" fill="#5C6F7A" text-anchor="start">Service</text>
+<text x="447" y="517" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="14" font-weight="700" fill="#172C39" text-anchor="start">AIFoodPortionService</text>
+<text x="447" y="546" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">estimate(for:)</text>
+<text x="447" y="567" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">결과 형식·범위 검증</text>
+<text x="447" y="588" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">NSCache 최대 200개</text>
+<rect x="825" y="480" width="335" height="117" fill="white" stroke="#AABAC4"/>
+<rect x="825" y="480" width="335" height="47" fill="#EDF3F6" stroke="#AABAC4"/>
+<text x="837" y="498" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="10" font-weight="400" fill="#5C6F7A" text-anchor="start">Apple framework</text>
+<text x="837" y="517" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="14" font-weight="700" fill="#172C39" text-anchor="start">Foundation Models</text>
+<text x="837" y="546" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">SystemLanguageModel</text>
+<text x="837" y="567" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">LanguageModelSession</text>
+<text x="837" y="588" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">iOS 26 이상 / 가용성 확인</text>
+<line x1="380" y1="198.0" x2="435" y2="208.5" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<line x1="435" y1="208.5" x2="426.30564672794327" y2="210.82555825140466" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="435" y1="208.5" x2="427.77383098019135" y2="203.1350693110574" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="212.5" y1="246" x2="212.5" y2="322" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<line x1="212.5" y1="322" x2="992.5" y2="322" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<line x1="992.5" y1="322" x2="992.5" y2="267" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<line x1="992.5" y1="267" x2="996.4146898070011" y2="275.1040239211741" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="992.5" y1="267" x2="988.5853101929989" y2="275.1040239211741" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="602.5" y1="267" x2="602.5" y2="408" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<line x1="602.5" y1="408" x2="992.5" y2="408" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<line x1="992.5" y1="408" x2="992.5" y2="480" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<line x1="992.5" y1="480" x2="988.5853101929989" y2="471.8959760788259" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="992.5" y1="480" x2="996.4146898070011" y2="471.8959760788259" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="992.5" y1="267" x2="992.5" y2="426" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<line x1="992.5" y1="426" x2="992.5" y2="426" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<line x1="992.5" y1="426" x2="992.5" y2="480" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<line x1="992.5" y1="480" x2="988.5853101929989" y2="471.8959760788259" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="992.5" y1="480" x2="996.4146898070011" y2="471.8959760788259" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="380" y1="528.0" x2="435" y2="538.5" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<line x1="435" y1="538.5" x2="426.30564672794327" y2="540.8255582514047" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="435" y1="538.5" x2="427.77383098019135" y2="533.1350693110575" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="770" y1="538.5" x2="825" y2="538.5" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<line x1="825" y1="538.5" x2="816.8959760788259" y2="542.4146898070011" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="825" y1="538.5" x2="816.8959760788259" y2="534.5853101929989" stroke="#5C6F7A" stroke-width="1.25"/>
+<text x="45" y="765" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="12" font-weight="400" fill="#172C39" text-anchor="start">분량 AI 결과는 영양값과 입력량을 변경하지 않는다. 상세 리포트의 목표는 일상 실천 제안이다.</text>
+<text x="1140" y="827" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="10" font-weight="400" fill="#5C6F7A" text-anchor="start">5</text>
+</svg>

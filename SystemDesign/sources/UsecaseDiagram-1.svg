@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="850" viewBox="0 0 1200 850">
+<rect width="100%" height="100%" fill="white"/>
+<text x="44" y="42" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="24" font-weight="700" fill="#172C39" text-anchor="start">유스케이스 다이어그램</text>
+<text x="44" y="70" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="12" font-weight="400" fill="#5C6F7A" text-anchor="start">핵심 사용자 기능  |  실선은 사용자 참여, 점선 화살표는 포함 또는 조건부 확장</text>
+<rect x="190" y="105" width="965" height="665" fill="white" stroke="#AABAC4"/>
+<text x="213" y="130" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="13" font-weight="700" fill="#172C39" text-anchor="start">시스템</text>
+<circle cx="85" cy="350" r="13" fill="none" stroke="#172C39"/>
+<line x1="85" y1="363" x2="85" y2="405" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="61" y1="380" x2="109" y2="380" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="85" y1="405" x2="65" y2="430" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="85" y1="405" x2="105" y2="430" stroke="#5C6F7A" stroke-width="1.25"/>
+<text x="85" y="453" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="12" font-weight="700" fill="#172C39" text-anchor="middle">사용자</text>
+<ellipse cx="377.5" cy="203.0" rx="152.5" ry="33.0" fill="#EDF3F6" stroke="#24506B"/>
+<text x="377.5" y="207.0" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="13" font-weight="700" fill="#172C39" text-anchor="middle">UC01 로그인·세션 복원</text>
+<line x1="109" y1="392" x2="225" y2="203" stroke="#5C6F7A" stroke-width="1.25"/>
+<ellipse cx="377.5" cy="318.0" rx="152.5" ry="33.0" fill="#EDF3F6" stroke="#24506B"/>
+<text x="377.5" y="322.0" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="13" font-weight="700" fill="#172C39" text-anchor="middle">UC02 사용자 정보 입력</text>
+<line x1="109" y1="392" x2="225" y2="318" stroke="#5C6F7A" stroke-width="1.25"/>
+<ellipse cx="377.5" cy="433.0" rx="152.5" ry="33.0" fill="#EDF3F6" stroke="#24506B"/>
+<text x="377.5" y="437.0" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="13" font-weight="700" fill="#172C39" text-anchor="middle">UC03 정보 수정·체중 변화</text>
+<line x1="109" y1="392" x2="225" y2="433" stroke="#5C6F7A" stroke-width="1.25"/>
+<ellipse cx="377.5" cy="548.0" rx="152.5" ry="33.0" fill="#EDF3F6" stroke="#24506B"/>
+<text x="377.5" y="552.0" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="13" font-weight="700" fill="#172C39" text-anchor="middle">UC04 음식 검색·선택</text>
+<line x1="109" y1="392" x2="225" y2="548" stroke="#5C6F7A" stroke-width="1.25"/>
+<ellipse cx="377.5" cy="663.0" rx="152.5" ry="33.0" fill="#EDF3F6" stroke="#24506B"/>
+<text x="377.5" y="667.0" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="13" font-weight="700" fill="#172C39" text-anchor="middle">UC06 식단 조회·삭제</text>
+<line x1="109" y1="392" x2="225" y2="663" stroke="#5C6F7A" stroke-width="1.25"/>
+<ellipse cx="907.5" cy="203.0" rx="177.5" ry="33.0" fill="#EDF3F6" stroke="#24506B"/>
+<text x="907.5" y="207.0" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="13" font-weight="700" fill="#172C39" text-anchor="middle">UC10 로그아웃·회원 탈퇴·설정</text>
+<line x1="109" y1="392" x2="177" y2="748" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="177" y1="748" x2="1117" y2="748" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="1117" y1="748" x2="1117" y2="203" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="1117" y1="203" x2="1085" y2="203" stroke="#5C6F7A" stroke-width="1.25"/>
+<ellipse cx="907.5" cy="318.0" rx="177.5" ry="33.0" fill="#EDF3F6" stroke="#24506B"/>
+<text x="907.5" y="322.0" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="13" font-weight="700" fill="#172C39" text-anchor="middle">R09 권장 섭취량 계산</text>
+<line x1="530" y1="318" x2="730" y2="318" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<line x1="730" y1="318" x2="721.8959760788259" y2="321.9146898070011" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="730" y1="318" x2="721.8959760788259" y2="314.0853101929989" stroke="#5C6F7A" stroke-width="1.25"/>
+<text x="590" y="307" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11" font-weight="400" fill="#172C39" text-anchor="start">«include»</text>
+<ellipse cx="907.5" cy="433.0" rx="177.5" ry="33.0" fill="#EDF3F6" stroke="#24506B"/>
+<text x="907.5" y="437.0" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="13" font-weight="700" fill="#172C39" text-anchor="middle">UC05 섭취량 선택·식단 저장</text>
+<line x1="730" y1="437" x2="530" y2="548" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<line x1="530" y1="548" x2="535.1861738722305" y2="540.6444850236715" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="530" y1="548" x2="538.9855501912895" y2="547.490208121075" stroke="#5C6F7A" stroke-width="1.25"/>
+<text x="620" y="481" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11" font-weight="400" fill="#172C39" text-anchor="start">«include»</text>
+<ellipse cx="907.5" cy="603.0" rx="177.5" ry="33.0" fill="#EDF3F6" stroke="#24506B"/>
+<text x="907.5" y="607.0" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="13" font-weight="700" fill="#172C39" text-anchor="middle">UC09 AI 분량 참고 안내</text>
+<line x1="907" y1="570" x2="907" y2="466" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<line x1="907" y1="466" x2="910.9146898070011" y2="474.1040239211741" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="907" y1="466" x2="903.0853101929989" y2="474.1040239211741" stroke="#5C6F7A" stroke-width="1.25"/>
+<text x="920" y="515" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11" font-weight="400" fill="#172C39" text-anchor="start">«extend»</text>
+<text x="740" y="663" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11" font-weight="400" fill="#5C6F7A" text-anchor="start">조건: 대표 분량 없음 + 모델 사용 가능</text>
+<text x="740" y="685" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11" font-weight="400" fill="#5C6F7A" text-anchor="start">AI 추정은 참고 문구이며 영양 계산에 미반영</text>
+<text x="1140" y="827" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="10" font-weight="400" fill="#5C6F7A" text-anchor="start">1</text>
+</svg>

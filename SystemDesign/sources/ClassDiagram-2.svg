@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="850" viewBox="0 0 1200 850">
+<rect width="100%" height="100%" fill="white"/>
+<text x="44" y="42" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="24" font-weight="700" fill="#172C39" text-anchor="start">클래스 다이어그램 온보딩과 프로필</text>
+<text x="44" y="70" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="12" font-weight="400" fill="#5C6F7A" text-anchor="start">실제 타입과 주요 책임  |  화살표는 사용 또는 호출 의존성  |  구조체·열거형도 역할에 따라 함께 표기</text>
+<rect x="45" y="150" width="335" height="96" fill="white" stroke="#AABAC4"/>
+<rect x="45" y="150" width="335" height="47" fill="#EDF3F6" stroke="#AABAC4"/>
+<text x="57" y="168" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="10" font-weight="400" fill="#5C6F7A" text-anchor="start">View</text>
+<text x="57" y="187" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="14" font-weight="700" fill="#172C39" text-anchor="start">OnboardingFlowView</text>
+<text x="57" y="216" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">성별 → 생년월일 → 키 → 체중 → 활동</text>
+<text x="57" y="237" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">미입력 단계부터 재개</text>
+<rect x="435" y="150" width="335" height="117" fill="white" stroke="#AABAC4"/>
+<rect x="435" y="150" width="335" height="47" fill="#EDF3F6" stroke="#AABAC4"/>
+<text x="447" y="168" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="10" font-weight="400" fill="#5C6F7A" text-anchor="start">Observable ViewModel</text>
+<text x="447" y="187" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="14" font-weight="700" fill="#172C39" text-anchor="start">Onboarding ViewModels</text>
+<text x="447" y="216" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">Gender / Birthday / Height</text>
+<text x="447" y="237" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">Weight / Activity</text>
+<text x="447" y="258" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">선택 상태와 저장 요청 관리</text>
+<rect x="825" y="150" width="335" height="117" fill="white" stroke="#AABAC4"/>
+<rect x="825" y="150" width="335" height="47" fill="#EDF3F6" stroke="#AABAC4"/>
+<text x="837" y="168" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="10" font-weight="400" fill="#5C6F7A" text-anchor="start">Observable Store</text>
+<text x="837" y="187" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="14" font-weight="700" fill="#172C39" text-anchor="start">OnboardingStore</text>
+<text x="837" y="216" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">saveGender() / saveBirthDate()</text>
+<text x="837" y="237" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">saveHeight() / saveWeight()</text>
+<text x="837" y="258" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">completeOnboarding()</text>
+<rect x="45" y="480" width="335" height="96" fill="white" stroke="#AABAC4"/>
+<rect x="45" y="480" width="335" height="47" fill="#EDF3F6" stroke="#AABAC4"/>
+<text x="57" y="498" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="10" font-weight="400" fill="#5C6F7A" text-anchor="start">View / ViewModel</text>
+<text x="57" y="517" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="14" font-weight="700" fill="#172C39" text-anchor="start">ProfileView / ProfileViewModel</text>
+<text x="57" y="546" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">정보 조회·수정 화면 재사용</text>
+<text x="57" y="567" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">최근 12주 체중 그래프 구성</text>
+<rect x="435" y="480" width="335" height="96" fill="white" stroke="#AABAC4"/>
+<rect x="435" y="480" width="335" height="47" fill="#EDF3F6" stroke="#AABAC4"/>
+<text x="447" y="498" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="10" font-weight="400" fill="#5C6F7A" text-anchor="start">SwiftData @Model</text>
+<text x="447" y="517" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="14" font-weight="700" fill="#172C39" text-anchor="start">UserProfile / WeightRecord</text>
+<text x="447" y="546" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">프로필 현재 체중</text>
+<text x="447" y="567" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">날짜별 체중 이력</text>
+<rect x="825" y="480" width="335" height="96" fill="white" stroke="#AABAC4"/>
+<rect x="825" y="480" width="335" height="47" fill="#EDF3F6" stroke="#AABAC4"/>
+<text x="837" y="498" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="10" font-weight="400" fill="#5C6F7A" text-anchor="start">Observable Store</text>
+<text x="837" y="517" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="14" font-weight="700" fill="#172C39" text-anchor="start">WeightRecordStore</text>
+<text x="837" y="546" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">records(for:)</text>
+<text x="837" y="567" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">ensureInitialRecord(for:)</text>
+<line x1="380" y1="198.0" x2="435" y2="208.5" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<line x1="435" y1="208.5" x2="426.30564672794327" y2="210.82555825140466" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="435" y1="208.5" x2="427.77383098019135" y2="203.1350693110574" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="770" y1="208.5" x2="825" y2="208.5" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<line x1="825" y1="208.5" x2="816.8959760788259" y2="212.41468980700108" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="825" y1="208.5" x2="816.8959760788259" y2="204.58531019299892" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="992.5" y1="267" x2="992.5" y2="426" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<line x1="992.5" y1="426" x2="602.5" y2="426" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<line x1="602.5" y1="426" x2="602.5" y2="480" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<line x1="602.5" y1="480" x2="598.5853101929989" y2="471.8959760788259" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="602.5" y1="480" x2="606.4146898070011" y2="471.8959760788259" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="212.5" y1="480" x2="212.5" y2="390" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<line x1="212.5" y1="390" x2="602.5" y2="390" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<line x1="602.5" y1="390" x2="602.5" y2="267" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<line x1="602.5" y1="267" x2="606.4146898070011" y2="275.1040239211741" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="602.5" y1="267" x2="598.5853101929989" y2="275.1040239211741" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="212.5" y1="576" x2="212.5" y2="631" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<line x1="212.5" y1="631" x2="992.5" y2="631" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<line x1="992.5" y1="631" x2="992.5" y2="576" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<line x1="992.5" y1="576" x2="996.4146898070011" y2="584.1040239211741" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="992.5" y1="576" x2="988.5853101929989" y2="584.1040239211741" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="825" y1="528.0" x2="770" y2="528.0" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<line x1="770" y1="528.0" x2="778.1040239211741" y2="524.0853101929989" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="770" y1="528.0" x2="778.1040239211741" y2="531.9146898070011" stroke="#5C6F7A" stroke-width="1.25"/>
+<text x="45" y="765" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="12" font-weight="400" fill="#172C39" text-anchor="start">체중 저장 시 프로필과 이력을 함께 갱신한다. 목표 체중 엔티티는 현재 범위에서 제외한다.</text>
+<text x="1140" y="827" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="10" font-weight="400" fill="#5C6F7A" text-anchor="start">2</text>
+</svg>

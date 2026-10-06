@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="850" viewBox="0 0 1200 850">
+<rect width="100%" height="100%" fill="white"/>
+<text x="44" y="42" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="24" font-weight="700" fill="#172C39" text-anchor="start">통계와 AI 리포트</text>
+<text x="44" y="70" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="12" font-weight="400" fill="#5C6F7A" text-anchor="start">조회 통계는 앱이 계산하고, AI는 집계된 데이터에 대한 설명을 생성한다</text>
+<rect x="190" y="110" width="965" height="605" fill="white" stroke="#AABAC4"/>
+<text x="215" y="135" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="13" font-weight="700" fill="#172C39" text-anchor="start">시스템</text>
+<circle cx="85" cy="320" r="13" fill="none" stroke="#172C39"/>
+<line x1="85" y1="333" x2="85" y2="375" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="61" y1="350" x2="109" y2="350" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="85" y1="375" x2="65" y2="400" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="85" y1="375" x2="105" y2="400" stroke="#5C6F7A" stroke-width="1.25"/>
+<text x="85" y="423" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="12" font-weight="700" fill="#172C39" text-anchor="middle">사용자</text>
+<ellipse cx="397.5" cy="250.0" rx="157.5" ry="40.0" fill="#EDF3F6" stroke="#24506B"/>
+<text x="397.5" y="245.0" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="13" font-weight="700" fill="#172C39" text-anchor="middle">UC07 홈 영양 현황</text>
+<text x="397.5" y="263.0" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="13" font-weight="700" fill="#172C39" text-anchor="middle">주간 섭취 그래프</text>
+<line x1="109" y1="360" x2="240" y2="250" stroke="#5C6F7A" stroke-width="1.25"/>
+<ellipse cx="907.5" cy="250.0" rx="162.5" ry="40.0" fill="#EDF3F6" stroke="#24506B"/>
+<text x="907.5" y="245.0" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="13" font-weight="700" fill="#172C39" text-anchor="middle">R09 권장량 계산</text>
+<text x="907.5" y="263.0" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="13" font-weight="700" fill="#172C39" text-anchor="middle">R14·R15 섭취량 집계</text>
+<line x1="555" y1="250" x2="745" y2="250" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<line x1="745" y1="250" x2="736.8959760788259" y2="253.91468980700108" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="745" y1="250" x2="736.8959760788259" y2="246.08531019299892" stroke="#5C6F7A" stroke-width="1.25"/>
+<text x="610" y="238" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11" font-weight="400" fill="#172C39" text-anchor="start">«include»</text>
+<ellipse cx="397.5" cy="480.0" rx="157.5" ry="40.0" fill="#EDF3F6" stroke="#24506B"/>
+<text x="397.5" y="475.0" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="13" font-weight="700" fill="#172C39" text-anchor="middle">UC08 AI 건강 피드백</text>
+<text x="397.5" y="493.0" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="13" font-weight="700" fill="#172C39" text-anchor="middle">AI 주간 상세 리포트</text>
+<line x1="109" y1="360" x2="240" y2="480" stroke="#5C6F7A" stroke-width="1.25"/>
+<ellipse cx="907.5" cy="480.0" rx="162.5" ry="40.0" fill="#EDF3F6" stroke="#24506B"/>
+<text x="907.5" y="475.0" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="13" font-weight="700" fill="#172C39" text-anchor="middle">최근 7일 기록 집계</text>
+<text x="907.5" y="493.0" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="13" font-weight="700" fill="#172C39" text-anchor="middle">캐시 조회 및 결과 표시</text>
+<line x1="555" y1="480" x2="745" y2="480" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<line x1="745" y1="480" x2="736.8959760788259" y2="483.9146898070011" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="745" y1="480" x2="736.8959760788259" y2="476.0853101929989" stroke="#5C6F7A" stroke-width="1.25"/>
+<text x="610" y="468" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11" font-weight="400" fill="#172C39" text-anchor="start">«include»</text>
+<text x="245" y="593" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="13" font-weight="400" fill="#172C39" text-anchor="start">AI 생성 조건: iOS 26 이상, 모델 사용 가능, 최근 7일 중 식단 기록 존재</text>
+<text x="245" y="622" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="12" font-weight="400" fill="#172C39" text-anchor="start">미기록일은 평균에서 제외하며, 기록 부족·생성 실패·미지원 상태를 구분한다.</text>
+<text x="245" y="651" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="12" font-weight="400" fill="#172C39" text-anchor="start">리포트의 실천 제안은 목표 체중 설정이나 목표 달성률이 아니다.</text>
+<text x="1140" y="827" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="10" font-weight="400" fill="#5C6F7A" text-anchor="start">2</text>
+</svg>

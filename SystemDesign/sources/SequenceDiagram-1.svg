@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="1000" viewBox="0 0 1400 1000">
+<rect width="100%" height="100%" fill="white"/>
+<text x="44" y="42" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="24" font-weight="700" fill="#172C39" text-anchor="start">시퀀스 다이어그램 음식 검색과 분량 선택</text>
+<text x="44" y="70" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="12" font-weight="400" fill="#5C6F7A" text-anchor="start">실제 호출 흐름을 표현한 설계  |  UI 표시 및 반환도 메시지로 표기</text>
+<rect x="10.0" y="115" width="160" height="48" fill="#EDF3F6" stroke="#AABAC4"/>
+<text x="90.0" y="145" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="700" fill="#172C39" text-anchor="middle">User</text>
+<line x1="90.0" y1="163" x2="90.0" y2="880" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<rect x="254.0" y="115" width="160" height="48" fill="#EDF3F6" stroke="#AABAC4"/>
+<text x="334.0" y="145" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="700" fill="#172C39" text-anchor="middle">FoodSearchView</text>
+<line x1="334.0" y1="163" x2="334.0" y2="880" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<rect x="498.0" y="115" width="160" height="48" fill="#EDF3F6" stroke="#AABAC4"/>
+<text x="578.0" y="145" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="700" fill="#172C39" text-anchor="middle">FoodCatalogService</text>
+<line x1="578.0" y1="163" x2="578.0" y2="880" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<rect x="742.0" y="115" width="160" height="48" fill="#EDF3F6" stroke="#AABAC4"/>
+<text x="822.0" y="145" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="700" fill="#172C39" text-anchor="middle">FoodCatalogDatabase</text>
+<line x1="822.0" y1="163" x2="822.0" y2="880" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<rect x="986.0" y="115" width="160" height="48" fill="#EDF3F6" stroke="#AABAC4"/>
+<text x="1066.0" y="145" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="700" fill="#172C39" text-anchor="middle">SQLite foods</text>
+<line x1="1066.0" y1="163" x2="1066.0" y2="880" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<rect x="1230.0" y="115" width="160" height="48" fill="#EDF3F6" stroke="#AABAC4"/>
+<text x="1310.0" y="145" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="700" fill="#172C39" text-anchor="middle">FoodQuantityView</text>
+<line x1="1310.0" y1="163" x2="1310.0" y2="880" stroke="#5C6F7A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<line x1="90.0" y1="208" x2="334.0" y2="208" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="334.0" y1="208" x2="325.8959760788259" y2="211.91468980700108" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="334.0" y1="208" x2="325.8959760788259" y2="204.08531019299892" stroke="#5C6F7A" stroke-width="1.25"/>
+<text x="98.0" y="198" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11" font-weight="400" fill="#172C39" text-anchor="start">1. 음식 추가 및 검색어 입력</text>
+<line x1="334.0" y1="261" x2="578.0" y2="261" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="578.0" y1="261" x2="569.8959760788259" y2="264.9146898070011" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="578.0" y1="261" x2="569.8959760788259" y2="257.0853101929989" stroke="#5C6F7A" stroke-width="1.25"/>
+<text x="342.0" y="251" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11" font-weight="400" fill="#172C39" text-anchor="start">2. 200ms 후 search(query:)</text>
+<line x1="578.0" y1="314" x2="822.0" y2="314" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="822.0" y1="314" x2="813.8959760788259" y2="317.9146898070011" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="822.0" y1="314" x2="813.8959760788259" y2="310.0853101929989" stroke="#5C6F7A" stroke-width="1.25"/>
+<text x="586.0" y="304" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11" font-weight="400" fill="#172C39" text-anchor="start">3. 검색 요청 전달</text>
+<line x1="822.0" y1="367" x2="1066.0" y2="367" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="1066.0" y1="367" x2="1057.895976078826" y2="370.9146898070011" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="1066.0" y1="367" x2="1057.895976078826" y2="363.0853101929989" stroke="#5C6F7A" stroke-width="1.25"/>
+<text x="830.0" y="357" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11" font-weight="400" fill="#172C39" text-anchor="start">4. 정규화·매개변수 바인딩·조회</text>
+<line x1="1066.0" y1="420" x2="822.0" y2="420" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="822.0" y1="420" x2="830.1040239211741" y2="416.0853101929989" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="822.0" y1="420" x2="830.1040239211741" y2="423.9146898070011" stroke="#5C6F7A" stroke-width="1.25"/>
+<text x="830.0" y="410" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11" font-weight="400" fill="#172C39" text-anchor="start">5. 최대 100개 행 반환</text>
+<line x1="822.0" y1="473" x2="578.0" y2="473" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="578.0" y1="473" x2="586.1040239211741" y2="469.0853101929989" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="578.0" y1="473" x2="586.1040239211741" y2="476.9146898070011" stroke="#5C6F7A" stroke-width="1.25"/>
+<text x="586.0" y="463" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11" font-weight="400" fill="#172C39" text-anchor="start">6. FoodCatalogItem 배열 반환</text>
+<line x1="578.0" y1="526" x2="334.0" y2="526" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="334.0" y1="526" x2="342.1040239211741" y2="522.0853101929989" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="334.0" y1="526" x2="342.1040239211741" y2="529.9146898070011" stroke="#5C6F7A" stroke-width="1.25"/>
+<text x="342.0" y="516" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11" font-weight="400" fill="#172C39" text-anchor="start">7. 검색 결과 반환</text>
+<line x1="334.0" y1="579" x2="90.0" y2="579" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="90.0" y1="579" x2="98.10402392117409" y2="575.0853101929989" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="90.0" y1="579" x2="98.10402392117409" y2="582.9146898070011" stroke="#5C6F7A" stroke-width="1.25"/>
+<text x="98.0" y="569" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11" font-weight="400" fill="#172C39" text-anchor="start">8. 일반 음식 / 브랜드 제품 표시</text>
+<line x1="90.0" y1="632" x2="334.0" y2="632" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="334.0" y1="632" x2="325.8959760788259" y2="635.9146898070011" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="334.0" y1="632" x2="325.8959760788259" y2="628.0853101929989" stroke="#5C6F7A" stroke-width="1.25"/>
+<text x="98.0" y="622" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11" font-weight="400" fill="#172C39" text-anchor="start">9. 음식 추가 버튼 선택</text>
+<line x1="334.0" y1="685" x2="1310.0" y2="685" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="1310.0" y1="685" x2="1301.895976078826" y2="688.9146898070011" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="1310.0" y1="685" x2="1301.895976078826" y2="681.0853101929989" stroke="#5C6F7A" stroke-width="1.25"/>
+<text x="342.0" y="675" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11" font-weight="400" fill="#172C39" text-anchor="start">10. 선택 음식으로 분량 화면 표시</text>
+<line x1="90.0" y1="738" x2="1310.0" y2="738" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="1310.0" y1="738" x2="1301.895976078826" y2="741.9146898070011" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="1310.0" y1="738" x2="1301.895976078826" y2="734.0853101929989" stroke="#5C6F7A" stroke-width="1.25"/>
+<text x="98.0" y="728" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11" font-weight="400" fill="#172C39" text-anchor="start">11. 대표 분량 또는 g/mL 입력</text>
+<line x1="1310.0" y1="791" x2="90.0" y2="791" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="90.0" y1="791" x2="98.10402392117409" y2="787.0853101929989" stroke="#5C6F7A" stroke-width="1.25"/>
+<line x1="90.0" y1="791" x2="98.10402392117409" y2="794.9146898070011" stroke="#5C6F7A" stroke-width="1.25"/>
+<text x="98.0" y="781" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11" font-weight="400" fill="#172C39" text-anchor="start">12. 입력 검증 및 영양 미리보기</text>
+<text x="44" y="929" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="11.5" font-weight="400" fill="#172C39" text-anchor="start">취소된 검색 결과는 UI에 반영하지 않는다. 대표 분량이 없으면 선택적으로 AI 참고 문구를 제공한다.</text>
+<text x="1340" y="977" font-family="NanumSquareRound, Apple SD Gothic Neo, sans-serif" font-size="10" font-weight="400" fill="#5C6F7A" text-anchor="start">1</text>
+</svg>
