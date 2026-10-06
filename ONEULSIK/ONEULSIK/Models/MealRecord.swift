@@ -10,6 +10,7 @@ final class MealRecord {
     var foodName: String = "식사"
     var servingUnit: String = "인분"
     var servingGrams: Double = 0
+    var servingMilliliters: Double = 0
     var servingCount: Double = 1
     var calories: Double
     var carbohydrateGrams: Double
@@ -24,6 +25,7 @@ final class MealRecord {
         foodName: String = "식사",
         servingUnit: String = "인분",
         servingGrams: Double = 0,
+        servingMilliliters: Double = 0,
         servingCount: Double = 1,
         calories: Double,
         carbohydrateGrams: Double,
@@ -37,6 +39,7 @@ final class MealRecord {
         self.foodName = foodName
         self.servingUnit = servingUnit
         self.servingGrams = servingGrams
+        self.servingMilliliters = servingMilliliters
         self.servingCount = servingCount
         self.calories = calories
         self.carbohydrateGrams = carbohydrateGrams
@@ -45,7 +48,7 @@ final class MealRecord {
     }
 }
 
-struct NutritionValues: Equatable, Hashable {
+nonisolated struct NutritionValues: Equatable, Hashable, Sendable {
     var calories: Double
     var carbohydrateGrams: Double
     var proteinGrams: Double
@@ -84,13 +87,15 @@ extension MealRecord {
 
     var servingDescription: String {
         let count = servingCount.formatted(
-            .number.precision(.fractionLength(servingCount.truncatingRemainder(dividingBy: 1) == 0 ? 0 : 1))
+            .number.precision(.fractionLength(0...2))
         )
-        let grams = (servingGrams * servingCount).formatted(
-            .number.precision(.fractionLength(0))
+        let amount = ((servingMilliliters > 0 ? servingMilliliters : servingGrams) * servingCount).formatted(
+            .number.precision(.fractionLength(0...2))
         )
-        guard servingGrams > 0 else { return "\(count)\(servingUnit)" }
-        return "\(count)\(servingUnit) (\(grams)g)"
+        guard servingGrams > 0 || servingMilliliters > 0 else { return "\(count)\(servingUnit)" }
+        let unit = servingMilliliters > 0 ? "mL" : "g"
+        if servingUnit == unit { return "\(amount)\(unit)" }
+        return "\(count)\(servingUnit) (\(amount)\(unit))"
     }
 
     var nutritionValues: NutritionValues {

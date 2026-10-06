@@ -35,6 +35,26 @@ final class MealRecordStore {
 
     func insert(
         food: FoodCatalogItem,
+        selection: FoodAmountSelection,
+        mealType: MealType,
+        recordedAt: Date,
+        kakaoUserID: Int64
+    ) throws {
+        guard selection.isValid, food.baseAmount > 0,
+              selection.portion == nil || (food.servingMilliliters == 0 && selection.portion == food.representativePortion)
+        else { throw FoodAmountError.invalid }
+        try insert(
+            food: selection.recordingFood(from: food), servingCount: selection.count,
+            mealType: mealType, recordedAt: recordedAt, kakaoUserID: kakaoUserID
+        )
+    }
+
+    private enum FoodAmountError: Error {
+        case invalid
+    }
+
+    func insert(
+        food: FoodCatalogItem,
         servingCount: Double,
         mealType: MealType,
         recordedAt: Date,
@@ -46,9 +66,10 @@ final class MealRecordStore {
             recordedAt: recordedAt,
             mealTypeRawValue: mealType.rawValue,
             foodID: food.id,
-            foodName: food.name,
+            foodName: food.recordedName,
             servingUnit: food.servingUnit,
             servingGrams: food.servingGrams,
+            servingMilliliters: food.servingMilliliters,
             servingCount: servingCount,
             calories: nutrition.calories,
             carbohydrateGrams: nutrition.carbohydrateGrams,
