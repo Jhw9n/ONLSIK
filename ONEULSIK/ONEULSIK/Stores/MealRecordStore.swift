@@ -84,6 +84,39 @@ final class MealRecordStore {
         try modelContext.save()
     }
 
+    func insertMeal(
+        items: [MealEntryItem],
+        mealType: MealType,
+        recordedAt: Date,
+        kakaoUserID: Int64
+    ) throws {
+        guard !items.isEmpty, items.allSatisfy(\.isValid) else { throw FoodAmountError.invalid }
+        let records = items.map { item in
+            MealRecord(
+                kakaoUserID: kakaoUserID,
+                recordedAt: recordedAt,
+                mealTypeRawValue: mealType.rawValue,
+                foodID: item.food.id,
+                foodName: item.food.recordedName,
+                servingUnit: item.food.servingUnit,
+                servingGrams: item.food.servingGrams,
+                servingMilliliters: item.food.servingMilliliters,
+                servingCount: item.count,
+                calories: item.nutrition.calories,
+                carbohydrateGrams: item.nutrition.carbohydrateGrams,
+                proteinGrams: item.nutrition.proteinGrams,
+                fatGrams: item.nutrition.fatGrams
+            )
+        }
+        do {
+            for record in records { modelContext.insert(record) }
+            try modelContext.save()
+        } catch {
+            for record in records { modelContext.delete(record) }
+            throw error
+        }
+    }
+
     static var preview: MealRecordStore {
         let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try! ModelContainer(
