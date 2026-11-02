@@ -23,11 +23,15 @@ final class MealEntryViewModel {
 
     @ObservationIgnored private let analyzer: any MealEntryAnalyzing
     @ObservationIgnored private var analysisTask: Task<Void, Never>?
+    @ObservationIgnored private var timeoutTask: Task<Void, Never>?
     @ObservationIgnored private var requestID: UUID?
+    @ObservationIgnored private var retryChoice: MealEntryChoice?
+    @ObservationIgnored private let analysisTimeout: Duration
 
-    init(mealType: MealType, analyzer: (any MealEntryAnalyzing)? = nil) {
+    init(mealType: MealType, analyzer: (any MealEntryAnalyzing)? = nil, analysisTimeout: Duration = .seconds(60)) {
         self.mealType = mealType
-        self.analyzer = analyzer ?? UnconnectedMealEntryAnalyzer()
+        self.analyzer = analyzer ?? AIMealEntryService()
+        self.analysisTimeout = analysisTimeout
     }
 
     var canSubmit: Bool {
@@ -55,38 +59,80 @@ final class MealEntryViewModel {
 
     func submit() {
         guard canSubmit else { return }
+        beginAnalysis(choice: nil)
+    }
+
+    func retry() {
+        guard case .failed = phase else { return }
+        beginAnalysis(choice: retryChoice)
+    }
+
+    private func beginAnalysis(choice: MealEntryChoice?) {
         cancelAnalysis()
+        guard text.count <= 500 else {
+            phase = .failed(MealEntryError.inputTooLong.localizedDescription)
+            return
+        }
         let currentID = UUID()
         let submittedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
         requestID = currentID
+        retryChoice = choice
         items = []
+        invalidQuantityIDs = []
         phase = .analyzing
         saveError = nil
+        timeoutTask = Task { [weak self, analysisTimeout] in
+            do { try await Task.sleep(for: analysisTimeout) } catch { return }
+            guard let self, self.requestID == currentID else { return }
+            self.analysisTask?.cancel()
+            self.analysisTask = nil
+            self.requestID = nil
+            self.phase = .failed(MealEntryError.timedOut.localizedDescription)
+        }
         analysisTask = Task { [weak self, analyzer] in
             do {
-                let result = try await analyzer.analyze(submittedText)
+                let result: MealEntryAnalysis
+                if let choice {
+                    result = try await analyzer.resolve(choice)
+                } else {
+                    result = try await analyzer.analyze(submittedText)
+                }
                 try Task.checkCancellation()
                 guard let self, self.requestID == currentID else { return }
                 switch result {
                 case .question(let question):
-                    guard !question.choices.isEmpty else { throw MealEntryError.invalidResult }
+                    guard !question.choices.isEmpty || question.clarification != nil,
+                          Set(question.choices.map(\.id)).count == question.choices.count
+                    else { throw MealEntryError.invalidResult }
                     self.phase = .question(question)
                 case .ready(let items):
                     try self.accept(items)
                 }
+                self.retryChoice = nil
+                self.finishAnalysis()
             } catch {
                 guard let self, self.requestID == currentID, !Task.isCancelled else { return }
-                self.phase = .failed(error.localizedDescription)
+                self.phase = .failed((error as? MealEntryError ?? .generationFailed).localizedDescription)
+                self.finishAnalysis()
             }
         }
     }
 
     func select(_ choice: MealEntryChoice) {
-        do {
-            try accept(choice.items)
-        } catch {
-            phase = .failed(error.localizedDescription)
-        }
+        guard case .question(let question) = phase,
+              let currentChoice = question.choices.first(where: { $0.id == choice.id }) else { return }
+        beginAnalysis(choice: currentChoice)
+    }
+
+    func answer(_ details: String) {
+        let details = details.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !details.isEmpty, details.count <= 200,
+              case .question(let question) = phase,
+              var choice = question.clarification,
+              var input = choice.continuationInput else { return }
+        input.details = details
+        choice.continuationInput = input
+        beginAnalysis(choice: choice)
     }
 
     func selectRecent(_ meal: RecentMealEntry) {
@@ -154,8 +200,18 @@ final class MealEntryViewModel {
     func cancelAnalysis() {
         analysisTask?.cancel()
         analysisTask = nil
+        timeoutTask?.cancel()
+        timeoutTask = nil
         requestID = nil
+        retryChoice = nil
         if case .analyzing = phase { phase = .idle }
+    }
+
+    private func finishAnalysis() {
+        timeoutTask?.cancel()
+        timeoutTask = nil
+        analysisTask = nil
+        requestID = nil
     }
 
     private func accept(_ result: [MealEntryItem]) throws {

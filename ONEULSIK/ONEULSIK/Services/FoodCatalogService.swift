@@ -33,6 +33,22 @@ private actor FoodCatalogDatabase {
     }
 
     func search(query: String) throws -> [FoodCatalogItem] {
+        var foods: [FoodCatalogItem] = []
+        var seen = Set<String>()
+        for term in FoodReferenceCatalog.queries(for: query) {
+            foods += try searchExact(query: term, reference: FoodReferenceCatalog.entry(for: query))
+                .filter { seen.insert($0.id).inserted }
+        }
+        if foods.isEmpty {
+            for reference in FoodReferenceCatalog.spellingCandidates(for: query) {
+                foods += try searchExact(query: reference.referenceName, reference: reference)
+                    .filter { seen.insert($0.id).inserted }
+            }
+        }
+        return Array(foods.prefix(resultLimit))
+    }
+
+    private func searchExact(query: String, reference: FoodReference?) throws -> [FoodCatalogItem] {
         try Task.checkCancellation()
         guard let url else { throw CatalogError.unavailable }
         var database: OpaquePointer?
@@ -77,14 +93,16 @@ private actor FoodCatalogDatabase {
                     ROW_NUMBER() OVER (
                         PARTITION BY \(nameKey), \(brandKey), basis_unit,
                             CASE WHEN \(isGeneralFood) THEN 0 ELSE 1 END, \(nutritionKey)
-                        ORDER BY calories, \(priority), source_date DESC, id
+                        ORDER BY CASE WHEN id = ? THEN 0 ELSE 1 END, \(priority), source_date DESC, id
                     ) AS duplicate_rank
                 FROM foods\(filter)
             )
             SELECT \(columns) FROM matches WHERE duplicate_rank = 1
             """
+        parameters.insert(reference?.referenceID ?? "", at: 0)
         if !terms.isEmpty {
-            sql += " ORDER BY display_priority, CASE WHEN search_name IN (?, ?, ?) THEN 0 WHEN search_name LIKE ? THEN 1 ELSE 2 END, CASE WHEN category = '원재료성 식품' THEN 0 ELSE 1 END, length(name), name, source_date DESC, id"
+            sql += " ORDER BY CASE WHEN id = ? THEN 0 ELSE 1 END, display_priority, CASE WHEN search_name IN (?, ?, ?) THEN 0 WHEN search_name LIKE ? THEN 1 ELSE 2 END, CASE WHEN category = '원재료성 식품' THEN 0 ELSE 1 END, length(name), name, source_date DESC, id"
+            parameters.append(reference?.referenceID ?? "")
             let fullQuery = normalized(query)
             parameters += [fullQuery, fullQuery + "생것", reversedDishName(fullQuery) ?? fullQuery, "\(fullQuery)%"]
         } else {

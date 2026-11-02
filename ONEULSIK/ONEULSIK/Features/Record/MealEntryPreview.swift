@@ -90,7 +90,7 @@ private enum MealEntryPreviewData {
     MealEntryView(previewModel: MealEntryPreviewData.model(empty: true))
 }
 
-#Preview("식사 입력 · 연결 전") {
-    MealEntryView(previewModel: MealEntryPreviewData.model(text: "김밥", phase: .failed(MealEntryError.notConnected.localizedDescription)))
+#Preview("식사 입력 · 분석 불가") {
+    MealEntryView(previewModel: MealEntryPreviewData.model(text: "김밥", phase: .failed("Apple Intelligence를 사용할 수 없어요. 기기 설정을 확인해주세요.")))
 }
 #endif

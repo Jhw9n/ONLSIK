@@ -6,6 +6,7 @@ struct FoodSearchView: View {
     let recordedAt: Date
     let mealRecordStore: MealRecordStore
     let onSaved: () -> Void
+    var availabilityMessage: String? = nil
 
     @Environment(\.dismiss) private var dismiss
     @State private var query = ""
@@ -30,6 +31,15 @@ struct FoodSearchView: View {
     var body: some View {
         VStack(spacing: 0) {
             searchHeader
+
+            if let availabilityMessage {
+                Text(availabilityMessage)
+                    .font(.pretendardMedium(12))
+                    .foregroundStyle(Color.gray04)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+            }
 
             ScrollView {
                 LazyVStack(spacing: 0) {

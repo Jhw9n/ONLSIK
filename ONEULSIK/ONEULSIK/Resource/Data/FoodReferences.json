@@ -1,0 +1,450 @@
+[
+  {
+    "name": "쌀밥",
+    "aliases": [
+      "밥",
+      "공기밥",
+      "공깃밥",
+      "흰밥",
+      "흰쌀밥",
+      "백미밥"
+    ],
+    "referenceID": "D301-022000000-0001",
+    "referenceName": "쌀밥",
+    "amountUnit": "g",
+    "source": "식품의약품안전처",
+    "sourceDate": "2026-08-28"
+  },
+  {
+    "name": "잡곡밥",
+    "aliases": [],
+    "referenceID": "D101-032000000-0001",
+    "referenceName": "잡곡밥",
+    "amountUnit": "g",
+    "source": "식품의약품안전처",
+    "sourceDate": "2026-08-28"
+  },
+  {
+    "name": "현미밥",
+    "aliases": [],
+    "referenceID": "D101-050000000-0001",
+    "referenceName": "현미밥",
+    "amountUnit": "g",
+    "source": "식품의약품안전처",
+    "sourceDate": "2026-08-28"
+  },
+  {
+    "name": "순두부찌개",
+    "aliases": [
+      "순찌"
+    ],
+    "referenceID": "D506-291320000-0001",
+    "referenceName": "순두부찌개 모듬",
+    "amountUnit": "mL",
+    "source": "식품의약품안전처",
+    "sourceDate": "2026-08-28"
+  },
+  {
+    "name": "부대찌개",
+    "aliases": [
+      "부찌"
+    ],
+    "referenceID": "D106-284000000-0001",
+    "referenceName": "부대찌개",
+    "amountUnit": "g",
+    "source": "식품의약품안전처",
+    "sourceDate": "2026-08-28"
+  },
+  {
+    "name": "된장찌개",
+    "aliases": [
+      "된찌"
+    ],
+    "referenceID": "D106-275000000-0001",
+    "referenceName": "된장찌개",
+    "amountUnit": "g",
+    "source": "식품의약품안전처",
+    "sourceDate": "2026-08-28"
+  },
+  {
+    "name": "김치찌개",
+    "aliases": [
+      "김찌"
+    ],
+    "referenceID": "D306-266000000-0001",
+    "referenceName": "김치찌개",
+    "amountUnit": "g",
+    "source": "식품의약품안전처",
+    "sourceDate": "2026-08-28"
+  },
+  {
+    "name": "참치김치찌개",
+    "aliases": [
+      "김치찌개 참치"
+    ],
+    "referenceID": "D106-266250000-0001",
+    "referenceName": "김치찌개 참치",
+    "amountUnit": "g",
+    "source": "식품의약품안전처",
+    "sourceDate": "2026-08-28"
+  },
+  {
+    "name": "돼지고기김치찌개",
+    "aliases": [
+      "돼지김치찌개",
+      "김치찌개 돼지고기"
+    ],
+    "referenceID": "D106-266100000-0001",
+    "referenceName": "김치찌개 돼지고기",
+    "amountUnit": "g",
+    "source": "식품의약품안전처",
+    "sourceDate": "2026-08-28"
+  },
+  {
+    "name": "해물순두부찌개",
+    "aliases": [
+      "순두부찌개 해물"
+    ],
+    "referenceID": "D506-291270000-0001",
+    "referenceName": "순두부찌개 해물",
+    "amountUnit": "mL",
+    "source": "식품의약품안전처",
+    "sourceDate": "2026-08-28"
+  },
+  {
+    "name": "제육볶음",
+    "aliases": [
+      "제육"
+    ],
+    "referenceID": "D110-465000000-0001",
+    "referenceName": "돼지고기볶음(제육볶음)",
+    "amountUnit": "g",
+    "source": "식품의약품안전처",
+    "sourceDate": "2026-08-28"
+  },
+  {
+    "name": "소불고기",
+    "aliases": [
+      "소고기불고기",
+      "불고기 소고기"
+    ],
+    "referenceID": "D108-386000000-0001",
+    "referenceName": "소불고기",
+    "amountUnit": "g",
+    "source": "식품의약품안전처",
+    "sourceDate": "2026-08-28"
+  },
+  {
+    "name": "닭볶음탕",
+    "aliases": [
+      "닭도리탕"
+    ],
+    "referenceID": "D111-514000000-0001",
+    "referenceName": "닭볶음탕",
+    "amountUnit": "g",
+    "source": "식품의약품안전처",
+    "sourceDate": "2026-08-28"
+  },
+  {
+    "name": "된장국",
+    "aliases": [],
+    "referenceID": "D705-216120000-0001",
+    "referenceName": "된장국 두부",
+    "amountUnit": "mL",
+    "source": "식품의약품안전처",
+    "sourceDate": "2026-08-28"
+  },
+  {
+    "name": "미역국",
+    "aliases": [],
+    "referenceID": "D105-223000000-0001",
+    "referenceName": "미역국",
+    "amountUnit": "g",
+    "source": "식품의약품안전처",
+    "sourceDate": "2026-08-28"
+  },
+  {
+    "name": "소고기미역국",
+    "aliases": [
+      "미역국 소고기"
+    ],
+    "referenceID": "D105-223240000-0001",
+    "referenceName": "미역국 소고기",
+    "amountUnit": "g",
+    "source": "식품의약품안전처",
+    "sourceDate": "2026-08-28"
+  },
+  {
+    "name": "콩나물국밥",
+    "aliases": [
+      "콩나물 국밥"
+    ],
+    "referenceID": "D401-046000000-0001",
+    "referenceName": "콩나물국밥",
+    "amountUnit": "mL",
+    "source": "식품의약품안전처",
+    "sourceDate": "2026-08-28"
+  },
+  {
+    "name": "갈비탕",
+    "aliases": [],
+    "referenceID": "D105-199000000-0001",
+    "referenceName": "갈비탕",
+    "amountUnit": "g",
+    "source": "식품의약품안전처",
+    "sourceDate": "2026-08-28"
+  },
+  {
+    "name": "설렁탕",
+    "aliases": [],
+    "referenceID": "D105-231000000-0001",
+    "referenceName": "설렁탕",
+    "amountUnit": "g",
+    "source": "식품의약품안전처",
+    "sourceDate": "2026-08-28"
+  },
+  {
+    "name": "감자탕",
+    "aliases": [],
+    "referenceID": "D106-260000000-0001",
+    "referenceName": "감자탕",
+    "amountUnit": "g",
+    "source": "식품의약품안전처",
+    "sourceDate": "2026-08-28"
+  },
+  {
+    "name": "김밥",
+    "aliases": [],
+    "referenceID": "D101-007000000-0001",
+    "referenceName": "김밥",
+    "amountUnit": "g",
+    "source": "식품의약품안전처",
+    "sourceDate": "2026-08-28"
+  },
+  {
+    "name": "참치김밥",
+    "aliases": [
+      "참김",
+      "김밥 참치"
+    ],
+    "referenceID": "D101-007450000-0001",
+    "referenceName": "김밥 참치",
+    "amountUnit": "g",
+    "source": "식품의약품안전처",
+    "sourceDate": "2026-08-28"
+  },
+  {
+    "name": "치즈김밥",
+    "aliases": [
+      "김밥 치즈"
+    ],
+    "referenceID": "D101-007490000-0001",
+    "referenceName": "김밥 치즈",
+    "amountUnit": "g",
+    "source": "식품의약품안전처",
+    "sourceDate": "2026-08-28"
+  },
+  {
+    "name": "돈가스",
+    "aliases": [
+      "돈까스"
+    ],
+    "referenceID": "D312-550000000-0002",
+    "referenceName": "돈가스",
+    "amountUnit": "g",
+    "source": "식품의약품안전처",
+    "sourceDate": "2026-08-28"
+  },
+  {
+    "name": "치즈돈가스",
+    "aliases": [
+      "치즈돈까스",
+      "돈가스 치즈"
+    ],
+    "referenceID": "D312-550140000-0001",
+    "referenceName": "돈가스 치즈",
+    "amountUnit": "g",
+    "source": "식품의약품안전처",
+    "sourceDate": "2026-08-28"
+  },
+  {
+    "name": "라면",
+    "aliases": [],
+    "referenceID": "D103-148000000-0001",
+    "referenceName": "라면",
+    "amountUnit": "g",
+    "source": "식품의약품안전처",
+    "sourceDate": "2026-08-28"
+  },
+  {
+    "name": "떡볶이",
+    "aliases": [],
+    "referenceID": "D110-467000000-0001",
+    "referenceName": "떡볶이",
+    "amountUnit": "g",
+    "source": "식품의약품안전처",
+    "sourceDate": "2026-08-28"
+  },
+  {
+    "name": "라볶이",
+    "aliases": [],
+    "referenceID": "D110-468000000-0001",
+    "referenceName": "라볶이",
+    "amountUnit": "g",
+    "source": "식품의약품안전처",
+    "sourceDate": "2026-08-28"
+  },
+  {
+    "name": "비빔밥",
+    "aliases": [],
+    "referenceID": "D101-018000000-0001",
+    "referenceName": "비빔밥",
+    "amountUnit": "g",
+    "source": "식품의약품안전처",
+    "sourceDate": "2026-08-28"
+  },
+  {
+    "name": "짜장면",
+    "aliases": [
+      "자장면"
+    ],
+    "referenceID": "D403-197000000-0001",
+    "referenceName": "짜장면",
+    "amountUnit": "mL",
+    "source": "식품의약품안전처",
+    "sourceDate": "2026-08-28"
+  },
+  {
+    "name": "짬뽕",
+    "aliases": [],
+    "referenceID": "D103-172000000-0001",
+    "referenceName": "짬뽕",
+    "amountUnit": "g",
+    "source": "식품의약품안전처",
+    "sourceDate": "2026-08-28"
+  },
+  {
+    "name": "우동",
+    "aliases": [],
+    "referenceID": "D403-164000000-0001",
+    "referenceName": "우동",
+    "amountUnit": "mL",
+    "source": "식품의약품안전처",
+    "sourceDate": "2026-08-28"
+  },
+  {
+    "name": "잔치국수",
+    "aliases": [
+      "국수 잔치국수"
+    ],
+    "referenceID": "D103-142410000-0001",
+    "referenceName": "국수 잔치국수",
+    "amountUnit": "g",
+    "source": "식품의약품안전처",
+    "sourceDate": "2026-08-28"
+  },
+  {
+    "name": "토마토스파게티",
+    "aliases": [
+      "토마토파스타",
+      "스파게티 토마토소스"
+    ],
+    "referenceID": "D303-161490000-0001",
+    "referenceName": "스파게티 토마토소스",
+    "amountUnit": "g",
+    "source": "식품의약품안전처",
+    "sourceDate": "2026-08-28"
+  },
+  {
+    "name": "크림스파게티",
+    "aliases": [
+      "크림파스타",
+      "스파게티 크림소스"
+    ],
+    "referenceID": "D303-161480000-0001",
+    "referenceName": "스파게티 크림소스",
+    "amountUnit": "g",
+    "source": "식품의약품안전처",
+    "sourceDate": "2026-08-28"
+  },
+  {
+    "name": "로제스파게티",
+    "aliases": [
+      "로제파스타",
+      "스파게티 로제소스"
+    ],
+    "referenceID": "D303-161150000-0001",
+    "referenceName": "스파게티 로제소스",
+    "amountUnit": "g",
+    "source": "식품의약품안전처",
+    "sourceDate": "2026-08-28"
+  },
+  {
+    "name": "배추김치",
+    "aliases": [],
+    "referenceID": "D315-670000000-0001",
+    "referenceName": "배추김치",
+    "amountUnit": "g",
+    "source": "농촌진흥청(국가표준식품성분표)",
+    "sourceDate": "2026-08-28"
+  },
+  {
+    "name": "깍두기",
+    "aliases": [],
+    "referenceID": "D115-665000000-0001",
+    "referenceName": "깍두기",
+    "amountUnit": "g",
+    "source": "식품의약품안전처",
+    "sourceDate": "2026-08-28"
+  },
+  {
+    "name": "단무지",
+    "aliases": [],
+    "referenceID": "D117-694000000-0001",
+    "referenceName": "단무지",
+    "amountUnit": "g",
+    "source": "식품의약품안전처",
+    "sourceDate": "2026-08-28"
+  },
+  {
+    "name": "미소된장국",
+    "aliases": ["미소국"],
+    "referenceID": "D305-222000000-0001",
+    "referenceName": "미소된장국",
+    "amountUnit": "g",
+    "source": "식품의약품안전처",
+    "sourceDate": "2026-08-28",
+    "estimatedPortions": {"인분": 200, "그릇": 200}
+  },
+  {
+    "name": "고등어구이",
+    "aliases": [],
+    "referenceID": "D108-357110000-0001",
+    "referenceName": "고등어구이 석쇠",
+    "amountUnit": "g",
+    "source": "식품의약품안전처",
+    "sourceDate": "2026-08-28",
+    "estimatedPortions": {"인분": 250, "접시": 250}
+  },
+  {
+    "name": "회덮밥",
+    "aliases": [],
+    "referenceID": "D301-051000000-0001",
+    "referenceName": "회덮밥",
+    "amountUnit": "g",
+    "source": "식품의약품안전처",
+    "sourceDate": "2026-08-28"
+  },
+  {
+    "name": "아메리카노",
+    "aliases": [
+      "아아",
+      "아이스아메리카노"
+    ],
+    "referenceID": "D320-748080000-0001",
+    "referenceName": "커피 아메리카노",
+    "amountUnit": "g",
+    "source": "식품의약품안전처",
+    "sourceDate": "2026-08-28"
+  }
+]

@@ -23,7 +23,7 @@ struct MealEntryQuantityControl: View {
     var body: some View {
         VStack(spacing: 8) {
             GeometryReader { geometry in
-                let buttonWidth = min(104, geometry.size.width * 0.3)
+                let buttonWidth = min(100, geometry.size.width / 3)
                 HStack(spacing: 0) {
                     stepButton("minus", width: buttonWidth, enabled: (parsedQuantity ?? 0) > 0.1) {
                         adjust(by: -item.quantityStep)
@@ -35,16 +35,17 @@ struct MealEntryQuantityControl: View {
                     .accessibilityLabel("\(item.food.name) 수량 직접 입력, 단위 \(item.quantityUnit)")
                     .font(.pretendardSemiBold(16))
                     .foregroundStyle(Color.black01)
-                    .frame(maxWidth: .infinity, minHeight: 40)
+                    .frame(maxWidth: .infinity, minHeight: 38)
                     .contentShape(Rectangle())
                     .onTapGesture { isEditing = true }
+                    .mealEntryInputRegion()
                     stepButton("plus", width: buttonWidth, enabled: (parsedQuantity ?? 10000) < 10000) {
                         adjust(by: item.quantityStep)
                     }
                 }
                 .background(Color.gray02.opacity(0.4), in: Capsule())
             }
-            .frame(height: 40)
+            .frame(height: 38)
 
             if parsedQuantity == nil {
                 Text("0.1~10,000 사이의 양을 입력해주세요")
@@ -68,7 +69,7 @@ struct MealEntryQuantityControl: View {
             Image(symbol == "minus" ? "quantityMinus" : "quantityPlus")
                 .renderingMode(.original)
                 .frame(width: 18, height: 18)
-                .frame(width: width, height: 40)
+                .frame(width: width, height: 38)
                 .background(enabled ? Color("quantityButtonGray") : Color.gray03, in: RoundedRectangle(cornerRadius: 32))
         }
         .buttonStyle(.plain)

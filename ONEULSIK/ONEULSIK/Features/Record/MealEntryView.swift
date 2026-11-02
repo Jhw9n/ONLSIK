@@ -10,6 +10,7 @@ struct MealEntryView: View {
     @State private var viewModel: MealEntryViewModel
     @State private var showsFoodSearch = false
     @State private var savedThroughSearch = false
+    @State private var footerHeight: CGFloat = 0
     @FocusState private var isInputFocused: Bool
     private let isPreview: Bool
 
@@ -42,30 +43,26 @@ struct MealEntryView: View {
     private var isInputActive: Bool { isInputFocused || !viewModel.text.isEmpty }
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    mealSelector
-                    introduction
-                        .padding(.top, 24)
-                    inputCard
-                        .padding(.top, 16)
-                    resultSection
-                        .padding(.top, 30)
+        ZStack(alignment: .bottom) {
+            mealContent
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    Color.clear.frame(height: footerHeight)
                 }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 24)
+            VStack(spacing: 0) {
+                Spacer(minLength: 0)
+                recordingFooter
+                    .onGeometryChange(for: CGFloat.self) { geometry in
+                        geometry.size.height
+                    } action: { height in
+                        footerHeight = height
+                    }
             }
-            .scrollDismissesKeyboard(.interactively)
-            .scrollIndicators(.hidden)
+            .ignoresSafeArea(.keyboard, edges: .bottom)
         }
         .background(Color.gray01.ignoresSafeArea())
+        .dismissMealEntryKeyboardOnOutsideTap()
         .foregroundStyle(Color.black01)
         .preferredColorScheme(.light)
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            recordingFooter
-        }
         .task {
             guard !isPreview else { return }
             loadRecentMeals()
@@ -87,6 +84,27 @@ struct MealEntryView: View {
             Button("확인", role: .cancel) { viewModel.saveError = nil }
         } message: {
             Text(viewModel.saveError ?? "")
+        }
+    }
+
+    private var mealContent: some View {
+        VStack(spacing: 0) {
+            header
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    mealSelector
+                    introduction
+                        .padding(.top, 24)
+                    inputCard
+                        .padding(.top, 16)
+                    resultSection
+                        .padding(.top, 30)
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 24)
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .scrollIndicators(.hidden)
         }
     }
 
@@ -244,6 +262,7 @@ struct MealEntryView: View {
         .compositingGroup()
         .shadow(color: Color.green03.opacity(isInputActive ? 0.12 : 0), radius: 12, y: 4)
         .animation(.easeOut(duration: 0.2), value: isInputActive)
+        .mealEntryInputRegion()
     }
 
     @ViewBuilder
@@ -269,7 +288,7 @@ struct MealEntryView: View {
                     .font(.pretendardMedium(14))
                     .fixedSize(horizontal: false, vertical: true)
                 HStack(spacing: 20) {
-                    Button("다시 시도") { viewModel.submit() }
+                    Button("다시 시도") { viewModel.retry() }
                     if !isPreview {
                         Button("음식 직접 검색") {
                             isInputFocused = false
@@ -362,6 +381,10 @@ struct MealEntryView: View {
     private func questionCard(_ question: MealEntryQuestion) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             sectionHeading(question.title, subtitle: question.explanation)
+            if question.clarification != nil {
+                MealEntryClarificationInput(placeholder: question.inputPlaceholder, onSubmit: viewModel.answer)
+                    .id(question.id)
+            }
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                 ForEach(question.choices) { choice in
                     Button(choice.title) { viewModel.select(choice) }
@@ -431,5 +454,46 @@ struct MealEntryView: View {
         guard savedThroughSearch else { return }
         onSaved()
         dismiss()
+    }
+}
+
+private struct MealEntryClarificationInput: View {
+    let placeholder: String
+    let onSubmit: (String) -> Void
+    @State private var details = ""
+    @FocusState private var isFocused: Bool
+
+    private var canSubmit: Bool {
+        !details.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && details.count <= 200
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            TextField(placeholder, text: $details, axis: .vertical)
+                .font(.pretendardMedium(14))
+                .lineLimit(1...3)
+                .focused($isFocused)
+                .padding(16)
+                .background(Color.white, in: RoundedRectangle(cornerRadius: 12))
+                .accessibilityLabel("음식 추가 설명")
+                .mealEntryInputRegion()
+            if details.count > 200 {
+                Text("200자 이내로 적어주세요")
+                    .font(.pretendardMedium(12))
+                    .foregroundStyle(Color.red01)
+            }
+            Button {
+                isFocused = false
+                onSubmit(details)
+            } label: {
+                Text("확인")
+                    .font(.pretendardSemiBold(14))
+                    .foregroundStyle(canSubmit ? Color.white : Color.gray04)
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .background(canSubmit ? Color.green03 : Color.gray02, in: Capsule())
+            }
+            .buttonStyle(.plain)
+            .disabled(!canSubmit)
+        }
     }
 }

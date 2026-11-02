@@ -12,6 +12,9 @@ final class MealRecord {
     var servingGrams: Double = 0
     var servingMilliliters: Double = 0
     var servingCount: Double = 1
+    var portionBasisRawValue: String = ""
+    var nutritionSource: String = ""
+    var nutritionBasisRawValue: String = ""
     var calories: Double
     var carbohydrateGrams: Double
     var proteinGrams: Double

@@ -92,7 +92,7 @@ final class MealRecordStore {
     ) throws {
         guard !items.isEmpty, items.allSatisfy(\.isValid) else { throw FoodAmountError.invalid }
         let records = items.map { item in
-            MealRecord(
+            let record = MealRecord(
                 kakaoUserID: kakaoUserID,
                 recordedAt: recordedAt,
                 mealTypeRawValue: mealType.rawValue,
@@ -107,6 +107,10 @@ final class MealRecordStore {
                 proteinGrams: item.nutrition.proteinGrams,
                 fatGrams: item.nutrition.fatGrams
             )
+            record.portionBasisRawValue = item.portionBasis.rawValue
+            record.nutritionSource = item.food.source
+            record.nutritionBasisRawValue = item.nutritionBasis.rawValue
+            return record
         }
         do {
             for record in records { modelContext.insert(record) }
