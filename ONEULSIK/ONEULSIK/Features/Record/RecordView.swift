@@ -509,7 +509,7 @@ private struct RecordViewPreview: View {
         context.insert(profile)
 
         let store = MealRecordStore(modelContext: context)
-        let food = FoodCatalogService().foods[0]
+        let food = FoodCatalogService.previewFood
         try? store.insert(
             food: food,
             servingCount: 1,

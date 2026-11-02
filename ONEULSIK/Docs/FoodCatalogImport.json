@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "file": "oneulsik-food-dishes.xlsx",
+      "sha256": "1ef3551f9a1d0ee87891d6306fa22bbd6a7ffcc90f2c70a4a184dbfe3fce6ea6",
+      "counts": {
+        "input": 19617,
+        "accepted": 6188,
+        "missing_or_invalid_nutrition": 13424,
+        "implausible_nutrition": 5
+      }
+    },
+    {
+      "file": "oneulsik-food-products.xlsx",
+      "sha256": "04f8fb4e82220a911aa4d583539da1b412138a430d76482a1e7a80f7b930dd93",
+      "counts": {
+        "input": 323197,
+        "accepted": 323119,
+        "implausible_nutrition": 63,
+        "missing_or_invalid_nutrition": 15
+      }
+    },
+    {
+      "file": "oneulsik-food-rda.xlsx",
+      "sha256": "271cc431f2991b3c0c049ec6e05fb59a040319e984ab71468184530de61dec50",
+      "counts": {
+        "input": 3366,
+        "accepted": 3311,
+        "missing_or_invalid_nutrition": 55
+      }
+    }
+  ],
+  "foodCount": 325705,
+  "exactDuplicateCount": 6913,
+  "categories": {
+    "가공식품": 316934,
+    "원재료성 식품": 3221,
+    "음식": 5550
+  },
+  "units": {
+    "g": 282212,
+    "mL": 43493
+  },
+  "popularFoodMatches": {
+    "쌀밥": 95,
+    "김치찌개": 393,
+    "된장찌개": 398,
+    "비빔밥": 804,
+    "김밥": 3071,
+    "라면": 948,
+    "떡볶이": 2841,
+    "짜장면": 118,
+    "삼겹살": 246,
+    "닭가슴살": 4178,
+    "사과": 2978,
+    "바나나": 1714,
+    "우유": 2774,
+    "아메리카노": 405
+  }
+}

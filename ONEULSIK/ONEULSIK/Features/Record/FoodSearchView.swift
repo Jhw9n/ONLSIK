@@ -11,9 +11,21 @@ struct FoodSearchView: View {
     @State private var query = ""
     @State private var selectedFood: FoodCatalogItem?
     @State private var shouldDismissAfterSaving = false
+    @State private var searchResults: [FoodCatalogItem] = []
+    @State private var isSearching = true
+    @State private var searchFailed = false
+    @State private var showsAllProducts = false
     @FocusState private var isSearchFocused: Bool
 
     private let catalog = FoodCatalogService()
+
+    private var generalFoods: [FoodCatalogItem] {
+        searchResults.filter { $0.brand.isEmpty && $0.category != "가공식품" }
+    }
+
+    private var products: [FoodCatalogItem] {
+        searchResults.filter { !$0.brand.isEmpty || $0.category == "가공식품" }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -21,8 +33,48 @@ struct FoodSearchView: View {
 
             ScrollView {
                 LazyVStack(spacing: 0) {
-                    ForEach(searchResults) { food in
+                    if isSearching {
+                        ProgressView()
+                            .padding(.top, 32)
+                    } else if searchFailed {
+                        Text("음식 정보를 불러오지 못했어요. 잠시 후 다시 검색해주세요.")
+                            .font(.pretendardMedium(14))
+                            .foregroundStyle(Color.gray04)
+                            .padding(.top, 32)
+                    } else if searchResults.isEmpty {
+                        Text("검색 결과가 없어요. 다른 이름으로 검색해보세요.")
+                            .font(.pretendardMedium(14))
+                            .foregroundStyle(Color.gray04)
+                            .padding(.top, 32)
+                    }
+
+                    if !generalFoods.isEmpty && !products.isEmpty {
+                        sectionTitle("일반 음식")
+                    }
+                    ForEach(generalFoods) { food in
                         foodRow(food)
+                    }
+
+                    if !products.isEmpty {
+                        sectionTitle("브랜드·제품 음식")
+                        ForEach(showsAllProducts || generalFoods.isEmpty ? products : Array(products.prefix(5))) { food in
+                            foodRow(food)
+                        }
+                        if !showsAllProducts && !generalFoods.isEmpty && products.count > 5 {
+                            Button("브랜드·제품 음식 더 보기 (\(products.count - 5)개)") {
+                                showsAllProducts = true
+                            }
+                            .font(.pretendardMedium(14))
+                            .foregroundStyle(Color.green03)
+                            .padding(.vertical, 16)
+                        }
+                    }
+
+                    if searchResults.count == 100 {
+                        Text("상위 100개 결과예요. 음식명이나 브랜드를 더 입력해보세요.")
+                            .font(.pretendardMedium(12))
+                            .foregroundStyle(Color.gray04)
+                            .padding(.vertical, 20)
                     }
                 }
                 .padding(.horizontal, 16)
@@ -31,20 +83,21 @@ struct FoodSearchView: View {
         }
         .background(Color.gray01)
         .preferredColorScheme(.light)
-        .sheet(item: $selectedFood, onDismiss: finishQuantitySelection) { food in
-            FoodQuantityView(
+        .task(id: query) {
+            await updateSearchResults()
+        }
+        .fullScreenCover(item: $selectedFood, onDismiss: finishQuantitySelection) { food in
+            FoodQuantityPresentation(
                 food: food,
                 onCancel: {
                     shouldDismissAfterSaving = false
                     selectedFood = nil
                 },
-                onComplete: { servingCount in
-                    save(food: food, servingCount: servingCount)
+                onComplete: { selection in
+                    save(food: food, selection: selection)
                 }
             )
-            .presentationDetents([.height(262)])
-            .presentationDragIndicator(.hidden)
-            .presentationCornerRadius(20)
+            .presentationBackground(.clear)
         }
     }
 
@@ -55,7 +108,7 @@ struct FoodSearchView: View {
                     .font(.system(size: 18, weight: .regular))
                     .foregroundStyle(Color.gray03)
 
-                TextField("음식 검색", text: $query)
+                TextField("음식·브랜드 검색", text: $query)
                     .font(.pretendardMedium(16))
                     .foregroundStyle(Color.black01)
                     .focused($isSearchFocused)
@@ -86,18 +139,29 @@ struct FoodSearchView: View {
             VStack(alignment: .leading, spacing: 4) {
                 highlightedName(food.name)
                     .font(.pretendardMedium(16))
+                    .lineLimit(2)
 
-                Text(food.servingDescription(for: 1))
+                if !food.brand.isEmpty {
+                    Text(food.brand)
+                        .font(.pretendardMedium(11))
+                        .foregroundStyle(Color.gray04)
+                        .lineLimit(1)
+                }
+
+                Text(food.selectionDescription)
                     .font(.pretendardMedium(12))
                     .foregroundStyle(Color.gray03)
+
             }
 
             Spacer()
 
-            Text(food.nutrition.calories, format: .number.precision(.fractionLength(0)))
-                .font(.pretendardMedium(16))
-            + Text("kcal")
-                .font(.pretendardMedium(16))
+            (
+                Text(food.nutrition(for: (food.representativePortion?.grams ?? food.baseAmount) / food.baseAmount).calories, format: .number.precision(.fractionLength(0)))
+                + Text("kcal")
+            )
+            .font(.pretendardMedium(16))
+            .fixedSize()
 
             Button {
                 selectedFood = food
@@ -113,12 +177,22 @@ struct FoodSearchView: View {
             .accessibilityLabel("\(food.name) 추가")
         }
         .foregroundStyle(Color.black01)
-        .frame(height: 77)
+        .padding(.vertical, 12)
+        .frame(minHeight: 77)
         .overlay(alignment: .bottom) {
             Rectangle()
                 .fill(Color.gray02.opacity(0.7))
                 .frame(height: 1)
         }
+    }
+
+    private func sectionTitle(_ title: String) -> some View {
+        Text(title)
+            .font(.pretendardSemiBold(13))
+            .foregroundStyle(Color.gray04)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, 20)
+            .padding(.bottom, 4)
     }
 
     private func highlightedName(_ name: String) -> Text {
@@ -134,15 +208,32 @@ struct FoodSearchView: View {
             + Text(String(name[range.upperBound...])).foregroundColor(Color.black01)
     }
 
-    private var searchResults: [FoodCatalogItem] {
-        catalog.search(query: query)
+    private func updateSearchResults() async {
+        isSearching = true
+        searchFailed = false
+        searchResults = []
+        showsAllProducts = false
+        do {
+            try await Task.sleep(for: .milliseconds(200))
+            try Task.checkCancellation()
+            let results = try await catalog.search(query: query)
+            try Task.checkCancellation()
+            searchResults = results
+            isSearching = false
+        } catch is CancellationError {
+            return
+        } catch {
+            guard !Task.isCancelled else { return }
+            searchFailed = true
+            isSearching = false
+        }
     }
 
-    private func save(food: FoodCatalogItem, servingCount: Double) {
+    private func save(food: FoodCatalogItem, selection: FoodAmountSelection) {
         do {
             try mealRecordStore.insert(
                 food: food,
-                servingCount: servingCount,
+                selection: selection,
                 mealType: mealType,
                 recordedAt: recordedAt,
                 kakaoUserID: profile.kakaoUserID
