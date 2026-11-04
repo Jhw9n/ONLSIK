@@ -108,6 +108,11 @@ extension MealFoodInterpreting {
 @MainActor
 protocol MealFoodSearching {
     func search(query: String) async throws -> [FoodCatalogItem]
+    func food(id: String) async throws -> FoodCatalogItem?
+}
+
+extension MealFoodSearching {
+    func food(id: String) async throws -> FoodCatalogItem? { nil }
 }
 
 extension FoodCatalogService: MealFoodSearching {}
@@ -122,6 +127,10 @@ final class AIMealEntryService: MealEntryAnalyzing {
     }
 
     func analyze(_ text: String) async throws -> MealEntryAnalysis {
+        try await MealPerformance.measure("analyze") { try await analyzeMeal(text) }
+    }
+
+    private func analyzeMeal(_ text: String) async throws -> MealEntryAnalysis {
         let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { throw MealEntryError.invalidResult }
         guard text.count <= 500 else { throw MealEntryError.inputTooLong }
@@ -149,12 +158,16 @@ final class AIMealEntryService: MealEntryAnalyzing {
     }
 
     func resolve(_ choice: MealEntryChoice) async throws -> MealEntryAnalysis {
+        try await MealPerformance.measure("clarify") { try await resolveChoice(choice) }
+    }
+
+    private func resolveChoice(_ choice: MealEntryChoice) async throws -> MealEntryAnalysis {
         if let input = choice.continuationInput {
             guard input.isValid, !input.details.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
                 throw MealEntryError.invalidResult
             }
             if MealInputGrounding.setMenuName(in: input.name) != nil {
-                return try await analyze(input.details)
+                return try await analyzeMeal(input.details)
             }
             if isUnspecified(input.name) {
                 let generated = try await interpreter.foods(in: MealFoodNames.extractionText(input.details))
@@ -196,6 +209,15 @@ final class AIMealEntryService: MealEntryAnalyzing {
             let remaining = Array(inputs.dropFirst(index + 1))
             if isUnspecified(input.name) {
                 return try clarification(for: input, question: "어떤 반찬을 드셨나요?", items: items, remaining: remaining)
+            }
+            if input.brand.isEmpty, input.details.isEmpty,
+               let reference = FoodReferenceCatalog.entry(for: input.name),
+               let food = try await catalog.food(id: reference.referenceID) {
+                try Task.checkCancellation()
+                if reference.matches(food), candidates(from: [food], input: input).first != nil {
+                    items.append(try await makeItem(MealFoodSelection(input: input, food: food, isSimilar: normalized(food.name) != normalized(input.name))))
+                    continue
+                }
             }
             let foodName = input.brand.isEmpty ? input.name : input.name.replacingOccurrences(of: input.brand, with: "")
             let query = searchName(foodName)

@@ -7,7 +7,15 @@ struct FoodCatalogService {
     )
 
     func search(query: String) async throws -> [FoodCatalogItem] {
-        try await Self.database.search(query: query)
+        let span = MealPerformance.begin("db.search")
+        defer { span?.finish() }
+        return try await Self.database.search(query: query)
+    }
+
+    func food(id: String) async throws -> FoodCatalogItem? {
+        let span = MealPerformance.begin("db.lookup")
+        defer { span?.finish() }
+        return try await Self.database.food(id: id)
     }
 
     static let previewFood = FoodCatalogItem(
@@ -27,12 +35,20 @@ struct FoodCatalogService {
 private actor FoodCatalogDatabase {
     private let url: URL?
     private let resultLimit = 100
+    private let cacheLimit = 64
+    private var connection: CatalogConnection?
+    private var cache: [String: [FoodCatalogItem]] = [:]
+    private var cacheOrder: [String] = []
+    private let columns = "id, name, brand, basis_unit, calories, carbohydrates, protein, fat, source, source_date, category"
 
     init(url: URL?) {
         self.url = url
     }
 
     func search(query: String) throws -> [FoodCatalogItem] {
+        try Task.checkCancellation()
+        let key = "search:" + query
+        if let cached = cachedFoods(for: key) { return cached }
         var foods: [FoodCatalogItem] = []
         var seen = Set<String>()
         for term in FoodReferenceCatalog.queries(for: query) {
@@ -45,18 +61,41 @@ private actor FoodCatalogDatabase {
                     .filter { seen.insert($0.id).inserted }
             }
         }
-        return Array(foods.prefix(resultLimit))
+        try Task.checkCancellation()
+        let result = Array(foods.prefix(resultLimit))
+        cacheFoods(result, for: key)
+        return result
+    }
+
+    func food(id: String) throws -> FoodCatalogItem? {
+        try Task.checkCancellation()
+        let key = "id:" + id
+        if let cached = cachedFoods(for: key) { return cached.first }
+        let foods = try execute("SELECT \(columns) FROM foods WHERE id = ? LIMIT 1", parameters: [id])
+        try Task.checkCancellation()
+        cacheFoods(foods, for: key)
+        return foods.first
+    }
+
+    private func cachedFoods(for key: String) -> [FoodCatalogItem]? {
+        guard let foods = cache[key] else { return nil }
+        cacheOrder.removeAll { $0 == key }
+        cacheOrder.append(key)
+        MealPerformance.begin("db.cacheHit")?.finish()
+        return foods
+    }
+
+    private func cacheFoods(_ foods: [FoodCatalogItem], for key: String) {
+        cache[key] = foods
+        cacheOrder.removeAll { $0 == key }
+        cacheOrder.append(key)
+        if cacheOrder.count > cacheLimit {
+            cache.removeValue(forKey: cacheOrder.removeFirst())
+        }
     }
 
     private func searchExact(query: String, reference: FoodReference?) throws -> [FoodCatalogItem] {
         try Task.checkCancellation()
-        guard let url else { throw CatalogError.unavailable }
-        var database: OpaquePointer?
-        guard sqlite3_open_v2(url.path, &database, SQLITE_OPEN_READONLY, nil) == SQLITE_OK else {
-            sqlite3_close(database)
-            throw CatalogError.unavailable
-        }
-        defer { sqlite3_close(database) }
 
         var terms = query.split(whereSeparator: \.isWhitespace)
             .map { normalized(String($0)) }
@@ -67,7 +106,6 @@ private actor FoodCatalogDatabase {
                 break
             }
         }
-        let columns = "id, name, brand, basis_unit, calories, carbohydrates, protein, fat, source, source_date, category"
         let priority = "CASE WHEN category = '가공식품' OR brand != '' THEN 2 ELSE priority END"
         let nameKey = "REPLACE(name_key, '돈까스', '돈가스')"
         let brandKey = "REPLACE(brand_key, '돈까스', '돈가스')"
@@ -110,6 +148,20 @@ private actor FoodCatalogDatabase {
         }
         sql += " LIMIT \(resultLimit)"
 
+        return try execute(sql, parameters: parameters)
+    }
+
+    private func execute(_ sql: String, parameters: [String]) throws -> [FoodCatalogItem] {
+        try Task.checkCancellation()
+        let span = MealPerformance.begin("db.query")
+        defer { span?.finish() }
+        if connection == nil {
+            guard let url else { throw CatalogError.unavailable }
+            let opening = MealPerformance.begin("db.open")
+            defer { opening?.finish() }
+            connection = try CatalogConnection(url: url)
+        }
+        guard let database = connection?.handle else { throw CatalogError.unavailable }
         var statement: OpaquePointer?
         guard sqlite3_prepare_v2(database, sql, -1, &statement, nil) == SQLITE_OK else {
             throw CatalogError.unavailable
@@ -173,5 +225,21 @@ private actor FoodCatalogDatabase {
 
     private enum CatalogError: Error {
         case unavailable
+    }
+
+    private final class CatalogConnection {
+        let handle: OpaquePointer
+
+        init(url: URL) throws {
+            var database: OpaquePointer?
+            guard sqlite3_open_v2(url.path, &database, SQLITE_OPEN_READONLY, nil) == SQLITE_OK,
+                  let database else {
+                sqlite3_close(database)
+                throw CatalogError.unavailable
+            }
+            handle = database
+        }
+
+        deinit { sqlite3_close(handle) }
     }
 }
