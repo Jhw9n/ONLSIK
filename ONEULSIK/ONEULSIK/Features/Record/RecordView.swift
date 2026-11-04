@@ -53,7 +53,7 @@ struct RecordView: View {
             .presentationCornerRadius(20)
         }
         .fullScreenCover(item: $searchMealType, onDismiss: viewModel.reload) { mealType in
-            FoodSearchView(
+            MealEntryPresentation(
                 profile: viewModel.profile,
                 mealType: mealType,
                 recordedAt: viewModel.selectedDate,
