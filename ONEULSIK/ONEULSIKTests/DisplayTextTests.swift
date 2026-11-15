@@ -13,7 +13,7 @@ struct DisplayTextTests {
 
     static func forbiddenParts(in text: String) -> [String] {
         let patterns = [#"\d{4}-\d{1,2}-\d{1,2}"#, #"\d{4}\.\s?\d{1,2}\.\s?\d{1,2}"#, #"\d{4}년\s?\d{1,2}월"#,
-                        "결정", "내부 기준", "내부 근거", "basisNote", "referenceID"]
+                        "결정", "내부 기준", "내부 근거", "대표값:", "온디바이스", "basisNote", "referenceID"]
         return patterns.compactMap { pattern in
             text.range(of: pattern, options: .regularExpression).map { String(text[$0]) }
         }
@@ -134,5 +134,60 @@ struct InputUnitDisplayTests {
         }
         report(suite: "입력 단위 표시", id: id, input: input,
                expected: "1\(unit) · 약 \(grams.short)g\(note.isEmpty ? "" : " · \(note)")", actual: actual, failures: failures)
+    }
+}
+
+/// MealRecord.nutritionSource로 저장되는 출처 문자열(MealRecordStore가 item.food.source를 그대로 저장)에
+/// 날짜·"결정"·"대표값:" 같은 내부 용어가 없는지 검사한다.
+@MainActor
+@Suite("저장 출처")
+struct StoredSourceTests {
+    private static func items(for testCase: MealCase) async -> [MealEntryItem] {
+        let service = AIMealEntryService(interpreter: FakeMealFoodInterpreter(script: testCase.llm), catalog: FoodCatalogService())
+        var answers = testCase.answers ?? []
+        guard var analysis = try? await service.analyze(testCase.input) else { return [] }
+        for _ in 0..<4 {
+            switch analysis {
+            case .ready(let items):
+                return items
+            case .question(let question):
+                if let first = question.choices.first {
+                    guard let next = try? await service.resolve(first) else { return [] }
+                    analysis = next
+                } else if var typed = question.clarification, typed.continuationInput != nil, !answers.isEmpty {
+                    typed.continuationInput?.details = answers.removeFirst()
+                    guard let next = try? await service.resolve(typed) else { return [] }
+                    analysis = next
+                } else {
+                    return []
+                }
+            }
+        }
+        return []
+    }
+
+    @Test("식사 케이스와 참고값 항목의 저장 출처")
+    func storedSources() async {
+        var sources: [(String, String)] = []
+        for testCase in RegressionCases.shared.meals {
+            for item in await Self.items(for: testCase) {
+                sources.append(("\(testCase.id) \(testCase.input)", item.food.source))
+            }
+        }
+        sources += PreparedFoodReference.entries.map { ("참고값 \($0.food.name)", $0.food.source) }
+        sources += PackagedFoodCatalog.entries.map { ("포장제품 \($0.name)", $0.food.source) }
+        var failures: [Failure] = []
+        for (label, source) in sources {
+            if source.trimmingCharacters(in: .whitespaces).isEmpty {
+                failures.append(Failure(type: .displayText, message: "\(label): 출처가 비어 있음"))
+            }
+            for part in DisplayTextTests.forbiddenParts(in: source) {
+                failures.append(Failure(type: .displayText, message: "\(label): ‘\(source)’에 ‘\(part)’"))
+            }
+        }
+        let drinks = sources.filter { ["M01", "M05", "M06"].contains(String($0.0.prefix(3))) }.map(\.1)
+        report(suite: "저장 출처", id: "R01", input: "식사 케이스 \(RegressionCases.shared.meals.count)개 + 참고값·포장제품",
+               expected: "저장 출처에 날짜·결정·대표값:·내부 용어 없음",
+               actual: "출처 \(sources.count)개 검사. 예: \(drinks.first ?? "-")", failures: failures)
     }
 }
