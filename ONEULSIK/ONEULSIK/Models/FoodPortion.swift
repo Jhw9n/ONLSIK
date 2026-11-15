@@ -16,7 +16,9 @@ nonisolated struct FoodPortion: Hashable, Sendable {
         let portion: (String, Double, String)
         switch name {
         case "삼겹살구이":
-            portion = ("접시", 200, "https://www.diabetes.or.kr/general/dietary/dietary_05.php?con=2")
+            // 2026-11-15 결정: 삼겹살 1인분(조리 전 생고기 170g)에 대응하는 조리 후 130g.
+            // 외부 출처의 측정값이 아니다. URL은 이전 1접시 200g의 참고 자료로, 근거는 Docs/MealPortionValidation.md에 적는다.
+            portion = ("인분", 130, "https://www.diabetes.or.kr/general/dietary/dietary_05.php?con=2")
         case "카레라이스":
             portion = ("그릇", 500, "https://www.foodsafetykorea.go.kr/upload/20150824/20150824011539_1440389739434.pdf")
         case "쌀밥", "흰쌀밥", "백미밥", "잡곡밥", "현미밥", "보리밥":

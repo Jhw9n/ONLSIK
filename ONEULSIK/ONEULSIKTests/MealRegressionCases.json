@@ -171,9 +171,9 @@
       "expect": { "amount": { "units": ["g"], "min": 80, "max": 150 }, "kcal": { "min": 80, "max": 200 } }
     },
     {
-      "id": "M24", "input": "삼겹살구이 2인분", "note": "한 줄 1,000kcal 초과 → 막지 않고 양 확인 질문 후 그대로 기록",
+      "id": "M24", "input": "삼겹살구이 2인분", "note": "한 줄 1,000kcal 초과 → 막지 않고 양 확인 질문 후 그대로 기록. 2026-11-15 기준 정정: 삼겹살구이 1인분 = 조리 후 130g(생고기 170g 대응)",
       "llm": { "food": "삼겹살구이", "portion": { "amount": 200 } },
-      "expect": { "confirmsAmount": true, "kind": "general", "nameContains": ["삼겹살"], "amount": { "units": ["g"], "min": 300, "max": 500 }, "kcal": { "min": 1400, "max": 2400 } }
+      "expect": { "confirmsAmount": true, "kind": "general", "nameContains": ["삼겹살"], "amount": { "units": ["g"], "min": 240, "max": 280 }, "kcal": { "min": 900, "max": 1400 } }
     },
     {
       "id": "M30", "input": "삼겹살 1인분", "note": "수식어 없는 삼겹살도 같은 기준(생고기 170g)",
