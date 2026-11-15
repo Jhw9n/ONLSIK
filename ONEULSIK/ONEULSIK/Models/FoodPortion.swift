@@ -15,6 +15,10 @@ nonisolated struct FoodPortion: Hashable, Sendable {
         let eggSource = "https://www.foodsafetykorea.go.kr/portal/cookrcp/cookrcpInfoDtl.do?menu_grp=MENU_NEW03&menu_no=3608&rcp_seq=3185"
         let portion: (String, Double, String)
         switch name {
+        case "삼겹살구이":
+            portion = ("접시", 200, "https://www.diabetes.or.kr/general/dietary/dietary_05.php?con=2")
+        case "카레라이스":
+            portion = ("그릇", 500, "https://www.foodsafetykorea.go.kr/upload/20150824/20150824011539_1440389739434.pdf")
         case "쌀밥", "흰쌀밥", "백미밥", "잡곡밥", "현미밥", "보리밥":
             portion = ("공기", 210, riceSource)
         case "김치찌개", "순두부찌개":
@@ -62,13 +66,21 @@ nonisolated struct FoodPortion: Hashable, Sendable {
         return FoodPortion(unit: portion.0, grams: portion.1, sourceURL: url)
     }
 
+    static func smallSideGrams(for name: String) -> Double? {
+        let name = name.filter { !$0.isWhitespace }
+        if name.hasSuffix("김치") || ["깍두기", "오이소박이", "단무지", "단무지무침"].contains(name) { return 30 }
+        if name.hasSuffix("젓갈") || name.hasSuffix("젓") || ["멸치볶음", "잔멸치볶음", "볶음멸치"].contains(name) { return 10 }
+        if name.hasSuffix("나물") || ["무말랭이", "무말랭이무침", "시금치무침", "콩나물무침", "오이무침"].contains(name) { return 30 }
+        return nil
+    }
+
     private static func additionalPortion(for name: String) -> FoodPortion? {
         let portion: (unit: String, grams: Double, page: Int)
         switch name {
         case "김밥치즈", "치즈김밥": portion = ("줄", 250, 55)
         case "갈치구이": portion = ("접시", 250, 8)
         case "고등어구이": portion = ("접시", 250, 9)
-        case "돼지갈비구이", "갈비구이돼지고기": portion = ("접시", 350, 10)
+        case "돼지갈비구이", "돼지갈비구이간장", "갈비구이돼지고기": portion = ("접시", 350, 10)
         case "떡갈비": portion = ("접시", 250, 11)
         case "소불고기", "불고기소고기": portion = ("접시", 200, 12)
         case "햄버그스테이크", "햄버거스테이크": portion = ("인분", 200, 13)

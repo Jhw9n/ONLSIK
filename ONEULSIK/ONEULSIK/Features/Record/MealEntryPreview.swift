@@ -71,7 +71,7 @@ private enum MealEntryPreviewData {
 }
 
 #Preview("식사 입력 · 여러 줄") {
-    MealEntryView(previewModel: MealEntryPreviewData.model(text: "점심에 김밥 한 줄이랑 라면을 먹었어요.\n라면 국물은 조금만 먹었고\n간식으로 사과 반 개도 먹었어요."))
+    MealEntryView(previewModel: MealEntryPreviewData.model(text: "김밥 반 줄\n라면 한 개\n계란빵 한 개\n"))
 }
 
 #Preview("식사 입력 · 분석 중") {
@@ -92,5 +92,11 @@ private enum MealEntryPreviewData {
 
 #Preview("식사 입력 · 분석 불가") {
     MealEntryView(previewModel: MealEntryPreviewData.model(text: "김밥", phase: .failed("Apple Intelligence를 사용할 수 없어요. 기기 설정을 확인해주세요.")))
+}
+
+#Preview("식사 입력 · 분량 오류") {
+    MealEntryView(previewModel: MealEntryPreviewData.model(
+        text: "돼지갈비 한국자\n흑미밥 한공기\n김치 조금\n생선까스 두개\n부추김치",
+        phase: .failed(MealEntryError.portionUnknown("돼지갈비").localizedDescription)))
 }
 #endif

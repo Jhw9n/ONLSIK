@@ -114,6 +114,10 @@ struct MealEntryChoice: Identifiable {
     var selection: MealFoodSelection? = nil
     var remainingFoods: [MealFoodInput] = []
     var continuationInput: MealFoodInput? = nil
+    var portionInput: MealFoodInput? = nil
+    var correctedText: String? = nil
+    var requiresPackageCount = false
+    var subtitle: String? = nil
 }
 
 struct MealEntryQuestion {
@@ -164,7 +168,7 @@ enum MealEntryError: LocalizedError {
         case .foodNotFound(let name):
             "‘\(name)’의 영양정보를 찾지 못했어요. 음식 이름을 구체적으로 적거나 직접 검색해주세요."
         case .portionUnknown(let name):
-            "‘\(name)’의 양을 가늠하기 어려워요. g 또는 mL를 함께 적어주세요."
+            "‘\(name)’의 분량을 아직 계산하지 못했어요. 반 인분, 한 그릇처럼 다른 표현으로 적거나 음식 종류를 더 알려주세요."
         case .generationFailed:
             "식사를 분석하지 못했어요. 음식과 먹은 양을 간단히 적고 다시 시도해주세요."
         }
