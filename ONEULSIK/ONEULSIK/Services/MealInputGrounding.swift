@@ -67,7 +67,7 @@ enum MealFoodNames {
 }
 
 enum MealInputGrounding {
-    private static let amountPattern = #"(?i)(-?\d{1,3}(?:,\d{3})+(?:\.\d+)?|-?\d+(?:[.,]\d+)?|하나|다섯|여섯|일곱|여덟|아홉|한|두|둘|세|셋|네|넷|열|반)\s*(밀리리터|킬로그램|숟가락|숟갈|수저|그램|리터|봉지|인분|그릇|접시|공기|조각|큰술|작은술|국자|종지|mL|kg|g|L|개|줄|컵|잔|병|봉|팩)(?:\s*(반))?"#
+    private static let amountPattern = #"(?i)(-?\d{1,3}(?:,\d{3})+(?:\.\d+)?|-?\d+(?:[.,]\d+)?|하나|다섯|여섯|일곱|여덟|아홉|한|두|둘|세|셋|네|넷|열|반)\s*(밀리리터|킬로그램|숟가락|숟갈|수저|그램|리터|봉지|인분|그릇|접시|공기|조각|큰술|작은술|국자|종지|mL|kg|g|L|개|줄|컵|잔|병|캔|봉|팩)(?:\s*(반))?"#
 
     static func singleFoodWithAmount(in text: String) -> MealFoodInput? {
         guard let range = text.range(of: amountPattern, options: .regularExpression),

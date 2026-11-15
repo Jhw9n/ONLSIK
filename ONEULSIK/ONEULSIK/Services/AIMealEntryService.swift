@@ -16,7 +16,7 @@ struct MealFoodInput: Codable {
             && Self.units.contains(unit) && brand.count <= 60 && details.count <= 200
     }
 
-    static let units: Set<String> = ["인분", "개", "줄", "공기", "그릇", "접시", "컵", "잔", "병", "조각", "봉", "팩", "숟가락", "큰술", "작은술", "국자", "종지", "소량", "g", "mL"]
+    static let units: Set<String> = ["인분", "개", "줄", "공기", "그릇", "접시", "컵", "잔", "병", "캔", "조각", "봉", "팩", "숟가락", "큰술", "작은술", "국자", "종지", "소량", "g", "mL"]
 }
 
 struct MealFoodSelection {
@@ -76,14 +76,10 @@ struct MealPortionEstimate {
 
     func isPlausible(for unit: String, foodName: String = "") -> Bool {
         guard amountPerUnit.isFinite, (0.1...5000).contains(amountPerUnit) else { return false }
-        if SojuFoodReference.recognizes(foodName) {
+        if DrinkReferenceCatalog.recognizes(foodName) {
             guard amountUnit == "mL" else { return false }
-            switch unit {
-            case "병": return (100...2000).contains(amountPerUnit)
-            case "잔": return (10...100).contains(amountPerUnit)
-            case "mL": return true
-            default: return false
-            }
+            if unit == "mL" { return true }
+            return DrinkReferenceCatalog.plausibleRange(for: unit)?.contains(amountPerUnit) ?? false
         }
         let name = foodName.filter { !$0.isWhitespace }
         if ["개", "조각"].contains(unit), ["너겟", "너깃", "너켓"].contains(where: name.hasSuffix) {
@@ -218,7 +214,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
 
     private func isKnownSingleFood(_ input: MealFoodInput) async throws -> Bool {
         if FoodReferenceCatalog.entry(for: input.name) != nil || PreparedFoodReference.entry(for: input.name) != nil
-            || SojuFoodReference.recognizes(input.name) {
+            || DrinkReferenceCatalog.recognizes(input.name) {
             return true
         }
         if let alternative = FoodReferenceCatalog.preparedAlternative(for: input.name, source: input.sourceText) {
@@ -458,7 +454,9 @@ final class AIMealEntryService: MealEntryAnalyzing {
     }
 
     private func householdUnit(for input: MealFoodInput, food: FoodCatalogItem?) -> String {
-        if SojuFoodReference.recognizes(input.name) { return input.unit == "잔" ? "잔" : "병" }
+        if let drink = DrinkReferenceCatalog.entry(for: input.name) {
+            return drink.container(for: input.unit)?.unit ?? drink.defaultUnit
+        }
         if !["인분", "g", "mL", "소량"].contains(input.unit) { return input.unit }
         if let food, let reference = PreparedFoodReference.entries.first(where: { $0.food.id == food.id }) {
             return reference.food.servingUnit
@@ -513,8 +511,8 @@ final class AIMealEntryService: MealEntryAnalyzing {
         let unit = householdUnit(for: input, food: selection?.food)
         var answers = ["0.5\(unit)", "1\(unit)", "1.5\(unit)"]
         let name = normalized(input.name)
-        if SojuFoodReference.recognizes(input.name) {
-            answers.append(unit == "병" ? "1잔" : "1병")
+        if let drink = DrinkReferenceCatalog.entry(for: input.name) {
+            answers += drink.containers.filter { $0.unit != unit }.prefix(1).map { "1\($0.unit)" }
         } else if unit != "국자", ["갈비", "찜", "불고기", "볶음", "국", "탕", "찌개"].contains(where: name.hasSuffix) {
             answers.append("1국자")
         } else if unit != "인분" {
@@ -555,8 +553,10 @@ final class AIMealEntryService: MealEntryAnalyzing {
                 brand: original.brand, details: original.details, isSideDish: original.isSideDish, hasConfirmedPortion: original.hasConfirmedPortion
             )
             let remaining = Array(inputs.dropFirst(index + 1))
-            if SojuFoodReference.recognizes(input.name) {
-                return try await sojuQuestion(input, items: items, remaining: remaining)
+            if let drink = DrinkReferenceCatalog.entry(for: input.name) {
+                if let analysis = try await resolveDrink(input, drink: drink, items: items, remaining: remaining) {
+                    return analysis
+                }
             }
             if let reference = preparedReference {
                 return try await resolveSelection(MealFoodSelection(input: input, food: reference.food), items: items, remaining: remaining)
@@ -768,33 +768,41 @@ final class AIMealEntryService: MealEntryAnalyzing {
         ))
     }
 
-    private func sojuQuestion(_ input: MealFoodInput, items: [MealEntryItem], remaining: [MealFoodInput]) async throws -> MealEntryAnalysis {
+    /// 용기 단위 표(DrinkReferences.json)로 술·음료를 질문 없이 기록한다. 표로 계산할 수 없으면 nil을 돌려 일반 흐름을 따른다.
+    private func resolveDrink(_ input: MealFoodInput, drink: DrinkReference, items: [MealEntryItem], remaining: [MealFoodInput]) async throws -> MealEntryAnalysis? {
         let hasDegree = (input.sourceText + " " + input.details).range(of: #"\d+(?:\.\d+)?\s*(?:도|%)"#, options: .regularExpression) != nil
-        if hasDegree {
-            return try clarification(for: input, question: "소주 제품명을 알려주세요", items: items, remaining: remaining)
+        if hasDegree, !drink.isProduct(input.name) {
+            return try clarification(for: input, question: "‘\(input.name)’ 제품명을 알려주세요", items: items, remaining: remaining)
         }
-        if input.unit == "인분", MealInputGrounding.hasExplicitAmount(in: input.sourceText) {
+        if ["인분", "개"].contains(input.unit), MealInputGrounding.hasExplicitAmount(in: input.sourceText) {
             return amountQuestion(input, items: items, remaining: remaining)
         }
-        let requestedName = input.details.isEmpty ? input.name : input.details
-        var choices: [MealEntryChoice] = []
-        for reference in SojuFoodReference.entries where reference.accepts(name: requestedName, brand: input.brand) {
-            guard let food = try await catalog.food(id: reference.id), reference.matches(food), FoodCatalogQuality.isUsable(food) else { continue }
-            try Task.checkCancellation()
-            let isSimilar = normalized(requestedName) == "소주" || normalized(requestedName) == "희석식소주"
-            let volume = SojuFoodReference.milliliters(for: input.unit)
-            let selectedUnit = ["인분", "개"].contains(input.unit) ? "병" : input.unit
-            let amount = volume.map { "\((input.quantity * $0).formatted(.number.precision(.fractionLength(0...1))))mL" }
-            choices.append(MealEntryChoice(id: food.id, title: isSimilar ? "\(food.name) 기준으로 계산" : food.name, items: items,
-                selection: MealFoodSelection(input: input, food: food, isSimilar: isSimilar, isProductConfirmed: true), remainingFoods: remaining,
-                subtitle: amount.map { "\(input.quantity.formatted(.number.precision(.fractionLength(0...1))))\(selectedUnit) · \($0) · 공공 DB 참고값" } ?? "제품별 도수와 용량을 확인해주세요"))
-        }
-        guard !choices.isEmpty else {
-            return try clarification(for: input, question: "소주 제품명을 알려주세요", items: items, remaining: remaining)
-        }
-        return .question(MealEntryQuestion(title: "어떤 소주 기준으로 기록할까요?",
-            explanation: "모르면 아래 제품을 참고값으로 선택할 수 있어요. 한 병은 360mL, 한 잔은 약 50mL 기준이며 실제 제품·도수·용량에 따라 달라요. 큰 병은 용량을 적어주세요",
-            choices: choices))
+        let unit = ["인분", "개"].contains(input.unit) ? drink.defaultUnit : input.unit
+        guard unit == "mL" || drink.container(for: unit) != nil,
+              let food = try await catalog.food(id: drink.referenceID), drink.matches(food) else { return nil }
+        try Task.checkCancellation()
+        let recorded = MealFoodInput(name: input.name, sourceText: input.sourceText, quantity: input.quantity, unit: unit,
+            brand: input.brand, details: input.details, isSideDish: input.isSideDish, hasConfirmedPortion: input.hasConfirmedPortion)
+        let item = try drinkItem(recorded, drink: drink, food: food)
+        return try await resolve(remaining, items: items + [item])
+    }
+
+    private func drinkItem(_ input: MealFoodInput, drink: DrinkReference, food: FoodCatalogItem) throws -> MealEntryItem {
+        let container = drink.container(for: input.unit)
+        guard input.unit == "mL" || container != nil else { throw MealEntryError.portionUnknown(input.name) }
+        let amount = container?.milliliters ?? 1
+        let isProduct = drink.isProduct(input.name)
+        let basis = container.map { " · 1\($0.unit) \($0.milliliters.formatted(.number.precision(.fractionLength(0...1))))mL: \($0.source)" } ?? ""
+        let adjusted = FoodCatalogItem(id: food.id, name: isProduct ? food.name : input.name, servingUnit: input.unit,
+            servingGrams: 0, nutrition: food.nutrition(for: amount / food.baseAmount), servingMilliliters: amount,
+            brand: isProduct ? food.brand : "",
+            source: "\(isProduct ? "" : "대표값: ")\(food.recordedName) · \(food.source)\(basis)",
+            sourceDate: food.sourceDate, category: food.category)
+        let item = MealEntryItem(food: adjusted, servingCount: input.quantity,
+            portionBasis: input.unit == "mL" ? .entered : .representative,
+            nutritionBasis: isProduct ? .database : .similarFood)
+        guard item.isValid else { throw MealEntryError.invalidResult }
+        return item
     }
 
     private func candidates(from results: [FoodCatalogItem], input: MealFoodInput) -> [FoodCatalogItem] {
@@ -922,19 +930,9 @@ final class AIMealEntryService: MealEntryAnalyzing {
         if let reference = PreparedFoodReference.entries.first(where: { $0.food.id == food.id }) {
             return try preparedItem(input, reference: reference)
         }
-        if let reference = SojuFoodReference.entries.first(where: { $0.matches(food) }), selection.isProductConfirmed {
-            guard let amount = SojuFoodReference.milliliters(for: input.unit) else { throw MealEntryError.portionUnknown(input.name) }
-            let unit = ["인분", "개"].contains(input.unit) ? "병" : input.unit
-            let adjusted = FoodCatalogItem(id: food.id, name: selection.isSimilar ? input.name : food.name, servingUnit: unit,
-                servingGrams: 0, nutrition: food.nutrition(for: amount / food.baseAmount), servingMilliliters: amount,
-                brand: selection.isSimilar ? "" : food.brand,
-                source: "\(selection.isSimilar ? "유사 음식: " : "")\(food.recordedName) · \(food.source) · 1병 360mL: \(reference.bottleSource) · 1잔 약 50mL: https://www.cancer.go.kr/lay1/S1T231C233/contents.do",
-                sourceDate: food.sourceDate, category: food.category)
-            let item = MealEntryItem(food: adjusted, servingCount: input.quantity,
-                portionBasis: unit == "mL" ? .entered : (unit == "잔" ? .estimated : .representative),
-                nutritionBasis: selection.isSimilar ? .similarFood : .database)
-            guard item.isValid else { throw MealEntryError.invalidResult }
-            return item
+        if let drink = DrinkReferenceCatalog.entry(forFoodID: food.id), drink.matches(food),
+           input.unit == "mL" || drink.container(for: input.unit) != nil {
+            return try drinkItem(input, drink: drink, food: food)
         }
         if let product = PackagedFoodCatalog.entry(id: food.id) {
             guard input.isValid, input.unit == "g" || ["개", "컵", "봉", "팩", "인분"].contains(input.unit),
