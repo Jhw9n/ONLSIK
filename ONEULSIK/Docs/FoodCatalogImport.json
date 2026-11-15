@@ -57,5 +57,29 @@
     "바나나": 1714,
     "우유": 2774,
     "아메리카노": 405
+  },
+  "packageWeights": {
+    "source": {
+      "file": "식약처_가공식품_DB_2026-09-29.xlsx",
+      "sha256": "04f8fb4e82220a911aa4d583539da1b412138a430d76482a1e7a80f7b930dd93",
+      "column": "식품중량"
+    },
+    "rule": "식품코드 = foods.id, 식품중량이 숫자+g 또는 숫자+ml일 때만 package_amount/package_unit을 채움. 1회 섭취참고량은 사용하지 않음",
+    "catalogRows": 325705,
+    "rowsWithPackageAmount": 298388,
+    "counts": {
+      "linked": 316934,
+      "linked_empty_weight": 18546,
+      "linked_weight_g": 260867,
+      "linked_weight_ml": 37521,
+      "not_in_catalog": 6263,
+      "source_rows": 323197
+    },
+    "topUnparsedWeights": [],
+    "existingColumnsSha256": {
+      "all": "3364181f04031567cfa5a9d20a32a3a1f4919ecdcd025b4641cd412e897a05bd",
+      "nutrition": "0ee990db717e6bd6508cd4d95c0bb2c861286c82dd7cd254720bf91d128556fb",
+      "unchanged": true
+    }
   }
 }
