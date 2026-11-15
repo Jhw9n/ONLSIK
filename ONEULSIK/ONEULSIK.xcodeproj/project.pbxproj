@@ -12,8 +12,19 @@
 		AA1000033024000000000003 /* KakaoSDKUser in Frameworks */ = {isa = PBXBuildFile; productRef = AA1000093024000000000009 /* KakaoSDKUser */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		888F104630A99507002F44F4 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8805076530232302009DB91B /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 8805076C30232302009DB91B;
+			remoteInfo = ONEULSIK;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		8805076D30232302009DB91B /* ONEULSIK.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ONEULSIK.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		888F104230A99507002F44F4 /* ONEULSIKTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ONEULSIKTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA1000043024000000000004 /* Config.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -45,6 +56,11 @@
 			path = ONEULSIK;
 			sourceTree = "<group>";
 		};
+		888F104330A99507002F44F4 /* ONEULSIKTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = ONEULSIKTests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -58,6 +74,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		888F103F30A99507002F44F4 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -66,6 +89,7 @@
 			children = (
 				AA1000043024000000000004 /* Config.xcconfig */,
 				8805076F30232302009DB91B /* ONEULSIK */,
+				888F104330A99507002F44F4 /* ONEULSIKTests */,
 				8805076E30232302009DB91B /* Products */,
 			);
 			sourceTree = "<group>";
@@ -74,6 +98,7 @@
 			isa = PBXGroup;
 			children = (
 				8805076D30232302009DB91B /* ONEULSIK.app */,
+				888F104230A99507002F44F4 /* ONEULSIKTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -106,6 +131,29 @@
 			productReference = 8805076D30232302009DB91B /* ONEULSIK.app */;
 			productType = "com.apple.product-type.application";
 		};
+		888F104130A99507002F44F4 /* ONEULSIKTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 888F104A30A99507002F44F4 /* Build configuration list for PBXNativeTarget "ONEULSIKTests" */;
+			buildPhases = (
+				888F103E30A99507002F44F4 /* Sources */,
+				888F103F30A99507002F44F4 /* Frameworks */,
+				888F104030A99507002F44F4 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				888F104730A99507002F44F4 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				888F104330A99507002F44F4 /* ONEULSIKTests */,
+			);
+			name = ONEULSIKTests;
+			packageProductDependencies = (
+			);
+			productName = ONEULSIKTests;
+			productReference = 888F104230A99507002F44F4 /* ONEULSIKTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -113,11 +161,15 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 2600;
+				LastSwiftUpdateCheck = 2700;
 				LastUpgradeCheck = 2600;
 				TargetAttributes = {
 					8805076C30232302009DB91B = {
 						CreatedOnToolsVersion = 26.0.1;
+					};
+					888F104130A99507002F44F4 = {
+						CreatedOnToolsVersion = 27.0;
+						TestTargetID = 8805076C30232302009DB91B;
 					};
 				};
 			};
@@ -139,12 +191,20 @@
 			projectRoot = "";
 			targets = (
 				8805076C30232302009DB91B /* ONEULSIK */,
+				888F104130A99507002F44F4 /* ONEULSIKTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		8805076B30232302009DB91B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		888F104030A99507002F44F4 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -161,7 +221,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		888F103E30A99507002F44F4 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		888F104730A99507002F44F4 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 8805076C30232302009DB91B /* ONEULSIK */;
+			targetProxy = 888F104630A99507002F44F4 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		8805077630232303009DB91B /* Debug */ = {
@@ -357,6 +432,50 @@
 			};
 			name = Release;
 		};
+		888F104830A99507002F44F4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4FHBGGZU96;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = junghwan.ONEULSIKTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ONEULSIK.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ONEULSIK";
+			};
+			name = Debug;
+		};
+		888F104930A99507002F44F4 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4FHBGGZU96;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = junghwan.ONEULSIKTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ONEULSIK.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ONEULSIK";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -374,6 +493,15 @@
 			buildConfigurations = (
 				8805077930232303009DB91B /* Debug */,
 				8805077A30232303009DB91B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		888F104A30A99507002F44F4 /* Build configuration list for PBXNativeTarget "ONEULSIKTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				888F104830A99507002F44F4 /* Debug */,
+				888F104930A99507002F44F4 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
