@@ -14,6 +14,8 @@ nonisolated struct DrinkReference: Decodable, Sendable {
     let productNames: [String]
     let referenceID: String
     let referenceName: String
+    /// 검색에서 맨 앞에 보일 브랜드 없는 일반 항목(선택)
+    let generalReferenceID: String?
     let defaultUnit: String
     let containers: [Container]
 

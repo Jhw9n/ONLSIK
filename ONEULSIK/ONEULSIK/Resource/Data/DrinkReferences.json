@@ -13,6 +13,8 @@
       "productNames": ["좋은데이"],
       "referenceID": "P115-102020100-0013",
       "referenceName": "좋은데이",
+      "generalReferenceID": "RDA-Q0100002389a",
+      "generalReferenceNote": "검색의 일반 항목 대표: 농진청 '증류주, 소주, 희석식, 알코올 17.8%'(희석식 소주. 25%는 과거 도수, 증류식은 별개 주종)",
       "defaultUnit": "병",
       "note": "희석식 소주 대표값. 제품 영양표시 100mL당 89kcal(2026-11-15 결정)",
       "containers": [
