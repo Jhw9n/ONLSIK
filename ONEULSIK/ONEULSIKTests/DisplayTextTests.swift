@@ -96,6 +96,26 @@ struct DisplayTextTests {
         report(suite: "화면 문구", id: id, input: input, expected: "질문 문구에 날짜·결정·내부 용어 없음",
                actual: shown.joined(separator: " / "), failures: failures)
     }
+
+    /// 수량 없이 입력해 1단위로 가정했을 때 카드에 붙는 안내(MealEntryItem.quantityNote)
+    @Test("기본값 안내 문구")
+    func assumedQuantityNote() {
+        let expected = ["인분": "1인분으로", "공기": "1공기로", "줄": "1줄로", "개": "1개로", "병": "1병으로", "그릇": "1그릇으로"]
+        var failures: [Failure] = []
+        var shown: [String] = []
+        for (unit, phrase) in expected.sorted(by: { $0.key < $1.key }) {
+            let note = MealEntryItem.assumedQuantityNote(unit: unit)
+            shown.append(note)
+            if !note.contains(phrase) {
+                failures.append(Failure(type: .displayText, message: "‘\(note)’ (기대 ‘\(phrase)’)"))
+            }
+            for part in Self.forbiddenParts(in: note) {
+                failures.append(Failure(type: .displayText, message: "‘\(note)’에 ‘\(part)’"))
+            }
+        }
+        report(suite: "화면 문구", id: "T07", input: expected.keys.sorted().joined(separator: ", "),
+               expected: "수량이 없어서 1(단위)로/으로 가정했어요, 내부 용어 없음", actual: shown.first ?? "-", failures: failures)
+    }
 }
 
 /// 인분으로 입력했는데 대표 분량 단위가 다를 때(예: 주꾸미볶음 1접시) 카드에 입력 단위를 그대로 보여주는지

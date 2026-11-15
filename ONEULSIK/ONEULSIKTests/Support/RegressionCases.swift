@@ -105,6 +105,10 @@ struct MealCase: Decodable, CustomTestStringConvertible {
         var confirmsAmount: Bool?
         /// 분량 근거(MealPortionBasis rawValue). 예: "package" = 제품 총중량 기준
         var basis: String?
+        /// 수량 질문("얼마나 드셨나요?")을 거쳐야 함
+        var asksAmount: Bool?
+        /// 수량을 적지 않아 기본값(대표 분량 1단위)으로 가정했고, 카드에 그 안내가 붙어야 함(false면 붙으면 안 됨)
+        var assumedQuantity: Bool?
     }
     let id: String
     let input: String
@@ -131,6 +135,8 @@ struct MealCase: Decodable, CustomTestStringConvertible {
         if expect.drink == true { parts.append("인분 아님") }
         if expect.confirmsAmount == true { parts.append("양 확인 질문") }
         if expect.basis == "package" { parts.append("제품 총중량 기준") }
+        if expect.asksAmount == true { parts.append("수량 질문") }
+        if expect.assumedQuantity == true { parts.append("기본값 안내") }
         return parts.joined(separator: ", ")
     }
 }

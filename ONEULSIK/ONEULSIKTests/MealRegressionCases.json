@@ -17,7 +17,11 @@
     { "id": "G07", "input": "냉동만두 5개", "food": "냉동만두", "expect": { "quantity": 5, "unit": "개" } },
     { "id": "G08", "input": "닭가슴살 1팩", "food": "닭가슴살", "expect": { "quantity": 1, "unit": "팩" } },
     { "id": "G09", "input": "숯불쭈꾸미 1인분", "food": "숯불쭈꾸미", "expect": { "quantity": 1, "unit": "인분" } },
-    { "id": "G10", "input": "신라면 1개", "food": "신라면", "expect": { "quantity": 1, "unit": "개" } }
+    { "id": "G10", "input": "신라면 1개", "food": "신라면", "expect": { "quantity": 1, "unit": "개" } },
+    { "id": "G11", "input": "공기밥 하나", "food": "공기밥", "expect": { "quantity": 1, "unit": "공기" } },
+    { "id": "G12", "input": "밥 하나", "food": "밥", "expect": { "quantity": 1, "unit": "공기" } },
+    { "id": "G13", "input": "햄버거 두개", "food": "햄버거", "expect": { "quantity": 2, "unit": "개" } },
+    { "id": "G14", "input": "만두 세 개", "food": "만두", "expect": { "quantity": 3, "unit": "개" } }
   ],
   "normalization": [
     { "id": "N01", "a": "쭈꾸미볶음", "b": "주꾸미볶음", "equal": true },
@@ -234,6 +238,51 @@
       "id": "M29", "input": "흑임자젤리 1개", "note": "식품중량이 빈 제품 → 1개 중량(g) 질문 폴백",
       "llm": { "food": "흑임자젤리" }, "answers": ["50g"],
       "expect": { "maxQuestions": 2, "amount": { "units": ["g"], "min": 45, "max": 55 }, "kcal": { "min": 200, "max": 250 } }
+    },
+    {
+      "id": "M37", "input": "공기밥 하나", "note": "단위 없는 개수(하나). 기존 M11 ‘밥 한공기’와 같은 결과. ‘공기밥’의 ‘공기’를 단위로 읽지 않아야 함. 실기기 실패 원인(모델 응답)을 몰라 모델 없이 앱이 직접 읽는지 확인(llm 비움)",
+      "llm": { },
+      "expect": { "maxQuestions": 0, "kind": "general", "nameContains": ["밥"], "units": ["공기"], "count": 1, "amount": { "units": ["g"], "min": 205, "max": 215 }, "kcal": { "min": 250, "max": 400 } }
+    },
+    {
+      "id": "M38", "input": "밥 하나", "note": "단위 없는 개수. 쌀밥 대표 분량 단위(공기)로 기록. 모델 없이 앱이 직접 읽는지 확인(llm 비움)",
+      "llm": { },
+      "expect": { "maxQuestions": 0, "kind": "general", "nameContains": ["밥"], "units": ["공기"], "count": 1, "amount": { "units": ["g"], "min": 205, "max": 215 }, "kcal": { "min": 250, "max": 400 } }
+    },
+    {
+      "id": "M40", "input": "김밥 하나", "note": "단위 없는 개수. 대표 분량 단위(줄, 200g)로 기록",
+      "llm": { "food": "김밥" },
+      "expect": { "kind": "general", "nameContains": ["김밥"], "units": ["줄"], "count": 1, "amount": { "units": ["g"], "min": 195, "max": 205 } }
+    },
+    {
+      "id": "M41", "input": "햄버거 두개", "note": "단위가 붙은 개수(두개)",
+      "llm": { "food": "햄버거", "portion": { "amount": 200 } },
+      "expect": { "units": ["개"], "count": 2 }
+    },
+    {
+      "id": "M42", "input": "만두 세 개", "note": "숫자와 단위 사이 띄어쓰기(세 개)",
+      "llm": { "food": "만두", "portion": { "amount": 30 } },
+      "expect": { "units": ["개"], "count": 3 }
+    },
+    {
+      "id": "M45", "input": "김치찌개", "note": "수량 없음 + 대표 분량 있음(1인분 400g)",
+      "llm": { "food": "김치찌개" },
+      "expect": { "maxQuestions": 0, "assumedQuantity": true, "kind": "general", "nameContains": ["김치찌개"], "units": ["인분"], "count": 1, "amount": { "units": ["g"], "min": 390, "max": 410 } }
+    },
+    {
+      "id": "M46", "input": "김밥", "note": "수량 없음 + 대표 분량 있음(1줄 200g)",
+      "llm": { "food": "김밥" },
+      "expect": { "maxQuestions": 0, "assumedQuantity": true, "kind": "general", "nameContains": ["김밥"], "units": ["줄"], "count": 1, "amount": { "units": ["g"], "min": 195, "max": 205 } }
+    },
+    {
+      "id": "M47", "input": "밥", "note": "수량 없음 + 대표 분량 있음(1공기 210g)",
+      "llm": { "food": "밥" },
+      "expect": { "maxQuestions": 0, "assumedQuantity": true, "kind": "general", "nameContains": ["밥"], "units": ["공기"], "count": 1, "amount": { "units": ["g"], "min": 205, "max": 215 } }
+    },
+    {
+      "id": "M48", "input": "제육볶음", "note": "수량 없음 + 대표 분량 없음 → 지금처럼 수량 질문. LLM이 분량을 답할 수 있어도(portion) 묻는지 확인. 답은 1인분",
+      "llm": { "food": "제육볶음", "portion": { "amount": 200 } }, "choose": "1인분",
+      "expect": { "asksAmount": true, "assumedQuantity": false, "units": ["인분"], "count": 1 }
     }
   ]
 }
