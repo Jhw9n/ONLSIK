@@ -9,13 +9,17 @@ nonisolated struct FoodReference: Decodable, Sendable {
     let source: String
     let sourceDate: String
     let estimatedPortions: [String: Double]?
+    /// DB 항목의 분류. 없으면 조리 음식("음식")
+    let category: String?
+    /// 비슷한 음식 확인 질문에 보여줄 기준 설명(선택)
+    let explanation: String?
 
     var names: [String] { [name] + aliases }
 
     func matches(_ food: FoodCatalogItem) -> Bool {
         food.id == referenceID && food.name == referenceName && food.amountUnit == amountUnit
             && food.source == source && food.sourceDate == sourceDate
-            && food.brand.isEmpty && food.category == "음식"
+            && food.brand.isEmpty && food.category == (category ?? "음식")
     }
 
     func estimatedAmount(for unit: String, food: FoodCatalogItem) -> Double? {

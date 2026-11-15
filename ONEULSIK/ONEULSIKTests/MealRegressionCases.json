@@ -65,9 +65,9 @@
       "expect": { "kind": "general", "nameContains": ["주꾸미"], "amount": { "units": ["g"], "min": 150, "max": 400 }, "kcal": { "min": 150, "max": 700 } }
     },
     {
-      "id": "M03", "input": "냉동삼겹살 1인분",
+      "id": "M03", "input": "냉동삼겹살 1인분", "note": "2026-11-15 기준 정정: 삼겹살 1인분 = 조리 전 생고기 170g × 생삼겹살 영양값",
       "llm": { "food": "냉동삼겹살", "portion": { "amount": 200 } },
-      "expect": { "kind": "general", "nameContains": ["삼겹살"], "amount": { "units": ["g"], "min": 150, "max": 300 } }
+      "expect": { "kind": "general", "nameContains": ["삼겹살"], "amount": { "units": ["g"], "min": 150, "max": 300 }, "kcal": { "min": 450, "max": 700 } }
     },
     {
       "id": "M04", "input": "치즈폭탄계란찜 반", "note": "기존 정상 동작 회귀 확인(0.5인분)",
@@ -96,14 +96,14 @@
       "expect": { "kind": "general", "nameContains": ["어묵"], "kcal": { "min": 30, "max": 500 } }
     },
     {
-      "id": "M09", "input": "생삼겹살 1인분",
+      "id": "M09", "input": "생삼겹살 1인분", "note": "2026-11-15 기준 정정: 삼겹살 1인분 = 조리 전 생고기 170g × 생삼겹살 영양값",
       "llm": { "food": "생삼겹살", "portion": { "amount": 200 } },
-      "expect": { "kind": "general", "nameContains": ["삼겹살"], "amount": { "units": ["g"], "min": 150, "max": 300 } }
+      "expect": { "kind": "general", "nameContains": ["삼겹살"], "amount": { "units": ["g"], "min": 150, "max": 300 }, "kcal": { "min": 450, "max": 700 } }
     },
     {
-      "id": "M10", "input": "숯불삼겹살 1인분",
+      "id": "M10", "input": "숯불삼겹살 1인분", "note": "2026-11-15 기준 정정: 삼겹살 1인분 = 조리 전 생고기 170g × 생삼겹살 영양값",
       "llm": { "food": "숯불삼겹살", "portion": { "amount": 200 } },
-      "expect": { "kind": "general", "nameContains": ["삼겹살"], "amount": { "units": ["g"], "min": 150, "max": 300 } }
+      "expect": { "kind": "general", "nameContains": ["삼겹살"], "amount": { "units": ["g"], "min": 150, "max": 300 }, "kcal": { "min": 450, "max": 700 } }
     },
     {
       "id": "M11", "input": "밥 한공기",
@@ -174,6 +174,11 @@
       "id": "M24", "input": "삼겹살구이 2인분", "note": "한 줄 1,000kcal 초과 → 막지 않고 양 확인 질문 후 그대로 기록",
       "llm": { "food": "삼겹살구이", "portion": { "amount": 200 } },
       "expect": { "confirmsAmount": true, "kind": "general", "nameContains": ["삼겹살"], "amount": { "units": ["g"], "min": 300, "max": 500 }, "kcal": { "min": 1400, "max": 2400 } }
+    },
+    {
+      "id": "M30", "input": "삼겹살 1인분", "note": "수식어 없는 삼겹살도 같은 기준(생고기 170g)",
+      "llm": { "food": "삼겹살", "portion": { "amount": 200 } },
+      "expect": { "kind": "general", "nameContains": ["삼겹살"], "amount": { "units": ["g"], "min": 160, "max": 180 }, "kcal": { "min": 450, "max": 700 } }
     },
     {
       "id": "M25", "input": "신라면 1개", "note": "제품 총중량(식품중량 120g) × 1개. g 질문 없이 기록",

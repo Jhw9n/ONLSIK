@@ -727,8 +727,9 @@ final class AIMealEntryService: MealEntryAnalyzing {
                 if normalized(food.name) == normalized(input.name) {
                     return try await resolveSelection(MealFoodSelection(input: input, food: food), items: items, remaining: remaining)
                 }
+                let reference = referenceEntry(for: input.name).flatMap { $0.matches(food) ? $0 : nil }
                 return similarFoodQuestion([food], input: input, items: items, remaining: remaining,
-                    explanation: FoodModifierCatalog.stripped(input.name)?.explanation)
+                    explanation: reference?.explanation ?? FoodModifierCatalog.stripped(input.name)?.explanation)
             }
             if !products.isEmpty {
                 return packagedQuestion(products, input: input, items: items, remaining: remaining)
