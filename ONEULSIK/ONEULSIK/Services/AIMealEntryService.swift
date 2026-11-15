@@ -74,7 +74,7 @@ struct MealPortionEstimate {
     let amountPerUnit: Double
     let amountUnit: String
 
-    /// 인분·접시·그릇 한 단위의 상한(g 또는 mL)
+    /// 인분·접시·그릇 한 단위의 상한(g 또는 mL). 이 값 미만만 허용한다(1,000g 자체도 거부).
     static let servingUpperBound = 1000.0
 
     func isPlausible(for unit: String, foodName: String = "") -> Bool {
@@ -90,7 +90,7 @@ struct MealPortionEstimate {
         }
         let bowlMeals = ["국밥", "덮밥", "비빔밥", "볶음밥", "짜장면", "자장면", "짬뽕", "냉면", "칼국수", "우동", "스파게티", "파스타"]
         if ["인분", "그릇", "접시", "공기"].contains(unit), bowlMeals.contains(where: name.hasSuffix) {
-            return (200...(unit == "공기" ? 2000 : Self.servingUpperBound)).contains(amountPerUnit)
+            return unit == "공기" ? (200...2000).contains(amountPerUnit) : (200..<Self.servingUpperBound).contains(amountPerUnit)
         }
         switch unit {
         case "국자":
@@ -102,9 +102,9 @@ struct MealPortionEstimate {
         case "작은술":
             return (0.5...20).contains(amountPerUnit)
         case "그릇", "접시":
-            return (20...Self.servingUpperBound).contains(amountPerUnit)
+            return (20..<Self.servingUpperBound).contains(amountPerUnit)
         case "인분":
-            return (5...Self.servingUpperBound).contains(amountPerUnit)
+            return (5..<Self.servingUpperBound).contains(amountPerUnit)
         case "공기", "컵", "잔":
             return amountPerUnit >= 20
         case "줄", "봉", "팩":
