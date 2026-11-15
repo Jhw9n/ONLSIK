@@ -62,6 +62,14 @@ private actor FoodCatalogDatabase {
                     .filter { seen.insert($0.id).inserted }
             }
         }
+        // 일반 음식이 하나도 없으면 앞쪽 수식어(FoodModifiers.json)를 떼고 다시 찾아 뒤에 붙인다.
+        if !foods.contains(where: { $0.brand.isEmpty && $0.category != "가공식품" }),
+           let stripped = FoodModifierCatalog.stripped(query) {
+            for term in FoodReferenceCatalog.queries(for: stripped.base) {
+                foods += try searchExact(query: term, preferredID: preferredID(for: stripped.base))
+                    .filter { seen.insert($0.id).inserted }
+            }
+        }
         try Task.checkCancellation()
         let result = Array(foods.prefix(resultLimit))
         cacheFoods(result, for: key)
@@ -145,20 +153,21 @@ private actor FoodCatalogDatabase {
             """
         parameters.insert(preferredID ?? "", at: 0)
         if !terms.isEmpty {
-            // 이름 일치 순위: 전체 일치 > 접두사 > 쉼표로 나뉜 이름 조각 일치(예: "증류주, 소주, 희석식") >
-            // 조각 접두사 > 그 밖의 부분 일치(예: "채소 주스"의 "소주"). 이름 길이는 같은 순위 안에서만 본다.
+            // 이름 일치 순위: 전체 일치 > 쉼표로 나뉜 이름 조각 일치(예: "증류주, 소주, 희석식") >
+            // 첫 단어 일치(예: "만두 군만두"의 "만두") > 접두사(예: "만두국") > 조각 접두사 >
+            // 그 밖의 부분 일치(예: "채소 주스"의 "소주"). 이름 길이는 같은 순위 안에서만 본다.
             let segments = "(',' || REPLACE(name, ' ', '') || ',')"
             sql += """
                  ORDER BY CASE WHEN id = ? THEN 0 ELSE 1 END, display_priority,
-                    CASE WHEN search_name IN (?, ?, ?) THEN 0 WHEN search_name LIKE ? THEN 1
-                         WHEN \(segments) LIKE ? THEN 2 WHEN \(segments) LIKE ? THEN 3 ELSE 4 END,
+                    CASE WHEN search_name IN (?, ?, ?) THEN 0 WHEN \(segments) LIKE ? THEN 1 WHEN name LIKE ? THEN 2
+                         WHEN search_name LIKE ? THEN 3 WHEN \(segments) LIKE ? THEN 4 ELSE 5 END,
                     CASE WHEN category = '원재료성 식품' THEN 0 ELSE 1 END, length(name), name, source_date DESC, id
                 """
             parameters.append(preferredID ?? "")
             let fullQuery = normalized(query)
             let compactQuery = query.filter { !$0.isWhitespace }
-            parameters += [fullQuery, fullQuery + "생것", reversedDishName(fullQuery) ?? fullQuery, "\(fullQuery)%",
-                           "%,\(compactQuery),%", "%,\(compactQuery)%"]
+            parameters += [fullQuery, fullQuery + "생것", reversedDishName(fullQuery) ?? fullQuery,
+                           "%,\(compactQuery),%", "\(compactQuery) %", "\(fullQuery)%", "%,\(compactQuery)%"]
         } else {
             sql += " ORDER BY display_priority, name, source_date DESC, id"
         }

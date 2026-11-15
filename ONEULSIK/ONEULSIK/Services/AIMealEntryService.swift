@@ -224,15 +224,12 @@ final class AIMealEntryService: MealEntryAnalyzing {
             || DrinkReferenceCatalog.recognizes(input.name) {
             return true
         }
-        if let alternative = FoodReferenceCatalog.preparedAlternative(for: input.name, source: input.sourceText) {
-            let foods = try await catalog.search(query: alternative.name)
-            try Task.checkCancellation()
-            return foods.contains { $0.category == "음식" && $0.brand.isEmpty && $0.amountUnit == "g"
-                && FoodCatalogQuality.isUsable($0) && normalized($0.name) == normalized(alternative.name) }
-        }
         let matches = try await catalog.search(query: input.name)
         try Task.checkCancellation()
-        return matches.contains { FoodCatalogQuality.isUsable($0) && normalized($0.name) == normalized(input.name) }
+        // 수식어를 뗀 이름(냉동만두 → 만두)이 알려진 음식이어도 한 음식으로 본다. 기록 전에 비슷한 음식 확인을 거친다.
+        let names = [input.name] + (FoodModifierCatalog.stripped(input.name).map { [$0.base] } ?? [])
+        return matches.contains { food in FoodCatalogQuality.isUsable(food) && names.contains { normalized(food.name) == normalized($0) } }
+            || names.dropFirst().contains { FoodReferenceCatalog.entry(for: $0) != nil }
     }
 
     func resolve(_ choice: MealEntryChoice) async throws -> MealEntryAnalysis {
@@ -588,19 +585,6 @@ final class AIMealEntryService: MealEntryAnalyzing {
                 return try clarification(for: input, question: "어떤 반찬을 드셨나요?", items: items, remaining: remaining)
             }
             if !prefersProducts, input.details.isEmpty,
-               let alternative = FoodReferenceCatalog.preparedAlternative(for: input.name, source: input.sourceText) {
-                let matches = try await catalog.search(query: alternative.name)
-                try Task.checkCancellation()
-                let options = candidates(from: matches, input: input).filter {
-                    $0.brand.isEmpty && $0.category == "음식" && $0.amountUnit == "g"
-                        && normalized($0.name) == normalized(alternative.name)
-                }
-                if !options.isEmpty {
-                    return similarFoodQuestion(options, input: input, items: items, remaining: remaining,
-                        explanation: alternative.explanation)
-                }
-            }
-            if !prefersProducts, input.details.isEmpty,
                let reference = FoodReferenceCatalog.entry(for: input.name),
                let food = try await catalog.food(id: reference.referenceID) {
                 try Task.checkCancellation()
@@ -743,7 +727,8 @@ final class AIMealEntryService: MealEntryAnalyzing {
                 if normalized(food.name) == normalized(input.name) {
                     return try await resolveSelection(MealFoodSelection(input: input, food: food), items: items, remaining: remaining)
                 }
-                return similarFoodQuestion([food], input: input, items: items, remaining: remaining)
+                return similarFoodQuestion([food], input: input, items: items, remaining: remaining,
+                    explanation: FoodModifierCatalog.stripped(input.name)?.explanation)
             }
             if !products.isEmpty {
                 return packagedQuestion(products, input: input, items: items, remaining: remaining)
@@ -857,17 +842,26 @@ final class AIMealEntryService: MealEntryAnalyzing {
         } else {
             filtered = compatible.filter { $0.brand.isEmpty && $0.category != "가공식품" }
         }
-        let reference = FoodReferenceCatalog.entry(for: input.name)
+        let reference = referenceEntry(for: input.name)
+        let preferredCategory = FoodModifierCatalog.stripped(input.name)?.prefersCategory
         let ordered = filtered.sorted { left, right in
             let leftIsReference = reference?.matches(left) == true
             let rightIsReference = reference?.matches(right) == true
             if leftIsReference != rightIsReference { return leftIsReference }
+            if let preferredCategory, (left.category == preferredCategory) != (right.category == preferredCategory) {
+                return left.category == preferredCategory
+            }
             if (left.category == "음식") != (right.category == "음식") { return left.category == "음식" }
             if (left.amountUnit == "g") != (right.amountUnit == "g") { return left.amountUnit == "g" }
             return false
         }
         var seen = Set<String>()
         return ordered.filter { seen.insert(normalized($0.name + $0.brand)).inserted }
+    }
+
+    /// 대표 항목(FoodReferences.json). 이름 그대로 없으면 앞쪽 수식어를 뗀 이름으로 찾는다.
+    private func referenceEntry(for name: String) -> FoodReference? {
+        FoodReferenceCatalog.entry(for: name) ?? FoodModifierCatalog.stripped(name).flatMap { FoodReferenceCatalog.entry(for: $0.base) }
     }
 
     private func productCandidates(from results: [FoodCatalogItem], input: MealFoodInput) -> [FoodCatalogItem] {
@@ -1025,7 +1019,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
             unit = portion.unit
             origin = .representative
         } else if input.brand.isEmpty, input.details.isEmpty,
-                  let reference = FoodReferenceCatalog.entry(for: input.name),
+                  let reference = referenceEntry(for: input.name),
                   let amount = reference.estimatedAmount(for: input.unit, food: food) {
             basis = amount
             count = input.quantity
