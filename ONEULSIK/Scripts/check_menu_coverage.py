@@ -113,13 +113,14 @@ def main():
         groups.setdefault(row["category"] or "분류 없음", []).append(row)
     for category, items in groups.items():
         lines += ["", f"## {category}", "",
-                  "| 메뉴 | 일반 음식 결과 | 첫 후보 | 첫 후보 가공식품 | 첫 일반 후보 | 전체 결과 수 |",
-                  "|---|---|---|---|---|---:|"]
+                  "| 메뉴 | 일반 음식 결과 | 첫 후보 | 첫 후보 가공식품 | 첫 일반 후보 | 전체 결과 수 | 상위 3개 |",
+                  "|---|---|---|---|---|---:|---|"]
         for r in items:
             general = f"있음 ({r['general']})" if r["general"] else "**없음**"
             processed = "-" if r["firstIsProcessed"] is None else ("**예**" if r["firstIsProcessed"] else "아니오")
             lines.append(f"| {cell(r['menu'])} | {general} | {cell(r['firstName']) or '-'} | {processed} | "
-                         f"{cell(r['firstGeneralName']) or '-'} | {r['total']} |")
+                         f"{cell(r['firstGeneralName']) or '-'} | {r['total']} | "
+                         f"{'<br>'.join(cell(name) for name in r.get('top', [])) or '-'} |")
 
     report = ROOT / "TestReports" / f"menu-coverage_{started:%Y-%m-%d_%H%M}.md"
     report.parent.mkdir(exist_ok=True)

@@ -18,6 +18,8 @@ struct MenuCoverageTests {
         let firstName: String
         let firstIsProcessed: Bool?
         let firstGeneralName: String
+        /// 검색 결과 상위 3개(가공식품·브랜드는 "[제품]" 표시)
+        let top: [String]
     }
 
     @Test(.enabled(if: environment["ONEULSIK_MENU_FILE"] != nil && environment["ONEULSIK_MENU_OUTPUT"] != nil))
@@ -40,7 +42,11 @@ struct MenuCoverageTests {
             let row = Row(category: category, menu: line, total: results.count, general: general.count,
                           firstName: first?.recordedName ?? "",
                           firstIsProcessed: first.map { $0.category == "가공식품" || !$0.brand.isEmpty },
-                          firstGeneralName: general.first?.name ?? "")
+                          firstGeneralName: general.first?.name ?? "",
+                          top: results.prefix(3).map { food in
+                              let isProduct = food.category == "가공식품" || !food.brand.isEmpty
+                              return isProduct ? "[제품] \(food.recordedName)" : food.name
+                          })
             lines.append(String(decoding: try encoder.encode(row), as: UTF8.self))
         }
         try (lines.joined(separator: "\n") + "\n").write(to: output, atomically: true, encoding: .utf8)
