@@ -996,6 +996,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
         let count: Double
         let unit: String
         let origin: MealPortionBasis
+        var referencePortionUnit = ""
 
         if input.unit == "g" || input.unit == "mL" {
             guard input.unit == food.amountUnit else { throw MealEntryError.portionUnknown(input.name) }
@@ -1021,7 +1022,9 @@ final class AIMealEntryService: MealEntryAnalyzing {
                   portion.accepts(input.unit) || input.unit == "인분" {
             basis = portion.grams
             count = input.quantity
-            unit = portion.equivalentUnits.contains(input.unit) ? input.unit : portion.unit
+            // 입력한 단위를 그대로 보여준다. 1인분을 대표 분량 1단위(예: 1접시)로 계산했으면 그 단위를 안내에 남긴다.
+            unit = input.unit
+            if input.unit != portion.unit { referencePortionUnit = portion.unit }
             origin = .representative
         } else if input.brand.isEmpty, input.details.isEmpty,
                   let reference = referenceEntry(for: input.name),
@@ -1042,7 +1045,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
             origin = .aiEstimated
         }
         guard (0.1...10000).contains(basis * count) else { throw MealEntryError.portionUnknown(input.name) }
-        let adjusted = FoodCatalogItem(
+        var adjusted = FoodCatalogItem(
             id: food.id, name: selection.isSimilar ? input.name : food.name, servingUnit: unit,
             servingGrams: food.amountUnit == "g" ? basis : 0,
             nutrition: food.nutrition(for: basis / food.baseAmount),
@@ -1051,6 +1054,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
             source: selection.isSimilar ? "유사 음식: \(food.recordedName) · \(food.source)" : food.source,
             sourceDate: food.sourceDate, category: food.category
         )
+        adjusted.referencePortionUnit = referencePortionUnit
         let item = MealEntryItem(food: adjusted, servingCount: count, portionBasis: origin, nutritionBasis: selection.isSimilar ? .similarFood : .database)
         guard item.isValid else { throw MealEntryError.invalidResult }
         return item

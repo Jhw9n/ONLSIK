@@ -13,6 +13,8 @@ nonisolated struct FoodCatalogItem: Identifiable, Hashable, Sendable {
     var category: String = ""
     /// 식약처 원본 `식품중량`의 제품 1개 총중량(baseAmount와 같은 단위). 없으면 0
     var packageAmount: Double = 0
+    /// 입력 단위(예: 1인분)를 대표 분량의 다른 단위(예: 1접시)로 계산했을 때 그 단위. 저장하지 않는 화면용 값
+    var referencePortionUnit: String = ""
 
     var baseAmount: Double { servingMilliliters > 0 ? servingMilliliters : servingGrams }
     var amountUnit: String { servingMilliliters > 0 ? "mL" : "g" }

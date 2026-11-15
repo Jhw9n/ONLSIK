@@ -97,3 +97,42 @@ struct DisplayTextTests {
                actual: shown.joined(separator: " / "), failures: failures)
     }
 }
+
+/// 인분으로 입력했는데 대표 분량 단위가 다를 때(예: 주꾸미볶음 1접시) 카드에 입력 단위를 그대로 보여주는지
+@MainActor
+@Suite("입력 단위 표시")
+struct InputUnitDisplayTests {
+    @Test("인분 입력과 대표 분량 단위", arguments: [
+        ("U01", "쭈꾸미볶음 1인분", "쭈꾸미볶음", "인분", 200.0, "대표 분량 1접시 기준"),
+        ("U02", "쭈꾸미볶음 1접시", "쭈꾸미볶음", "접시", 200.0, ""),
+        ("U03", "삼겹살구이 1인분", "삼겹살구이", "인분", 130.0, ""),
+    ])
+    func unit(_ id: String, _ input: String, _ food: String, _ unit: String, _ grams: Double, _ note: String) async throws {
+        let script = MealCase.LLM(food: food, brand: nil, portion: .init(amount: 300, unit: nil), pick: nil, estimate: nil)
+        let service = AIMealEntryService(interpreter: FakeMealFoodInterpreter(script: script), catalog: FoodCatalogService())
+        var analysis = try await service.analyze(input)
+        for _ in 0..<3 {
+            guard case .question(let question) = analysis, let first = question.choices.first else { break }
+            analysis = try await service.resolve(first)
+        }
+        var failures: [Failure] = []
+        var actual = "기록 없음"
+        if case .ready(let items) = analysis, let item = items.first {
+            let description = item.basisDescription ?? ""
+            actual = "\(item.amountDescription) · \(description)"
+            if item.food.servingUnit != unit {
+                failures.append(Failure(type: .unit, message: "카드 단위 \(item.food.servingUnit) (기대 \(unit))"))
+            }
+            if abs(item.food.baseAmount * item.count - grams) > 0.5 {
+                failures.append(Failure(type: .amount, message: "\((item.food.baseAmount * item.count).short)g (기대 \(grams.short)g)"))
+            }
+            if note.isEmpty ? description.contains("대표 분량") : !description.contains(note) {
+                failures.append(Failure(type: .displayText, message: "분량 안내 ‘\(description)’ (기대 ‘\(note.isEmpty ? "대표 분량 안내 없음" : note)’)"))
+            }
+        } else {
+            failures.append(Failure(type: .error, message: "기록되지 않음"))
+        }
+        report(suite: "입력 단위 표시", id: id, input: input,
+               expected: "1\(unit) · 약 \(grams.short)g\(note.isEmpty ? "" : " · \(note)")", actual: actual, failures: failures)
+    }
+}

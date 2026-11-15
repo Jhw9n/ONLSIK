@@ -52,7 +52,9 @@ struct MealEntryItem: Identifiable {
     var basisDescription: String? {
         guard food.baseAmount > 0, !usesWeight else { return nil }
         let amount = "약 \((food.baseAmount * count).formatted(.number.precision(.fractionLength(0...1))))\(food.amountUnit)"
-        return [amount, portionBasis.label].compactMap { $0 }.joined(separator: " · ")
+        let reference = portionBasis == .representative && !food.referencePortionUnit.isEmpty
+            && food.referencePortionUnit != food.servingUnit ? "대표 분량 1\(food.referencePortionUnit) 기준" : nil
+        return [amount, reference, portionBasis.label].compactMap { $0 }.joined(separator: " · ")
     }
     var amountDescription: String {
         if food.servingUnit == "g" || food.servingUnit == "mL" {
