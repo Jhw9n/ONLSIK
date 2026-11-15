@@ -58,15 +58,22 @@
     "우유": 2774,
     "아메리카노": 405
   },
-  "packageWeights": {
+  "productDetails": {
     "source": {
       "file": "식약처_가공식품_DB_2026-09-29.xlsx",
       "sha256": "04f8fb4e82220a911aa4d583539da1b412138a430d76482a1e7a80f7b930dd93",
-      "column": "식품중량"
+      "columns": [
+        "식품중량",
+        "식품대분류명",
+        "식품중분류명",
+        "식품소분류명"
+      ]
     },
-    "rule": "식품코드 = foods.id, 식품중량이 숫자+g 또는 숫자+ml일 때만 package_amount/package_unit을 채움. 1회 섭취참고량은 사용하지 않음",
+    "rule": "식품코드 = foods.id. 식품중량이 숫자+g 또는 숫자+ml일 때만 package_amount/package_unit을 채움(1회 섭취참고량 미사용). 대·중·소분류 조합은 food_categories의 정수 코드(category_code)로 연결",
     "catalogRows": 325705,
     "rowsWithPackageAmount": 298388,
+    "rowsWithCategory": 316934,
+    "categoryCombinations": 256,
     "counts": {
       "linked": 316934,
       "linked_empty_weight": 18546,
@@ -76,10 +83,32 @@
       "source_rows": 323197
     },
     "topUnparsedWeights": [],
-    "existingColumnsSha256": {
-      "all": "3364181f04031567cfa5a9d20a32a3a1f4919ecdcd025b4641cd412e897a05bd",
+    "removed": {
+      "columns": [
+        "package_raw"
+      ],
+      "indexes": [
+        "food_display_order"
+      ]
+    },
+    "remainingIndexes": [
+      "sqlite_autoindex_foods_1",
+      "sqlite_autoindex_food_categories_1"
+    ],
+    "sizeBytes": {
+      "before": 100139008,
+      "after": 80183296,
+      "limit": 90000000
+    },
+    "sha256": {
+      "existingColumns": "3364181f04031567cfa5a9d20a32a3a1f4919ecdcd025b4641cd412e897a05bd",
       "nutrition": "0ee990db717e6bd6508cd4d95c0bb2c861286c82dd7cd254720bf91d128556fb",
-      "unchanged": true
+      "package": "941e415deb9f67449fd63473565bb7cd06ba7994de229b63162a38f0201dbba5",
+      "verifiedUnchanged": [
+        "all",
+        "nutrition",
+        "package"
+      ]
     }
   }
 }
