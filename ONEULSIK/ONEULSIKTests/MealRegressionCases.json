@@ -250,6 +250,11 @@
       "expect": { "maxQuestions": 0, "kind": "general", "nameContains": ["밥"], "units": ["공기"], "count": 1, "amount": { "units": ["g"], "min": 205, "max": 215 }, "kcal": { "min": 250, "max": 400 } }
     },
     {
+      "id": "M39", "input": "달걀 하나", "note": "단위 없는 개수. 대표 분량 단위(개, 50g)로 기록. 알려진 실패(2026-11-16): 연결 항목 이름 ‘달걀 삶은것’이 대표 분량표 이름(‘달걀,삶은것’)과 달라 대표 분량이 붙지 않음. 대표 분량 연결 규칙 결정 대기",
+      "llm": { "food": "달걀" },
+      "expect": { "kind": "general", "nameContains": ["달걀"], "units": ["개"], "count": 1, "amount": { "units": ["g"], "min": 45, "max": 55 } }
+    },
+    {
       "id": "M40", "input": "김밥 하나", "note": "단위 없는 개수. 대표 분량 단위(줄, 200g)로 기록",
       "llm": { "food": "김밥" },
       "expect": { "kind": "general", "nameContains": ["김밥"], "units": ["줄"], "count": 1, "amount": { "units": ["g"], "min": 195, "max": 205 } }
@@ -263,6 +268,16 @@
       "id": "M42", "input": "만두 세 개", "note": "숫자와 단위 사이 띄어쓰기(세 개)",
       "llm": { "food": "만두", "portion": { "amount": 30 } },
       "expect": { "units": ["개"], "count": 3 }
+    },
+    {
+      "id": "M43", "input": "순두부찌개 1인분", "note": "대표 분량표 1인분 400g. kcal는 항목 기준단위(g/mL)에 따라 달라져 보지 않음. 알려진 실패(2026-11-16): 참고표가 mL 항목 ‘순두부찌개 모듬’을 가리켜 대표 분량(g 항목, 이름 일치만)이 붙지 않음. 대표 분량 연결 규칙 결정 대기",
+      "llm": { "food": "순두부찌개" },
+      "expect": { "maxQuestions": 0, "kind": "general", "nameContains": ["순두부찌개"], "units": ["인분"], "count": 1, "amount": { "units": ["g", "mL"], "min": 390, "max": 410 } }
+    },
+    {
+      "id": "M44", "input": "순두부찌개", "note": "수량 없음 + 대표 분량 있음 → 1인분으로 가정해 기록 카드, 기본값 안내 표시. 알려진 실패(2026-11-16): M43과 같은 원인으로 대표 분량이 붙지 않아 수량 질문으로 감",
+      "llm": { "food": "순두부찌개" },
+      "expect": { "maxQuestions": 0, "assumedQuantity": true, "kind": "general", "nameContains": ["순두부찌개"], "units": ["인분"], "count": 1, "amount": { "units": ["g", "mL"], "min": 390, "max": 410 } }
     },
     {
       "id": "M45", "input": "김치찌개", "note": "수량 없음 + 대표 분량 있음(1인분 400g)",
