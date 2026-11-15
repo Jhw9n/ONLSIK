@@ -5,7 +5,10 @@ nonisolated struct FoodModifier: Decodable, Sendable {
     let word: String
     /// 수식어를 뗀 뒤 후보 중 먼저 볼 분류(예: 생 → 원재료성 식품, 숯불 → 음식). 없으면 순서를 바꾸지 않는다.
     let prefersCategory: String?
-    let explanation: String
+    /// 비슷한 음식 확인 질문에 보여줄 화면 문구. 날짜·결정·출처 메모는 넣지 않는다.
+    let displayText: String
+    /// 내부 근거(선택). 화면에 보여주지 않는다.
+    let basisNote: String?
 }
 
 nonisolated enum FoodModifierCatalog {
@@ -14,7 +17,7 @@ nonisolated enum FoodModifierCatalog {
         let modifiers: [FoodModifier]
 
         var prefersCategory: String? { modifiers.compactMap(\.prefersCategory).last }
-        var explanation: String { modifiers.map(\.explanation).joined(separator: ". ") }
+        var displayText: String { modifiers.map(\.displayText).joined(separator: ". ") }
     }
 
     private struct File: Decodable {
@@ -26,9 +29,11 @@ nonisolated enum FoodModifierCatalog {
         guard let url = Bundle.main.url(forResource: "FoodModifiers", withExtension: "json"),
               let data = try? Data(contentsOf: url),
               let file = try? JSONDecoder().decode(File.self, from: data),
-              file.modifiers.allSatisfy({ !$0.word.isEmpty && !$0.explanation.isEmpty }) else { return nil }
+              file.modifiers.allSatisfy({ !$0.word.isEmpty && !$0.displayText.isEmpty }) else { return nil }
         return file
     }()
+
+    static var entries: [FoodModifier] { file?.modifiers ?? [] }
 
     /// 앞쪽 수식어를 모두 뗀 이름. 뗄 수식어가 없거나 남는 이름이 두 글자 미만이면 nil.
     /// `생강`처럼 수식어로 시작하는 음식 이름(keepWords)은 떼지 않는다.

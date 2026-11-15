@@ -11,8 +11,10 @@ nonisolated struct FoodReference: Decodable, Sendable {
     let estimatedPortions: [String: Double]?
     /// DB 항목의 분류. 없으면 조리 음식("음식")
     let category: String?
-    /// 비슷한 음식 확인 질문에 보여줄 기준 설명(선택)
-    let explanation: String?
+    /// 비슷한 음식 확인 질문에 보여줄 화면 문구(선택). 날짜·결정·출처 메모는 넣지 않는다.
+    let displayText: String?
+    /// 내부 근거(결정 날짜, 출처 메모). 화면에 보여주지 않는다.
+    let basisNote: String?
 
     var names: [String] { [name] + aliases }
 

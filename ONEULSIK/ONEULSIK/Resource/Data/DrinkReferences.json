@@ -14,9 +14,9 @@
       "referenceID": "P115-102020100-0013",
       "referenceName": "좋은데이",
       "generalReferenceID": "RDA-Q0100002389a",
-      "generalReferenceNote": "검색의 일반 항목 대표: 농진청 '증류주, 소주, 희석식, 알코올 17.8%'(희석식 소주. 25%는 과거 도수, 증류식은 별개 주종)",
+      "generalReferenceBasisNote": "검색의 일반 항목 대표: 농진청 '증류주, 소주, 희석식, 알코올 17.8%'(희석식 소주. 25%는 과거 도수, 증류식은 별개 주종)",
       "defaultUnit": "병",
-      "note": "희석식 소주 대표값. 제품 영양표시 100mL당 89kcal(2026-11-15 결정)",
+      "basisNote": "희석식 소주 대표값. 제품 영양표시 100mL당 89kcal(2026-11-15 결정)",
       "containers": [
         { "unit": "병", "milliliters": 360, "source": "https://www.muhak.co.kr/product/goodday/" },
         { "unit": "잔", "milliliters": 50, "source": "https://www.cancer.go.kr/lay1/S1T231C233/contents.do" }
@@ -30,7 +30,7 @@
       "referenceID": "P115-102020100-0012",
       "referenceName": "새로",
       "defaultUnit": "병",
-      "note": "제품명으로 입력한 경우",
+      "basisNote": "제품명으로 입력한 경우",
       "containers": [
         { "unit": "병", "milliliters": 360, "source": "https://company.lottechilsung.co.kr/kor/brand/saero/contentsid/970/index.do" },
         { "unit": "잔", "milliliters": 50, "source": "https://www.cancer.go.kr/lay1/S1T231C233/contents.do" }
@@ -44,7 +44,7 @@
       "referenceID": "P115-104010400-0008",
       "referenceName": "맥주",
       "defaultUnit": "캔",
-      "note": "브랜드 없는 식약처 맥주 항목(100mL당 53kcal). 같은 이름의 65kcal 항목도 있음",
+      "basisNote": "브랜드 없는 식약처 맥주 항목(100mL당 53kcal). 같은 이름의 65kcal 항목도 있음",
       "containers": [
         { "unit": "캔", "milliliters": 355, "source": "시판 캔 맥주 표준 규격(2026-11-15 결정)" },
         { "unit": "병", "milliliters": 500, "source": "시판 병맥주 표준 규격(2026-11-15 결정)" }
@@ -58,7 +58,7 @@
       "referenceID": "P115-101010100-0007",
       "referenceName": "막걸리",
       "defaultUnit": "병",
-      "note": "브랜드 없는 식약처 막걸리 항목(100mL당 56kcal). 같은 이름의 63kcal 항목도 있음",
+      "basisNote": "브랜드 없는 식약처 막걸리 항목(100mL당 56kcal). 같은 이름의 63kcal 항목도 있음",
       "containers": [
         { "unit": "병", "milliliters": 750, "source": "시판 막걸리 표준 규격(2026-11-15 결정)" }
       ]

@@ -729,7 +729,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
                 }
                 let reference = referenceEntry(for: input.name).flatMap { $0.matches(food) ? $0 : nil }
                 return similarFoodQuestion([food], input: input, items: items, remaining: remaining,
-                    explanation: reference?.explanation ?? FoodModifierCatalog.stripped(input.name)?.explanation)
+                    explanation: reference?.displayText ?? FoodModifierCatalog.stripped(input.name)?.displayText)
             }
             if !products.isEmpty {
                 return packagedQuestion(products, input: input, items: items, remaining: remaining)

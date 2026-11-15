@@ -46,8 +46,16 @@ def main():
             record = records.get((suite, case["id"]))
             rows.append((suite, case, record, case_input(key, case)))
 
+    # 케이스 파일에 없는 검사(화면 문구, 합계 계산 등)는 기록된 결과를 그대로 "기타 검사"로 붙인다.
+    known = {(suite, case["id"]) for suite, case, _, _ in rows}
+    extras = [record for key, record in records.items() if key not in known]
+    for record in extras:
+        rows.append((record["suite"], {"id": record["id"]}, record, record["input"]))
+
     counts = {"전체": len(rows), "통과": 0, "실패": 0, "실행 불가": 0}
     per_suite = OrderedDict((suite, {"통과": 0, "실패": 0, "실행 불가": 0}) for suite in SUITES.values())
+    for record in extras:
+        per_suite.setdefault(record["suite"], {"통과": 0, "실패": 0, "실행 불가": 0})
     failure_groups = OrderedDict()
     for suite, case, record, _ in rows:
         status = "실행 불가" if record is None else ("통과" if record["passed"] else "실패")
@@ -90,7 +98,7 @@ def main():
     else:
         lines.append("실패 없음")
 
-    for suite in SUITES.values():
+    for suite in per_suite:
         suite_rows = [row for row in rows if row[0] == suite]
         if not suite_rows:
             continue
