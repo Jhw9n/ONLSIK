@@ -252,6 +252,17 @@ final class AIMealEntryService: MealEntryAnalyzing {
             return try await resolveSelection(MealFoodSelection(input: input, food: selection.food,
                 isProductConfirmed: selection.isProductConfirmed), items: choice.items, remaining: choice.remainingFoods)
         }
+        if choice.requiresUnitAmount, let selection = choice.selection,
+           let answer = choice.continuationInput?.details {
+            let unit = selection.food.amountUnit
+            guard let amount = MealInputGrounding.portionAnswer(answer, defaultUnit: unit), amount.unit == unit else {
+                return unitAmountQuestion(selection, items: choice.items, remaining: choice.remainingFoods, invalid: true)
+            }
+            var weighed = selection
+            weighed.portionOverride = MealPortionEstimate(amountPerUnit: amount.quantity, amountUnit: unit)
+            weighed.portionUnit = selection.input.unit
+            return try await resolveSelection(weighed, items: choice.items, remaining: choice.remainingFoods)
+        }
         if let corrected = choice.correctedText {
             return try await analyzeMeal(corrected)
         }
@@ -337,6 +348,9 @@ final class AIMealEntryService: MealEntryAnalyzing {
             if PackagedFoodCatalog.entry(id: selection.food.id) != nil {
                 return packageCountQuestion(selection, items: items, remaining: remaining)
             }
+            if requiresUnitAmount(selection) {
+                return unitAmountQuestion(selection, items: items, remaining: remaining)
+            }
             if selection.input.unit == "국자" {
                 if let question = try await recoveredPortionQuestion(selection, items: items, remaining: remaining) {
                     return question
@@ -399,6 +413,28 @@ final class AIMealEntryService: MealEntryAnalyzing {
             clarification: MealEntryChoice(id: UUID().uuidString, title: "확인", items: items, selection: selection,
                 remainingFoods: remaining, continuationInput: selection.input, requiresPackageCount: true),
             inputPlaceholder: "예: 1개, 0.5개"
+        ))
+    }
+
+    /// 포장 단위 중량을 모르는 가공식품. 검증된 제공량이 DB에 없으므로 추정하지 않고 사용자에게 묻는다.
+    private func requiresUnitAmount(_ selection: MealFoodSelection) -> Bool {
+        selection.food.category == "가공식품" && !["g", "mL"].contains(selection.input.unit)
+            && selection.portionOverride == nil
+    }
+
+    private func unitAmountQuestion(_ selection: MealFoodSelection, items: [MealEntryItem], remaining: [MealFoodInput], invalid: Bool = false) -> MealEntryAnalysis {
+        let unit = selection.input.unit == "소량" ? "개" : selection.input.unit
+        let amountUnit = selection.food.amountUnit
+        var continuation = selection.input
+        continuation.details = ""
+        return .question(MealEntryQuestion(
+            title: "‘\(selection.input.name)’ 1\(unit)의 중량을 알려주세요",
+            explanation: invalid ? "숫자와 \(amountUnit) 단위로 적어주세요. 숫자만 적으면 \(amountUnit) 기준이에요."
+                : "이 제품은 1\(unit) 중량 정보가 없어요. 포장에 적힌 내용량을 알려주시면 먹은 수량(\(selection.input.quantity.formatted(.number.precision(.fractionLength(0...1))))\(unit))만큼 계산해요.",
+            choices: [],
+            clarification: MealEntryChoice(id: UUID().uuidString, title: "확인", items: items, selection: selection,
+                remainingFoods: remaining, continuationInput: continuation, requiresUnitAmount: true),
+            inputPlaceholder: "예: 120\(amountUnit)"
         ))
     }
 
@@ -910,7 +946,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
             guard item.isValid else { throw MealEntryError.invalidResult }
             return item
         }
-        guard food.category != "가공식품" || ["g", "mL"].contains(input.unit) else {
+        guard food.category != "가공식품" || ["g", "mL"].contains(input.unit) || selection.portionOverride != nil else {
             throw MealEntryError.portionUnknown(input.name)
         }
         let basis: Double

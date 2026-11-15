@@ -117,6 +117,7 @@ struct MealEntryChoice: Identifiable {
     var portionInput: MealFoodInput? = nil
     var correctedText: String? = nil
     var requiresPackageCount = false
+    var requiresUnitAmount = false
     var subtitle: String? = nil
 }
 

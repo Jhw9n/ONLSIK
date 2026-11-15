@@ -115,6 +115,8 @@ struct MealEntryOutcomeTests {
         var failures: [Failure] = []
         var questionLog: [String] = []
         var items: [MealEntryItem] = []
+        let answers = testCase.answers ?? []
+        var answerIndex = 0
         do {
             var analysis = try await service.analyze(testCase.input)
             loop: while true {
@@ -123,17 +125,26 @@ struct MealEntryOutcomeTests {
                     items = ready
                     break loop
                 case .question(let question):
-                    let first = question.choices.first
-                    questionLog.append("\(question.title) → \(first?.title ?? "(선택지 없음)")")
-                    guard let first else {
-                        failures.append(Failure(type: .question, message: "선택지 없는 질문: \(question.title)"))
-                        break loop
-                    }
-                    guard questionLog.count <= Self.maxQuestionRounds else {
+                    guard questionLog.count < Self.maxQuestionRounds else {
                         failures.append(Failure(type: .question, message: "질문이 \(Self.maxQuestionRounds)회를 넘음"))
                         break loop
                     }
-                    analysis = try await service.resolve(first)
+                    if let first = question.choices.first {
+                        questionLog.append("\(question.title) → \(first.title)")
+                        analysis = try await service.resolve(first)
+                    } else if var typed = question.clarification, typed.continuationInput != nil,
+                              answers.indices.contains(answerIndex) {
+                        // 선택지 없는 질문은 케이스에 적힌 사용자 입력(answers)을 순서대로 넣는다.
+                        let answer = answers[answerIndex]
+                        answerIndex += 1
+                        typed.continuationInput?.details = answer
+                        questionLog.append("\(question.title) → 입력 ‘\(answer)’")
+                        analysis = try await service.resolve(typed)
+                    } else {
+                        questionLog.append("\(question.title) → (선택지 없음)")
+                        failures.append(Failure(type: .question, message: "선택지 없는 질문: \(question.title)"))
+                        break loop
+                    }
                 }
             }
         } catch {

@@ -104,6 +104,8 @@ struct MealCase: Decodable, CustomTestStringConvertible {
     let input: String
     let note: String?
     let llm: LLM?
+    /// 선택지 없는 질문(자유 입력)에 사용자가 적을 답. 순서대로 사용한다.
+    let answers: [String]?
     let expect: Expect
     var testDescription: String { "\(id) \(input)" }
 

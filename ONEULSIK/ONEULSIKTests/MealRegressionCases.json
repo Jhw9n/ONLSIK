@@ -3,7 +3,8 @@
     "식사 입력 회귀 테스트 케이스. 새 실패 사례는 해당 배열에 한 항목씩 추가하면 됩니다.",
     "기대값은 DB 행 ID가 아니라 결과(단위, 분량 범위, 열량 범위, 일반 음식/가공식품 구분)로 적습니다.",
     "meals.llm은 가짜 해석기의 응답입니다. food=LLM이 뽑은 음식 이름, portion=LLM 분량 추정(unit 생략 시 DB 항목 단위), pick=후보 중 고를 이름(생략 시 첫 후보), estimate=DB에 없을 때의 영양 추정. portion이 없으면 LLM이 분량을 모른다고 답한 것으로 처리합니다.",
-    "확인 질문은 첫 번째 선택지를 고르는 것으로 진행하고 횟수를 기록합니다. maxQuestions를 넘거나 선택지 없는 자유 입력 질문이 나오면 실패입니다.",
+    "확인 질문은 첫 번째 선택지를 고르는 것으로 진행하고 횟수를 기록합니다. maxQuestions를 넘으면 실패입니다.",
+    "선택지 없는 자유 입력 질문은 answers에 적힌 사용자 입력을 순서대로 넣고, answers가 없거나 모자라면 실패입니다.",
     "모든 meals 케이스에는 공통 조건이 붙습니다: 한 줄 1,000kcal 이하, drink=true이면 기록 단위가 인분이 아니어야 함."
   ],
   "grounding": [
@@ -147,6 +148,26 @@
     {
       "id": "M19", "input": "닭가슴살 1팩", "note": "가공식품 차단 위험 확인. 1팩 약 100g",
       "llm": { "food": "닭가슴살", "portion": { "amount": 100 } },
+      "expect": { "amount": { "units": ["g"], "min": 80, "max": 150 }, "kcal": { "min": 80, "max": 200 } }
+    },
+    {
+      "id": "M20", "input": "신라면 1개", "note": "포장 중량을 모를 때 g 질문 → 사용자가 포장의 120g 입력",
+      "llm": { "food": "신라면", "portion": { "amount": 120 } }, "answers": ["120g"],
+      "expect": { "amount": { "units": ["g"], "min": 100, "max": 140 }, "kcal": { "min": 400, "max": 600 } }
+    },
+    {
+      "id": "M21", "input": "햇반 1개", "note": "포장 중량을 모를 때 g 질문 → 210g 입력",
+      "llm": { "food": "햇반", "portion": { "amount": 210 } }, "answers": ["210g"],
+      "expect": { "amount": { "units": ["g"], "min": 180, "max": 230 }, "kcal": { "min": 250, "max": 380 } }
+    },
+    {
+      "id": "M22", "input": "바나나우유 1개", "note": "포장 중량을 모를 때 질문 → 240mL 입력(숫자만)",
+      "llm": { "food": "바나나우유", "portion": { "amount": 240 } }, "answers": ["240"],
+      "expect": { "drink": true, "amount": { "units": ["mL", "g"], "min": 200, "max": 300 }, "kcal": { "min": 150, "max": 260 } }
+    },
+    {
+      "id": "M23", "input": "닭가슴살 1팩", "note": "포장 중량을 모를 때 g 질문 → 100g 입력",
+      "llm": { "food": "닭가슴살", "portion": { "amount": 100 } }, "answers": ["100g"],
       "expect": { "amount": { "units": ["g"], "min": 80, "max": 150 }, "kcal": { "min": 80, "max": 200 } }
     }
   ]
