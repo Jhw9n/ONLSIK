@@ -174,6 +174,31 @@
       "id": "M24", "input": "삼겹살구이 2인분", "note": "한 줄 1,000kcal 초과 → 막지 않고 양 확인 질문 후 그대로 기록",
       "llm": { "food": "삼겹살구이", "portion": { "amount": 200 } },
       "expect": { "confirmsAmount": true, "kind": "general", "nameContains": ["삼겹살"], "amount": { "units": ["g"], "min": 300, "max": 500 }, "kcal": { "min": 1400, "max": 2400 } }
+    },
+    {
+      "id": "M25", "input": "신라면 1개", "note": "제품 총중량(식품중량 120g) × 1개. g 질문 없이 기록",
+      "llm": { "food": "신라면" }, "choose": "120g",
+      "expect": { "maxQuestions": 1, "basis": "package", "amount": { "units": ["g"], "min": 115, "max": 125 }, "kcal": { "min": 480, "max": 520 } }
+    },
+    {
+      "id": "M26", "input": "신라면컵 1개", "note": "컵 제품 총중량 65g",
+      "llm": { "food": "신라면컵" }, "choose": "65g",
+      "expect": { "maxQuestions": 1, "basis": "package", "amount": { "units": ["g"], "min": 60, "max": 70 }, "kcal": { "min": 280, "max": 320 } }
+    },
+    {
+      "id": "M27", "input": "동원 바나나우유 1개", "note": "mL 총중량 제품(300ml)",
+      "llm": { "food": "바나나우유", "brand": "동원" }, "choose": "300mL",
+      "expect": { "maxQuestions": 1, "drink": true, "basis": "package", "amount": { "units": ["mL"], "min": 290, "max": 310 }, "kcal": { "min": 200, "max": 250 } }
+    },
+    {
+      "id": "M28", "input": "그릴닭가슴살 1팩", "note": "큰 총중량(980g) 제품 → 1,000kcal 초과 양 확인 질문",
+      "llm": { "food": "그릴닭가슴살" }, "choose": "980g",
+      "expect": { "confirmsAmount": true, "basis": "package", "amount": { "units": ["g"], "min": 950, "max": 1000 }, "kcal": { "min": 1100, "max": 1250 } }
+    },
+    {
+      "id": "M29", "input": "흑임자젤리 1개", "note": "식품중량이 빈 제품 → 1개 중량(g) 질문 폴백",
+      "llm": { "food": "흑임자젤리" }, "answers": ["50g"],
+      "expect": { "maxQuestions": 2, "amount": { "units": ["g"], "min": 45, "max": 55 }, "kcal": { "min": 200, "max": 250 } }
     }
   ]
 }

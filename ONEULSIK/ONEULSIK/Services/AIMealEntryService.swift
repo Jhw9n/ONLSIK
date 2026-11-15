@@ -385,9 +385,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
             let product = PackagedFoodCatalog.entry(id: candidate.id) ?? PackagedFoodCatalog.replacement(for: candidate)
             let food = product?.food ?? candidate
             guard seen.insert(food.id).inserted else { return nil }
-            let amount = food.baseAmount.formatted(.number.precision(.fractionLength(0...1)))
-            let basis = product == nil ? "\(amount)\(food.amountUnit) 기준" : "1개 \(amount)g"
-            let subtitle = [food.brand, basis, "\(food.nutrition.calories.formatted(.number.precision(.fractionLength(0))))kcal"]
+            let subtitle = [food.brand, productBasis(food, isReference: product != nil, unit: input.unit)]
                 .filter { !$0.isEmpty }.joined(separator: " · ")
             return MealEntryChoice(id: food.id, title: food.name, items: items,
                 selection: MealFoodSelection(input: input, food: food, isProductConfirmed: true),
@@ -398,6 +396,20 @@ final class AIMealEntryService: MealEntryAnalyzing {
             explanation: "포장제품 후보예요. 먹은 제품과 같을 때만 선택해주세요. 없다면 음식 이름이나 브랜드를 수정해주세요",
             choices: Array(choices.prefix(4))
         ))
+    }
+
+    /// 후보 카드의 분량 표시. 제품 총중량을 알면 "1개 120g · 약 500kcal", 모르면 영양 기준량.
+    private func productBasis(_ food: FoodCatalogItem, isReference: Bool, unit: String) -> String {
+        func number(_ value: Double, digits: Int) -> String { value.formatted(.number.precision(.fractionLength(0...digits))) }
+        if isReference {
+            return "1개 \(number(food.baseAmount, digits: 1))g · \(number(food.nutrition.calories, digits: 0))kcal"
+        }
+        if food.packageAmount > 0 {
+            let packageUnit = Self.packageUnits.contains(unit) ? unit : "개"
+            let calories = food.nutrition.calories * food.packageAmount / food.baseAmount
+            return "1\(packageUnit) \(number(food.packageAmount, digits: 1))\(food.amountUnit) · 약 \(number(calories, digits: 0))kcal"
+        }
+        return "\(number(food.baseAmount, digits: 1))\(food.amountUnit) 기준 · \(number(food.nutrition.calories, digits: 0))kcal"
     }
 
     private func prefersProducts(_ input: MealFoodInput) -> Bool {
@@ -974,6 +986,10 @@ final class AIMealEntryService: MealEntryAnalyzing {
             guard item.isValid else { throw MealEntryError.invalidResult }
             return item
         }
+        if food.category == "가공식품", food.packageAmount > 0, Self.packageUnits.contains(input.unit),
+           selection.portionOverride == nil {
+            return try packageItem(selection)
+        }
         guard food.category != "가공식품" || ["g", "mL"].contains(input.unit) || selection.portionOverride != nil else {
             throw MealEntryError.portionUnknown(input.name)
         }
@@ -1038,6 +1054,26 @@ final class AIMealEntryService: MealEntryAnalyzing {
         )
         let item = MealEntryItem(food: adjusted, servingCount: count, portionBasis: origin, nutritionBasis: selection.isSimilar ? .similarFood : .database)
         guard item.isValid else { throw MealEntryError.invalidResult }
+        return item
+    }
+
+    /// 제품 총중량으로 계산하는 포장 단위. 인분은 총중량으로 보지 않는다.
+    static let packageUnits: Set<String> = ["개", "봉", "팩", "병", "캔"]
+
+    /// 원본 `식품중량`(제품 1개 총중량) × 먹은 개수
+    private func packageItem(_ selection: MealFoodSelection) throws -> MealEntryItem {
+        let food = selection.food
+        let amount = food.packageAmount
+        let packaged = FoodCatalogItem(
+            id: food.id, name: food.name, servingUnit: selection.input.unit,
+            servingGrams: food.amountUnit == "g" ? amount : 0,
+            nutrition: food.nutrition(for: amount / food.baseAmount),
+            servingMilliliters: food.amountUnit == "mL" ? amount : 0,
+            brand: food.brand, source: food.source, sourceDate: food.sourceDate,
+            category: food.category, packageAmount: amount
+        )
+        let item = MealEntryItem(food: packaged, servingCount: selection.input.quantity, portionBasis: .package)
+        guard item.isValid, (0.1...10000).contains(amount * selection.input.quantity) else { throw MealEntryError.invalidResult }
         return item
     }
 

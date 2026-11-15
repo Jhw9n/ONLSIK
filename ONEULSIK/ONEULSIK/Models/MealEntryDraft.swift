@@ -5,6 +5,12 @@ enum MealPortionBasis: String {
     case representative
     case estimated
     case entered
+    /// 가공식품 원본의 제품 총중량(식품중량) × 개수
+    case package
+
+    var label: String? {
+        self == .package ? "제품 총중량 기준" : nil
+    }
 }
 
 enum MealNutritionBasis: String {
@@ -37,7 +43,8 @@ struct MealEntryItem: Identifiable {
     var quantityStep: Double { usesWeight ? 10 : 0.5 }
     var basisDescription: String? {
         guard food.baseAmount > 0, !usesWeight else { return nil }
-        return "약 \((food.baseAmount * count).formatted(.number.precision(.fractionLength(0...1))))\(food.amountUnit)"
+        let amount = "약 \((food.baseAmount * count).formatted(.number.precision(.fractionLength(0...1))))\(food.amountUnit)"
+        return [amount, portionBasis.label].compactMap { $0 }.joined(separator: " · ")
     }
     var amountDescription: String {
         if food.servingUnit == "g" || food.servingUnit == "mL" {

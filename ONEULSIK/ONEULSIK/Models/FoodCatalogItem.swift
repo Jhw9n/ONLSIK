@@ -11,6 +11,8 @@ nonisolated struct FoodCatalogItem: Identifiable, Hashable, Sendable {
     var source: String = ""
     var sourceDate: String = ""
     var category: String = ""
+    /// 식약처 원본 `식품중량`의 제품 1개 총중량(baseAmount와 같은 단위). 없으면 0
+    var packageAmount: Double = 0
 
     var baseAmount: Double { servingMilliliters > 0 ? servingMilliliters : servingGrams }
     var amountUnit: String { servingMilliliters > 0 ? "mL" : "g" }

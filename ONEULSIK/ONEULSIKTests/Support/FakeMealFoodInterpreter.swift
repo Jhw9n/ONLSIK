@@ -18,7 +18,7 @@ final class FakeMealFoodInterpreter: MealFoodInterpreting {
     func foods(in text: String) async throws -> [MealFoodInput] {
         calls.append("foods")
         guard let food = script?.food else { return [] }
-        return [MealFoodInput(name: food, sourceText: text, quantity: 1, unit: "인분", brand: "")]
+        return [MealFoodInput(name: food, sourceText: text, quantity: 1, unit: "인분", brand: script?.brand ?? "")]
     }
 
     func portion(for input: MealFoodInput, food: FoodCatalogItem) async throws -> MealPortionEstimate {

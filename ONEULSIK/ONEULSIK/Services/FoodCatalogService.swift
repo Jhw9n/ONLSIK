@@ -40,7 +40,7 @@ private actor FoodCatalogDatabase {
     private var connection: CatalogConnection?
     private var cache: [String: [FoodCatalogItem]] = [:]
     private var cacheOrder: [String] = []
-    private let columns = "id, name, brand, basis_unit, calories, carbohydrates, protein, fat, source, source_date, category"
+    private let columns = "id, name, brand, basis_unit, calories, carbohydrates, protein, fat, source, source_date, category, package_amount, package_unit"
 
     init(url: URL?) {
         self.url = url
@@ -180,6 +180,10 @@ private actor FoodCatalogDatabase {
         while result == SQLITE_ROW {
             try Task.checkCancellation()
             let isVolume = string(statement, column: 3) == "mL"
+            // 제품 총중량은 영양 기준 단위(g/mL)와 같은 단위일 때만 쓴다.
+            let packageAmount = sqlite3_column_double(statement, 11)
+            let packageUnit = string(statement, column: 12).lowercased()
+            let usesPackage = packageAmount.isFinite && packageAmount > 0 && packageUnit == (isVolume ? "ml" : "g")
             foods.append(FoodCatalogItem(
                 id: string(statement, column: 0),
                 name: string(statement, column: 1),
@@ -195,7 +199,8 @@ private actor FoodCatalogDatabase {
                 brand: string(statement, column: 2),
                 source: string(statement, column: 8),
                 sourceDate: string(statement, column: 9),
-                category: string(statement, column: 10)
+                category: string(statement, column: 10),
+                packageAmount: usesPackage ? packageAmount : 0
             ))
             result = sqlite3_step(statement)
         }
