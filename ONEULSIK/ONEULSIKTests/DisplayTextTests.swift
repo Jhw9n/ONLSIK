@@ -9,7 +9,7 @@ import Testing
 struct DisplayTextTests {
     static let dataFiles = ["FoodReferences", "FoodModifiers", "DrinkReferences", "PackagedFoodReferences"]
     /// 화면에 보이는 필드 이름. 데이터 파일에 새 화면용 필드를 추가하면 여기에 넣는다.
-    static let displayKeys: Set<String> = ["displayText"]
+    static let displayKeys: Set<String> = ["displayText", "rawDisplayText"]
 
     static func forbiddenParts(in text: String) -> [String] {
         let patterns = [#"\d{4}-\d{1,2}-\d{1,2}"#, #"\d{4}\.\s?\d{1,2}\.\s?\d{1,2}"#, #"\d{4}년\s?\d{1,2}월"#,
@@ -60,6 +60,7 @@ struct DisplayTextTests {
     @Test("앱이 읽은 화면 문구")
     func decodedDisplayText() {
         let texts = FoodReferenceCatalog.entries.compactMap(\.displayText) + FoodModifierCatalog.entries.map(\.displayText)
+            + FoodModifierCatalog.entries.compactMap(\.rawDisplayText)
         let failures = texts.flatMap { text in
             Self.forbiddenParts(in: text).map { Failure(type: .displayText, message: "‘\(text)’에 ‘\($0)’") }
         }

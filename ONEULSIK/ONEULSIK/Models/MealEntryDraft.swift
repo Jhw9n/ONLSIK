@@ -7,9 +7,15 @@ enum MealPortionBasis: String {
     case entered
     /// 가공식품 원본의 제품 총중량(식품중량) × 개수
     case package
+    /// 온디바이스 모델이 추정한 분량(근거 데이터 없음)
+    case aiEstimated
 
     var label: String? {
-        self == .package ? "제품 총중량 기준" : nil
+        switch self {
+        case .package: "제품 총중량 기준"
+        case .aiEstimated: "AI 추정"
+        default: nil
+        }
     }
 }
 

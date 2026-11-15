@@ -62,7 +62,7 @@
     {
       "id": "M02", "input": "숯불쭈꾸미 1인분",
       "llm": { "food": "숯불쭈꾸미", "portion": { "amount": 250 } },
-      "expect": { "kind": "general", "nameContains": ["주꾸미"], "amount": { "units": ["g"], "min": 150, "max": 400 }, "kcal": { "min": 150, "max": 700 } }
+      "expect": { "kind": "general", "nameContains": ["주꾸미"], "amount": { "units": ["g"], "min": 150, "max": 400 }, "kcal": { "min": 80, "max": 350 } }
     },
     {
       "id": "M03", "input": "냉동삼겹살 1인분", "note": "2026-11-15 기준 정정: 삼겹살 1인분 = 조리 전 생고기 170g × 생삼겹살 영양값",
@@ -179,6 +179,31 @@
       "id": "M31", "input": "삼겹살구이 1접시", "note": "1접시도 대표 분량 1인분 130g(내부 기준)으로 계산",
       "llm": { "food": "삼겹살구이", "portion": { "amount": 200 } },
       "expect": { "maxQuestions": 0, "kind": "general", "nameContains": ["삼겹살구이"], "units": ["접시"], "basis": "representative", "amount": { "units": ["g"], "min": 125, "max": 135 }, "kcal": { "min": 550, "max": 660 } }
+    },
+    {
+      "id": "M32", "input": "직화낙지볶음 1인분", "note": "뗀 이름(낙지볶음) 자체가 피할 끝말로 끝나면 그 항목이 그대로 연결",
+      "llm": { "food": "직화낙지볶음", "portion": { "amount": 200 } },
+      "expect": { "kind": "general", "nameContains": ["낙지볶음"], "amount": { "units": ["g"], "min": 190, "max": 210 }, "kcal": { "min": 170, "max": 195 } }
+    },
+    {
+      "id": "M33", "input": "숯불오징어 1인분", "note": "숯불: 구이 음식 > 원재료 구운것 > 생것. 국·탕·조림·전·찜으로 연결되지 않음",
+      "llm": { "food": "숯불오징어", "portion": { "amount": 200 } },
+      "expect": { "kind": "general", "nameContains": ["오징어", "구운것"], "nameExcludes": ["국", "탕", "조림", "전", "찜"], "amount": { "units": ["g"], "min": 190, "max": 210 }, "kcal": { "min": 200, "max": 230 } }
+    },
+    {
+      "id": "M34", "input": "숯불장어 1인분", "note": "숯불: 구이 음식 우선",
+      "llm": { "food": "숯불장어", "portion": { "amount": 200 } },
+      "expect": { "kind": "general", "nameContains": ["장어구이"], "nameExcludes": ["국", "탕", "조림", "전", "찜"], "amount": { "units": ["g"], "min": 190, "max": 210 }, "kcal": { "min": 540, "max": 620 } }
+    },
+    {
+      "id": "M35", "input": "숯불고등어 1인분", "note": "숯불: 구이 음식 우선",
+      "llm": { "food": "숯불고등어", "portion": { "amount": 200 } },
+      "expect": { "kind": "general", "nameContains": ["고등어구이"], "nameExcludes": ["국", "탕", "조림", "전", "찜"], "amount": { "units": ["g"], "min": 190, "max": 210 }, "kcal": { "min": 640, "max": 720 } }
+    },
+    {
+      "id": "M36", "input": "숯불돼지갈비 1인분", "note": "숯불: 구이 음식 우선",
+      "llm": { "food": "숯불돼지갈비", "portion": { "amount": 200 } },
+      "expect": { "kind": "general", "nameContains": ["돼지갈비구이"], "nameExcludes": ["국", "탕", "조림", "전", "찜"], "amount": { "units": ["g"], "min": 330, "max": 370 }, "kcal": { "min": 800, "max": 880 } }
     },
     {
       "id": "M30", "input": "삼겹살 1인분", "note": "수식어 없는 삼겹살도 같은 기준(생고기 170g)",

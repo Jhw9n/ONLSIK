@@ -729,7 +729,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
                 }
                 let reference = referenceEntry(for: input.name).flatMap { $0.matches(food) ? $0 : nil }
                 return similarFoodQuestion([food], input: input, items: items, remaining: remaining,
-                    explanation: reference?.displayText ?? FoodModifierCatalog.stripped(input.name)?.displayText)
+                    explanation: reference?.displayText ?? FoodModifierCatalog.stripped(input.name)?.displayText(for: food))
             }
             if !products.isEmpty {
                 return packagedQuestion(products, input: input, items: items, remaining: remaining)
@@ -844,13 +844,17 @@ final class AIMealEntryService: MealEntryAnalyzing {
             filtered = compatible.filter { $0.brand.isEmpty && $0.category != "가공식품" }
         }
         let reference = referenceEntry(for: input.name)
-        let preferredCategory = FoodModifierCatalog.stripped(input.name)?.prefersCategory
+        let stripped = FoodModifierCatalog.stripped(input.name)
         let ordered = filtered.sorted { left, right in
             let leftIsReference = reference?.matches(left) == true
             let rightIsReference = reference?.matches(right) == true
             if leftIsReference != rightIsReference { return leftIsReference }
-            if let preferredCategory, (left.category == preferredCategory) != (right.category == preferredCategory) {
-                return left.category == preferredCategory
+            // 이름 그대로 같은 항목은 항상 먼저, 수식어를 뗀 후보는 FoodModifiers.json 규칙 순서
+            let leftIsExact = normalized(left.name) == normalized(input.name)
+            let rightIsExact = normalized(right.name) == normalized(input.name)
+            if leftIsExact != rightIsExact { return leftIsExact }
+            if let stripped, stripped.rank(left) != stripped.rank(right) {
+                return stripped.rank(left) < stripped.rank(right)
             }
             if (left.category == "음식") != (right.category == "음식") { return left.category == "음식" }
             if (left.amountUnit == "g") != (right.amountUnit == "g") { return left.amountUnit == "g" }
@@ -937,7 +941,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
             servingMilliliters: estimate.amountUnit == "mL" ? basis : 0,
             source: "온디바이스 영양 추정 · \(estimate.ingredients)", category: "추정 음식"
         )
-        let item = MealEntryItem(food: food, servingCount: count, portionBasis: isMeasured ? .entered : .estimated, nutritionBasis: .estimated)
+        let item = MealEntryItem(food: food, servingCount: count, portionBasis: isMeasured ? .entered : .aiEstimated, nutritionBasis: .estimated)
         guard item.isValid else { throw MealEntryError.invalidResult }
         return item
     }
@@ -1035,7 +1039,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
             basis = estimate.amountPerUnit
             count = input.quantity
             unit = input.unit == "소량" ? "접시" : input.unit
-            origin = .estimated
+            origin = .aiEstimated
         }
         guard (0.1...10000).contains(basis * count) else { throw MealEntryError.portionUnknown(input.name) }
         let adjusted = FoodCatalogItem(
