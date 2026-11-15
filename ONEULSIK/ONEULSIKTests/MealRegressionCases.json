@@ -176,6 +176,11 @@
       "expect": { "confirmsAmount": true, "kind": "general", "nameContains": ["삼겹살"], "amount": { "units": ["g"], "min": 240, "max": 280 }, "kcal": { "min": 900, "max": 1400 } }
     },
     {
+      "id": "M31", "input": "삼겹살구이 1접시", "note": "1접시도 대표 분량 1인분 130g(내부 기준)으로 계산",
+      "llm": { "food": "삼겹살구이", "portion": { "amount": 200 } },
+      "expect": { "maxQuestions": 0, "kind": "general", "nameContains": ["삼겹살구이"], "units": ["접시"], "basis": "representative", "amount": { "units": ["g"], "min": 125, "max": 135 }, "kcal": { "min": 550, "max": 660 } }
+    },
+    {
       "id": "M30", "input": "삼겹살 1인분", "note": "수식어 없는 삼겹살도 같은 기준(생고기 170g)",
       "llm": { "food": "삼겹살", "portion": { "amount": 200 } },
       "expect": { "kind": "general", "nameContains": ["삼겹살"], "amount": { "units": ["g"], "min": 160, "max": 180 }, "kcal": { "min": 450, "max": 700 } }

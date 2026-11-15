@@ -1014,10 +1014,10 @@ final class AIMealEntryService: MealEntryAnalyzing {
             unit = selectedUnit
             origin = .estimated
         } else if let portion = food.representativePortion,
-                  input.unit == portion.unit || input.unit == "인분" {
+                  portion.accepts(input.unit) || input.unit == "인분" {
             basis = portion.grams
             count = input.quantity
-            unit = portion.unit
+            unit = portion.equivalentUnits.contains(input.unit) ? input.unit : portion.unit
             origin = .representative
         } else if input.brand.isEmpty, input.details.isEmpty,
                   let reference = referenceEntry(for: input.name),

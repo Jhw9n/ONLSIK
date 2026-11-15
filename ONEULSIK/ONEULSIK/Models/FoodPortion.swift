@@ -3,7 +3,29 @@ import Foundation
 nonisolated struct FoodPortion: Hashable, Sendable {
     let unit: String
     let grams: Double
-    let sourceURL: URL
+    /// 근거. https URL(외부 자료) 또는 "내부 기준: … (YYYY-MM-DD 결정)" 형식의 설명(술 용기 표와 같은 방식)
+    let source: String
+    /// 같은 대표 분량으로 계산하는 다른 단위(예: 1인분과 1접시를 같은 양으로 보는 메뉴)
+    var equivalentUnits: [String] = []
+
+    /// 외부 자료 URL. 내부 기준이면 nil
+    var sourceURL: URL? {
+        guard let url = URL(string: source), url.scheme == "https" else { return nil }
+        return url
+    }
+
+    /// 외부 자료 없이 내부에서 정한 값인지
+    var isInternalDecision: Bool { sourceURL == nil }
+
+    func accepts(_ unit: String) -> Bool {
+        unit == self.unit || equivalentUnits.contains(unit)
+    }
+
+    /// 출처가 URL이거나, 내부 기준이면 결정일이 적힌 설명이어야 한다.
+    private static func isValidSource(_ source: String) -> Bool {
+        if let url = URL(string: source), url.scheme == "https", url.host != nil { return true }
+        return source.hasPrefix("내부 기준") && source.range(of: #"\d{4}-\d{2}-\d{2} 결정"#, options: .regularExpression) != nil
+    }
 
     static func representative(for food: FoodCatalogItem) -> FoodPortion? {
         guard food.brand.isEmpty, food.category != "가공식품",
@@ -14,11 +36,11 @@ nonisolated struct FoodPortion: Hashable, Sendable {
         let mealSource = "https://www.foodsafetykorea.go.kr/portal/board/boardDetail.do?bbs_no=bbs039&menu_grp=MENU_NEW03&menu_no=4847&ntctxt_no=22493"
         let eggSource = "https://www.foodsafetykorea.go.kr/portal/cookrcp/cookrcpInfoDtl.do?menu_grp=MENU_NEW03&menu_no=3608&rcp_seq=3185"
         let portion: (String, Double, String)
+        var equivalentUnits: [String] = []
         switch name {
         case "삼겹살구이":
-            // 2026-11-15 결정: 삼겹살 1인분(조리 전 생고기 170g)에 대응하는 조리 후 130g.
-            // 외부 출처의 측정값이 아니다. URL은 이전 1접시 200g의 참고 자료로, 근거는 Docs/MealPortionValidation.md에 적는다.
-            portion = ("인분", 130, "https://www.diabetes.or.kr/general/dietary/dietary_05.php?con=2")
+            portion = ("인분", 130, "내부 기준: 삼겹살 생고기 1인분 170g에 대응하는 조리 후 중량 (2026-11-15 결정)")
+            equivalentUnits = ["접시"]
         case "카레라이스":
             portion = ("그릇", 500, "https://www.foodsafetykorea.go.kr/upload/20150824/20150824011539_1440389739434.pdf")
         case "쌀밥", "흰쌀밥", "백미밥", "잡곡밥", "현미밥", "보리밥":
@@ -64,8 +86,8 @@ nonisolated struct FoodPortion: Hashable, Sendable {
         default:
             return additionalPortion(for: name)
         }
-        guard let url = URL(string: portion.2) else { return nil }
-        return FoodPortion(unit: portion.0, grams: portion.1, sourceURL: url)
+        guard isValidSource(portion.2) else { return nil }
+        return FoodPortion(unit: portion.0, grams: portion.1, source: portion.2, equivalentUnits: equivalentUnits)
     }
 
     static func smallSideGrams(for name: String) -> Double? {
@@ -177,8 +199,9 @@ nonisolated struct FoodPortion: Hashable, Sendable {
         case "치킨까스", "치킨가스": portion = ("인분", 200, 115)
         default: return nil
         }
-        guard let url = URL(string: "https://www.foodsafetykorea.go.kr/upload/mkisna/2013.pdf#page=\(portion.page)") else { return nil }
-        return FoodPortion(unit: portion.unit, grams: portion.grams, sourceURL: url)
+        let source = "https://www.foodsafetykorea.go.kr/upload/mkisna/2013.pdf#page=\(portion.page)"
+        guard isValidSource(source) else { return nil }
+        return FoodPortion(unit: portion.unit, grams: portion.grams, source: source)
     }
 }
 
