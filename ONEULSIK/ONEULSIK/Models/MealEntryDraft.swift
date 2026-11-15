@@ -37,6 +37,8 @@ struct MealEntryItem: Identifiable {
 
     var count: Double { servingCount * scale }
     var nutrition: NutritionValues { food.nutrition(for: count) }
+    /// 화면에 보이는 음식별 열량(정수 반올림). 합계도 이 값을 더해 보여준다.
+    var displayedCalories: Int { Int(nutrition.calories.rounded()) }
     var usesWeight: Bool { food.servingUnit == "g" || food.servingUnit == "mL" }
     var quantityUnit: String { usesWeight ? food.amountUnit : food.servingUnit }
     var quantity: Double { usesWeight ? food.baseAmount * count : count }

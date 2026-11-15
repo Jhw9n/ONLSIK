@@ -150,7 +150,7 @@ struct MealEntryView: View {
                         .font(.pretendardSemiBold(16))
                     Spacer()
                     Text(viewModel.invalidQuantityIDs.isEmpty
-                         ? "약 \(viewModel.totalCalories.formatted(.number.precision(.fractionLength(0)))) kcal"
+                         ? MealEntryViewModel.calorieText(viewModel.displayedTotalCalories)
                          : "— kcal")
                         .font(.pretendardSemiBold(16))
                         .foregroundStyle(Color.black01)
@@ -562,9 +562,17 @@ struct MealEntryView: View {
                             Text(item.food.name)
                                 .font(.pretendardSemiBold(16))
                                 .frame(minHeight: 24)
-                            Text(item.amountDescription)
-                                .font(.pretendardMedium(14))
-                                .foregroundStyle(Color.gray04)
+                            HStack(spacing: 6) {
+                                Text(item.amountDescription)
+                                    .foregroundStyle(Color.gray04)
+                                Text(viewModel.invalidQuantityIDs.contains(item.id)
+                                     ? "— kcal" : MealEntryViewModel.calorieText(item.displayedCalories))
+                                    .foregroundStyle(Color.black01)
+                                    .monospacedDigit()
+                                    .accessibilityLabel(viewModel.invalidQuantityIDs.contains(item.id)
+                                        ? "열량 계산 불가" : "\(item.food.name) 열량 \(MealEntryViewModel.calorieText(item.displayedCalories))")
+                            }
+                            .font(.pretendardMedium(14))
                         }
                         Spacer()
                         Button {

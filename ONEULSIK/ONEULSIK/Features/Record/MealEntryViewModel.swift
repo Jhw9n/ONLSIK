@@ -56,6 +56,12 @@ final class MealEntryViewModel {
     }
 
     var totalCalories: Double { items.reduce(0) { $0 + $1.nutrition.calories } }
+    /// 화면 합계. 음식별로 보이는 반올림 값의 합이라 카드 숫자를 더한 값과 항상 같다.
+    var displayedTotalCalories: Int { items.reduce(0) { $0 + $1.displayedCalories } }
+
+    static func calorieText(_ calories: Int) -> String {
+        "약 \(calories.formatted(.number.grouping(.automatic))) kcal"
+    }
     var canAddRow: Bool { inputRows.count < 8 && !isSaving }
 
     func isRowComplete(_ id: UUID) -> Bool { rowResults[id] != nil }
