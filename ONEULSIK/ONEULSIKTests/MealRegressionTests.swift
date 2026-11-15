@@ -108,6 +108,7 @@ struct PlausibilityTests {
 struct MealEntryOutcomeTests {
     private static let maxQuestionRounds = 4
     private static let lineCalorieLimit = 1000.0
+    private static let amountConfirmationTitle = "이 양이 맞나요?"
 
     @Test(arguments: RegressionCases.shared.meals)
     func meal(_ testCase: MealCase) async {
@@ -171,8 +172,13 @@ struct MealEntryOutcomeTests {
             let shownName = databaseName.map { $0 == food.name ? food.recordedName : "\(food.recordedName) (DB: \($0))" } ?? food.recordedName
             actual = "\(shownName) · \(item.amountDescription) · \(amount.short)\(food.amountUnit) · \(kcal.short)kcal · \(isGeneral ? "일반" : "가공")"
 
-            for other in items where other.nutrition.calories > Self.lineCalorieLimit {
-                failures.append(Failure(type: .limit, message: "한 줄 \(other.nutrition.calories.short)kcal (상한 1,000kcal)"))
+            // 2026-11-15 결정: 1,000kcal를 넘는 줄은 막지 않고 "이 양이 맞나요?" 확인을 거쳐야 한다.
+            let confirmedAmount = questionLog.contains { $0.hasPrefix(Self.amountConfirmationTitle) }
+            for other in items where other.nutrition.calories > Self.lineCalorieLimit && !confirmedAmount {
+                failures.append(Failure(type: .limit, message: "한 줄 \(other.nutrition.calories.short)kcal인데 양 확인 질문 없음 (1,000kcal 초과 시 확인 필요)"))
+            }
+            if expect.confirmsAmount == true, !confirmedAmount {
+                failures.append(Failure(type: .question, message: "양 확인 질문(\(Self.amountConfirmationTitle))이 없음"))
             }
             if expect.drink == true, food.servingUnit == "인분" {
                 failures.append(Failure(type: .limit, message: "음료가 인분으로 기록됨"))

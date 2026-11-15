@@ -99,6 +99,8 @@ struct MealCase: Decodable, CustomTestStringConvertible {
         var count: Double?
         var amount: AmountRange?
         var kcal: ValueRange?
+        /// 1,000kcal 초과로 "이 양이 맞나요?" 확인 질문이 나와야 함
+        var confirmsAmount: Bool?
     }
     let id: String
     let input: String
@@ -121,6 +123,7 @@ struct MealCase: Decodable, CustomTestStringConvertible {
         if let names = expect.nameExcludes { parts.append("이름에 \(names.joined(separator: ",")) 없음") }
         if let max = expect.maxQuestions { parts.append("질문 \(max)회 이하") }
         if expect.drink == true { parts.append("인분 아님") }
+        if expect.confirmsAmount == true { parts.append("양 확인 질문") }
         return parts.joined(separator: ", ")
     }
 }

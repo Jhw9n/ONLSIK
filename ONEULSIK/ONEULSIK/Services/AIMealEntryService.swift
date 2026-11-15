@@ -74,6 +74,9 @@ struct MealPortionEstimate {
     let amountPerUnit: Double
     let amountUnit: String
 
+    /// 인분·접시·그릇 한 단위의 상한(g 또는 mL)
+    static let servingUpperBound = 1000.0
+
     func isPlausible(for unit: String, foodName: String = "") -> Bool {
         guard amountPerUnit.isFinite, (0.1...5000).contains(amountPerUnit) else { return false }
         if DrinkReferenceCatalog.recognizes(foodName) {
@@ -87,7 +90,7 @@ struct MealPortionEstimate {
         }
         let bowlMeals = ["국밥", "덮밥", "비빔밥", "볶음밥", "짜장면", "자장면", "짬뽕", "냉면", "칼국수", "우동", "스파게티", "파스타"]
         if ["인분", "그릇", "접시", "공기"].contains(unit), bowlMeals.contains(where: name.hasSuffix) {
-            return (200...2000).contains(amountPerUnit)
+            return (200...(unit == "공기" ? 2000 : Self.servingUpperBound)).contains(amountPerUnit)
         }
         switch unit {
         case "국자":
@@ -98,9 +101,13 @@ struct MealPortionEstimate {
             return (1...50).contains(amountPerUnit)
         case "작은술":
             return (0.5...20).contains(amountPerUnit)
-        case "공기", "그릇", "접시", "컵", "잔":
+        case "그릇", "접시":
+            return (20...Self.servingUpperBound).contains(amountPerUnit)
+        case "인분":
+            return (5...Self.servingUpperBound).contains(amountPerUnit)
+        case "공기", "컵", "잔":
             return amountPerUnit >= 20
-        case "인분", "줄", "봉", "팩":
+        case "줄", "봉", "팩":
             return amountPerUnit >= 5
         default:
             return true
@@ -753,7 +760,30 @@ final class AIMealEntryService: MealEntryAnalyzing {
             }
         }
         guard !items.isEmpty, items.allSatisfy(\.isValid) else { throw MealEntryError.invalidResult }
-        return .ready(items)
+        return confirmingLargeItems(items)
+    }
+
+    /// 한 줄 열량 상한. 넘으면 기록을 막지 않고 양을 확인한다.
+    static let lineCalorieConfirmationLimit = 1000.0
+
+    private func confirmingLargeItems(_ items: [MealEntryItem]) -> MealEntryAnalysis {
+        let large = items.indices.filter { items[$0].nutrition.calories > Self.lineCalorieConfirmationLimit }
+        guard !large.isEmpty else { return .ready(items) }
+        func kcal(_ value: Double) -> String { value.formatted(.number.precision(.fractionLength(0))) }
+        var halved = items
+        for index in large { halved[index].scale = items[index].scale * 0.5 }
+        let lines = large.map { "‘\(items[$0].food.name)’ \(items[$0].amountDescription) 약 \(kcal(items[$0].nutrition.calories))kcal" }
+        return .question(MealEntryQuestion(
+            title: "이 양이 맞나요?",
+            explanation: lines.joined(separator: ", ") + "로 계산됐어요. 맞으면 그대로 기록하고, 아니면 절반으로 기록한 뒤 기록 화면에서 조절할 수 있어요",
+            choices: [
+                // selection 없는 선택지는 resolve(_ choice:)에서 담긴 목록 그대로 완료된다.
+                MealEntryChoice(id: UUID().uuidString, title: "맞아요, 그대로 기록", items: items,
+                    subtitle: large.map { "\(items[$0].amountDescription) · 약 \(kcal(items[$0].nutrition.calories))kcal" }.joined(separator: ", ")),
+                MealEntryChoice(id: UUID().uuidString, title: "절반으로 기록", items: halved,
+                    subtitle: large.map { "약 \(kcal(halved[$0].nutrition.calories))kcal" }.joined(separator: ", "))
+            ]
+        ))
     }
 
     private func similarFoodQuestion(_ foods: [FoodCatalogItem], input: MealFoodInput, items: [MealEntryItem], remaining: [MealFoodInput], explanation: String? = nil) -> MealEntryAnalysis {
