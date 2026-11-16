@@ -44,18 +44,15 @@ nonisolated enum FoodReferenceCatalog {
         return entries.first { $0.names.contains { normalized($0) == key } }
     }
 
+    /// 비교용 키: 표기 변형(SpellingVariants.json)을 맞추고 소문자·글자·숫자만 남긴다.
     static func normalized(_ text: String) -> String {
-        standardizedSpelling(text).precomposedStringWithCompatibilityMapping.lowercased()
+        SpellingVariant.standardize(text.precomposedStringWithCompatibilityMapping.lowercased())
             .filter { $0.isLetter || $0.isNumber }
-            .replacingOccurrences(of: "계란", with: "달걀")
-            .replacingOccurrences(of: "자장", with: "짜장")
-            .replacingOccurrences(of: "돈까스", with: "돈가스")
     }
 
+    /// 표기 변형만 표준 표기로 바꾼다(띄어쓰기·기호는 그대로).
     static func standardizedSpelling(_ text: String) -> String {
-        text.replacingOccurrences(of: #"소\s*세\s*지"#, with: "소시지", options: .regularExpression)
-            .replacingOccurrences(of: #"오\s*뎅"#, with: "어묵", options: .regularExpression)
-            .replacingOccurrences(of: #"쭈\s*꾸\s*미"#, with: "주꾸미", options: .regularExpression)
+        SpellingVariant.standardize(text)
     }
 
     static func queries(for name: String) -> [String] {

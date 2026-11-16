@@ -31,14 +31,7 @@ enum MealFoodNames {
     static func range(of name: String, in text: String, after start: String.Index? = nil) -> Range<String.Index>? {
         let names = name == "카레라이스" ? ["카레라이스", "카레"] : (aliases[canonical(name)] ?? [name])
         return names.compactMap { variant -> Range<String.Index>? in
-            let pattern = FoodReferenceCatalog.standardizedSpelling(variant).filter { !$0.isWhitespace }
-                .replacingOccurrences(of: "계란", with: "달걀")
-                .map { NSRegularExpression.escapedPattern(for: String($0)) }
-                .joined(separator: "\\s*")
-                .replacingOccurrences(of: "달\\s*걀", with: "(?:달\\s*걀|계\\s*란)")
-                .replacingOccurrences(of: "소\\s*시\\s*지", with: "소\\s*(?:시|세)\\s*지")
-                .replacingOccurrences(of: "어\\s*묵", with: "(?:어\\s*묵|오\\s*뎅)")
-                .replacingOccurrences(of: "주\\s*꾸\\s*미", with: "(?:주|쭈)\\s*꾸\\s*미")
+            let pattern = SpellingVariant.widen(SpellingVariant.spacedPattern(FoodReferenceCatalog.standardizedSpelling(variant)))
             guard !pattern.isEmpty else { return nil }
             let boundary = names.count > 1 ? #"(?<![가-힣A-Za-z])"# : ""
             let ending = names.count > 1 ? #"(?=$|[\s\d.,!?·/]|이랑|랑|하고|이지만|은|는|을|에|과|와|도|만|없이|하나|한|두|둘|세|셋|네|넷|반|절반|조금|약간|먹)"# : ""

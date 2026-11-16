@@ -1,13 +1,21 @@
 import json
 import math
+import re
 import sqlite3
 import unicodedata
 from pathlib import Path
 
 
+SPELLING = json.loads((Path(__file__).resolve().parents[1] / "ONEULSIK/Resource/Data/SpellingVariants.json").read_text())["entries"]
+
+
 def normalized(value):
-    value = "".join(character for character in unicodedata.normalize("NFKC", value).lower() if character.isalnum())
-    return value.replace("계란", "달걀").replace("자장", "짜장").replace("돈까스", "돈가스")
+    """앱의 FoodReferenceCatalog.normalized와 같은 규칙(표기 변형은 SpellingVariants.json)."""
+    value = unicodedata.normalize("NFKC", value).lower()
+    for entry in SPELLING:
+        for variant in entry["variants"]:
+            value = re.sub(r"\s*".join(map(re.escape, variant.replace(" ", ""))), entry["standard"], value)
+    return "".join(character for character in value if character.isalnum())
 
 
 def main():

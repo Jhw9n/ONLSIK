@@ -171,7 +171,8 @@ private actor FoodCatalogDatabase {
                 """
             parameters.append(preferredID ?? "")
             let fullQuery = normalized(query)
-            let compactQuery = query.filter { !$0.isWhitespace }
+            // 순위 기준(쉼표 조각 일치, 첫 단어 일치)도 검색 조건과 같은 표기 정규화를 쓴다(예: 계란 → 달걀).
+            let compactQuery = normalized(query)
             parameters += [fullQuery, fullQuery + "생것", reversedDishName(fullQuery) ?? fullQuery,
                            "%,\(compactQuery),%", "\(compactQuery) %", "\(fullQuery)%", "%,\(compactQuery)%"]
         } else {
@@ -239,12 +240,7 @@ private actor FoodCatalogDatabase {
     }
 
     private func normalized(_ value: String) -> String {
-        value.precomposedStringWithCompatibilityMapping.lowercased()
-            .filter { $0.isLetter || $0.isNumber }
-            .replacingOccurrences(of: "계란", with: "달걀")
-            .replacingOccurrences(of: "자장", with: "짜장")
-            .replacingOccurrences(of: "흰쌀밥", with: "쌀밥")
-            .replacingOccurrences(of: "돈까스", with: "돈가스")
+        FoodReferenceCatalog.normalized(value)
     }
 
     private func reversedDishName(_ name: String) -> String? {

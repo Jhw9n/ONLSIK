@@ -316,6 +316,21 @@
       "id": "M51", "input": "공기밥 하나", "note": "모델이 이름에 ‘하나’를 붙여 돌려준 경우 재현(M37과 같은 결과)",
       "llm": { "food": "공기밥 하나" },
       "expect": { "maxQuestions": 0, "kind": "general", "nameContains": ["밥"], "units": ["공기"], "count": 1, "amount": { "units": ["g"], "min": 205, "max": 215 } }
+    },
+    {
+      "id": "M52", "input": "계란 하나", "note": "‘계란’만 입력하면 달걀국으로 연결되던 문제(2026-11-16 점검 테스트에서 발견). 달걀 계열, 국·찌개 아님",
+      "llm": { "food": "계란" },
+      "expect": { "kind": "general", "nameContains": ["달걀"], "nameExcludes": ["국", "찌개"], "units": ["개"], "count": 1 }
+    },
+    {
+      "id": "M53", "input": "계란 두 개", "note": "같은 문제, 수량 2개",
+      "llm": { "food": "계란" },
+      "expect": { "kind": "general", "nameContains": ["달걀"], "nameExcludes": ["국", "찌개"], "units": ["개"], "count": 2 }
+    },
+    {
+      "id": "M54", "input": "계란 1개", "note": "같은 문제, 숫자+단위",
+      "llm": { "food": "계란" },
+      "expect": { "kind": "general", "nameContains": ["달걀"], "nameExcludes": ["국", "찌개"], "units": ["개"], "count": 1 }
     }
   ]
 }

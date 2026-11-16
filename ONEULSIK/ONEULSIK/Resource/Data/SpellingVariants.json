@@ -1,0 +1,15 @@
+{
+  "_readme": [
+    "음식 이름의 표기 변형. 검색 조건, 검색 순위, 이름 정규화, 원문에서 이름 찾기가 모두 이 표 하나를 읽는다.",
+    "standard는 음식 DB가 주로 쓰는 표기, variants는 같은 뜻의 다른 표기. 글자 사이 띄어쓰기는 무시한다."
+  ],
+  "entries": [
+    { "standard": "달걀", "variants": ["계란"] },
+    { "standard": "주꾸미", "variants": ["쭈꾸미"] },
+    { "standard": "어묵", "variants": ["오뎅"] },
+    { "standard": "소시지", "variants": ["소세지"] },
+    { "standard": "짜장", "variants": ["자장"] },
+    { "standard": "돈가스", "variants": ["돈까스"] },
+    { "standard": "쌀밥", "variants": ["흰쌀밥"] }
+  ]
+}
