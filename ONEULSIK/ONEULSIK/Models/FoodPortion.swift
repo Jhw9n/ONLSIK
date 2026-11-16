@@ -183,13 +183,37 @@ nonisolated struct FoodPortion: Hashable, Sendable {
         return index
     }()
 
+    /// DB 이름에서 대표 분량표를 찾을 후보 이름. 원본 DB의 "음식 변형" 이름 짜임새를 따른다.
+    /// 1. 이름 그대로
+    /// 2. 앞 단어를 뒤로 보낸 이름: "스파게티 해물 크림소스" → 해물크림소스스파게티, "덮밥 유산슬" → 유산슬덮밥
+    /// 3. 분류어 뒤의 이름: 첫 조각(분류어)을 포함하는 마지막 조각. "케이크 생크림케이크", "빵, 곰보빵", "파이/만주 만주"
+    /// 4. 괄호 안의 다른 이름: "완자전 소고기(동그랑땡/육원전)" → 동그랑땡, 육원전
+    static func nameVariants(_ name: String) -> [String] {
+        var variants = [name]
+        let plain = name.replacingOccurrences(of: #"\([^)]*\)"#, with: " ", options: .regularExpression)
+        let words = plain.split(whereSeparator: { $0.isWhitespace || $0 == "," }).map(String.init)
+        if words.count >= 2 {
+            variants.append(words.dropFirst().joined() + words[0])
+            let categories = words[0].split(separator: "/").map(String.init).filter { !$0.isEmpty }
+            if let last = words.last, categories.contains(where: { last.contains($0) }) {
+                variants.append(last)
+            }
+        }
+        if let range = name.range(of: #"\(([^)]*)\)"#, options: .regularExpression) {
+            variants += name[range].dropFirst().dropLast().split(whereSeparator: { "/,".contains($0) })
+                .map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+        }
+        var seen = Set<String>()
+        return variants.filter { seen.insert(lookupKey($0)).inserted }
+    }
+
     /// 대표 분량. g 기준 일반 음식만 붙인다(g 값을 mL 항목에 쓰지 않는다).
     /// DB 이름으로 먼저 찾고, 없으면 그 항목을 가리키는 참고표(FoodReferences.json)의 대표 이름·별칭으로 찾는다.
     static func representative(for food: FoodCatalogItem) -> FoodPortion? {
         guard food.brand.isEmpty, food.category != "가공식품",
               food.servingGrams > 0, food.servingMilliliters == 0 else { return nil }
         let referenceNames = FoodReferenceCatalog.entries.filter { $0.matches(food) }.flatMap(\.names)
-        for name in [food.name] + referenceNames {
+        for name in nameVariants(food.name) + referenceNames {
             guard let row = index[lookupKey(name)], isValidSource(row.source) else { continue }
             return FoodPortion(unit: row.unit, grams: row.grams, source: row.source, equivalentUnits: row.equivalentUnits)
         }
