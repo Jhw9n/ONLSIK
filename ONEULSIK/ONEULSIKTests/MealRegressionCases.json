@@ -21,7 +21,10 @@
     { "id": "G11", "input": "공기밥 하나", "food": "공기밥", "expect": { "quantity": 1, "unit": "공기" } },
     { "id": "G12", "input": "밥 하나", "food": "밥", "expect": { "quantity": 1, "unit": "공기" } },
     { "id": "G13", "input": "햄버거 두개", "food": "햄버거", "expect": { "quantity": 2, "unit": "개" } },
-    { "id": "G14", "input": "만두 세 개", "food": "만두", "expect": { "quantity": 3, "unit": "개" } }
+    { "id": "G14", "input": "만두 세 개", "food": "만두", "expect": { "quantity": 3, "unit": "개" } },
+    { "id": "G15", "input": "된장찌개 절반", "food": "된장찌개 절반", "expect": { "quantity": 0.5, "unit": "인분" } },
+    { "id": "G16", "input": "순두부찌개 절반", "food": "순두부찌개 절반", "expect": { "quantity": 0.5, "unit": "인분" } },
+    { "id": "G17", "input": "공기밥 하나", "food": "공기밥 하나", "expect": { "quantity": 1, "unit": "공기" } }
   ],
   "normalization": [
     { "id": "N01", "a": "쭈꾸미볶음", "b": "주꾸미볶음", "equal": true },
@@ -298,6 +301,21 @@
       "id": "M48", "input": "제육볶음", "note": "수량 없음 + 대표 분량 없음 → 지금처럼 수량 질문. LLM이 분량을 답할 수 있어도(portion) 묻는지 확인. 답은 1인분",
       "llm": { "food": "제육볶음", "portion": { "amount": 200 } }, "choose": "1인분",
       "expect": { "asksAmount": true, "assumedQuantity": false, "units": ["인분"], "count": 1 }
+    },
+    {
+      "id": "M49", "input": "된장찌개 절반", "note": "실기기(2026-11-16): 모델이 이름에 ‘절반’을 붙여 돌려줘 ‘된장찌개 절반’과 가까운 음식 질문이 나오고 절반이 사라짐. 모델 응답 재현",
+      "llm": { "food": "된장찌개 절반", "portion": { "amount": 400 } },
+      "expect": { "maxQuestions": 0, "kind": "general", "nameContains": ["된장찌개"], "units": ["인분"], "count": 0.5 }
+    },
+    {
+      "id": "M50", "input": "순두부찌개 절반", "note": "실기기(2026-11-16): 모델이 이름에 ‘절반’을 붙여 돌려줘 ‘순두부찌개 김치’ 유사 음식 질문이 나옴. 모델 응답 재현",
+      "llm": { "food": "순두부찌개 절반", "portion": { "amount": 400 } },
+      "expect": { "maxQuestions": 0, "kind": "general", "nameContains": ["순두부찌개"], "units": ["인분"], "count": 0.5 }
+    },
+    {
+      "id": "M51", "input": "공기밥 하나", "note": "모델이 이름에 ‘하나’를 붙여 돌려준 경우 재현(M37과 같은 결과)",
+      "llm": { "food": "공기밥 하나" },
+      "expect": { "maxQuestions": 0, "kind": "general", "nameContains": ["밥"], "units": ["공기"], "count": 1, "amount": { "units": ["g"], "min": 205, "max": 215 } }
     }
   ]
 }

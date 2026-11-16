@@ -216,7 +216,15 @@ enum MealInputGrounding {
         return explicitAmount(in: text[range].trimmingCharacters(in: .whitespacesAndNewlines) + "인분")?.quantity
     }
 
+    /// 모델이 돌려준 음식 이름 끝에 붙은 양 표현을 뗀다.
+    /// 숫자+단위(예: "김밥 1줄")와 단위 없는 양(예: "된장찌개 절반", "공기밥 하나", "김치 조금")을 모두 뗀다.
+    /// 떼어낸 양은 원문에서 다시 읽는다(ground).
     private static func foodName(_ name: String) -> String {
+        let trailing = #"\s+(?:"# + standaloneCountPattern + #"|절반|반|조금|약간)\s*(?:정도)?\s*$"#
+        if let range = name.range(of: trailing, options: .regularExpression), range.lowerBound != name.startIndex {
+            let stripped = name[..<range.lowerBound].trimmingCharacters(in: .whitespacesAndNewlines)
+            if !stripped.isEmpty { return foodName(stripped) }
+        }
         guard let amountRange = name.range(of: amountPattern, options: .regularExpression),
               amountRange.lowerBound != name.startIndex,
               name[amountRange.upperBound...].trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
