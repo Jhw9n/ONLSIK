@@ -48,6 +48,7 @@ enum FailureType: String {
     case plausibility = "분량 타당성"
     case displayText = "화면 문구"
     case totals = "열량 합계"
+    case portionLink = "대표 분량 연결"
 }
 
 struct Failure {
