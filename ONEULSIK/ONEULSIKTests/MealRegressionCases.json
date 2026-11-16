@@ -203,9 +203,9 @@
       "expect": { "kind": "general", "nameContains": ["장어구이"], "nameExcludes": ["국", "탕", "조림", "전", "찜"], "amount": { "units": ["g"], "min": 190, "max": 210 }, "kcal": { "min": 540, "max": 620 } }
     },
     {
-      "id": "M35", "input": "숯불고등어 1인분", "note": "숯불: 구이 음식 우선",
+      "id": "M35", "input": "숯불고등어 1인분", "note": "숯불: 구이 음식 우선. 2026-11-16 정정: 연결 항목이 구이 계열이거나 원재료(국·탕·조림·전·찜 아님)인지만 본다. 이전 분량·열량 범위(190~210g, 640~720kcal)는 가짜 해석기의 분량 답(200g)에서 나온 값이라 근거가 아니어서 뺌",
       "llm": { "food": "숯불고등어", "portion": { "amount": 200 } },
-      "expect": { "kind": "general", "nameContains": ["고등어구이"], "nameExcludes": ["국", "탕", "조림", "전", "찜"], "amount": { "units": ["g"], "min": 190, "max": 210 }, "kcal": { "min": 640, "max": 720 } }
+      "expect": { "kind": "general", "nameContains": ["고등어"], "nameExcludes": ["국", "탕", "조림", "전", "찜"] }
     },
     {
       "id": "M36", "input": "숯불돼지갈비 1인분", "note": "숯불: 구이 음식 우선",
@@ -253,7 +253,7 @@
       "expect": { "maxQuestions": 0, "kind": "general", "nameContains": ["밥"], "units": ["공기"], "count": 1, "amount": { "units": ["g"], "min": 205, "max": 215 }, "kcal": { "min": 250, "max": 400 } }
     },
     {
-      "id": "M39", "input": "달걀 하나", "note": "단위 없는 개수. 대표 분량 단위(개, 50g)로 기록. 알려진 실패(2026-11-16): 연결 항목 이름 ‘달걀 삶은것’이 대표 분량표 이름(‘달걀,삶은것’)과 달라 대표 분량이 붙지 않음. 대표 분량 연결 규칙 결정 대기",
+      "id": "M39", "input": "달걀 하나", "note": "단위 없는 개수. 대표 분량 단위(개, 50g)로 기록. 2026-11-16 해결: 대표 분량표 이름 비교에서 기호를 무시해 ‘달걀 삶은것’이 ‘달걀,삶은것’ 행(1개 50g)과 연결됨",
       "llm": { "food": "달걀" },
       "expect": { "kind": "general", "nameContains": ["달걀"], "units": ["개"], "count": 1, "amount": { "units": ["g"], "min": 45, "max": 55 } }
     },

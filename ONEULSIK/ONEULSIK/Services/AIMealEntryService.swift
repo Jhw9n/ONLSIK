@@ -596,8 +596,11 @@ final class AIMealEntryService: MealEntryAnalyzing {
                let reference = FoodReferenceCatalog.entry(for: input.name),
                let food = try await catalog.food(id: reference.referenceID) {
                 try Task.checkCancellation()
-                if reference.matches(food), candidates(from: [food], input: input).first != nil {
-                    return try await resolveSelection(MealFoodSelection(input: input, food: food, isSimilar: normalized(food.name) != normalized(input.name)), items: items, remaining: remaining)
+                if reference.matches(food) {
+                    let food = try await preferredReferenceFood(reference, food: food)
+                    if candidates(from: [food], input: input).first != nil {
+                        return try await resolveSelection(MealFoodSelection(input: input, food: food, isSimilar: normalized(food.name) != normalized(input.name)), items: items, remaining: remaining)
+                    }
                 }
             }
             let foodName = input.brand.isEmpty ? input.name : input.name.replacingOccurrences(of: input.brand, with: "")
@@ -633,7 +636,8 @@ final class AIMealEntryService: MealEntryAnalyzing {
             let needsSauce = !prefersProducts && ["스파게티", "파스타"].contains(normalized(input.name)) && input.details.isEmpty
             if !prefersProducts, input.details.isEmpty,
                let reference = FoodReferenceCatalog.entry(for: input.name),
-               let food = compatible.first(where: reference.matches) {
+               let referenced = compatible.first(where: reference.matches) {
+                let food = try await preferredReferenceFood(reference, food: referenced)
                 return try await resolveSelection(MealFoodSelection(input: input, food: food, isSimilar: normalized(food.name) != normalized(input.name)), items: items, remaining: remaining)
             }
             let exact = compatible.filter { normalized($0.name) == normalized(query) }
@@ -872,6 +876,18 @@ final class AIMealEntryService: MealEntryAnalyzing {
         }
         var seen = Set<String>()
         return ordered.filter { seen.insert(normalized($0.name + $0.brand)).inserted }
+    }
+
+    /// 참고표가 mL 기준 항목을 가리키고 같은 이름의 g 기준 항목이 있으면 g 항목을 쓴다.
+    /// 대표 분량(1인분 g)은 g 항목에만 붙기 때문이다. 없으면 참고표 항목 그대로.
+    private func preferredReferenceFood(_ reference: FoodReference, food: FoodCatalogItem) async throws -> FoodCatalogItem {
+        guard food.amountUnit == "mL" else { return food }
+        let results = try await catalog.search(query: food.name)
+        try Task.checkCancellation()
+        return results.first { candidate in
+            candidate.amountUnit == "g" && candidate.brand.isEmpty && candidate.category == food.category
+                && normalized(candidate.name) == normalized(food.name) && FoodCatalogQuality.isUsable(candidate)
+        } ?? food
     }
 
     /// 대표 항목(FoodReferences.json). 이름 그대로 없으면 앞쪽 수식어를 뗀 이름으로 찾는다.
