@@ -40,7 +40,7 @@ private actor FoodCatalogDatabase {
     private var connection: CatalogConnection?
     private var cache: [String: [FoodCatalogItem]] = [:]
     private var cacheOrder: [String] = []
-    private let columns = "id, name, brand, basis_unit, calories, carbohydrates, protein, fat, source, source_date, category, package_amount, package_unit"
+    private let columns = "id, name, brand, basis_unit, calories, carbohydrates, protein, fat, source, source_date, category, package_amount, package_unit, category_code"
 
     init(url: URL?) {
         self.url = url
@@ -77,7 +77,7 @@ private actor FoodCatalogDatabase {
             }.map(\.element)
         }
         try Task.checkCancellation()
-        let result = Array(foods.prefix(resultLimit))
+        let result = Array(foods.groupedByMajorityCategory(sameNameAs: query).prefix(resultLimit))
         cacheFoods(result, for: key)
         return result
     }
@@ -231,7 +231,8 @@ private actor FoodCatalogDatabase {
                 source: string(statement, column: 8),
                 sourceDate: string(statement, column: 9),
                 category: string(statement, column: 10),
-                packageAmount: usesPackage ? packageAmount : 0
+                packageAmount: usesPackage ? packageAmount : 0,
+                categoryCode: sqlite3_column_type(statement, 13) == SQLITE_NULL ? nil : Int(sqlite3_column_int64(statement, 13))
             ))
             result = sqlite3_step(statement)
         }

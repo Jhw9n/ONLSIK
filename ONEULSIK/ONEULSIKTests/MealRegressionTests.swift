@@ -73,15 +73,28 @@ struct SearchTests {
     func search(_ testCase: SearchCase) async throws {
         let results = try await FoodCatalogService().search(query: testCase.query)
         let general = results.filter { $0.brand.isEmpty && $0.category != "가공식품" }
-        let top = general.prefix(testCase.expect.within)
         var failures: [Failure] = []
-        if !top.contains(where: { $0.name.contains(testCase.expect.topGeneralContains) }) {
-            failures.append(Failure(type: .search, message: "일반 항목 상위 \(testCase.expect.within)개에 ‘\(testCase.expect.topGeneralContains)’ 없음"))
+        var expected: [String] = []
+        var actual: [String] = []
+        if let contains = testCase.expect.topGeneralContains {
+            let within = testCase.expect.within ?? 1
+            expected.append("일반 항목 상위 \(within)개에 ‘\(contains)’")
+            if !general.prefix(within).contains(where: { $0.name.contains(contains) }) {
+                failures.append(Failure(type: .search, message: "일반 항목 상위 \(within)개에 ‘\(contains)’ 없음"))
+            }
+            let names = general.prefix(3).map(\.name).joined(separator: " | ")
+            actual.append(names.isEmpty ? "일반 항목 없음 (전체 \(results.count)건)" : names)
         }
-        let actual = general.prefix(3).map(\.name).joined(separator: " | ")
+        if let code = testCase.expect.firstProductCategoryCode {
+            let product = results.first { $0.category == "가공식품" }
+            expected.append("첫 가공식품 후보의 분류 코드 \(code)")
+            if product?.categoryCode != code {
+                failures.append(Failure(type: .search, message: "첫 가공식품 후보의 분류 코드가 \(code)가 아님"))
+            }
+            actual.append(product.map { "첫 가공식품 \($0.recordedName) [\($0.id), 분류 \($0.categoryCode.map(String.init) ?? "없음")]" } ?? "가공식품 후보 없음")
+        }
         report(suite: "검색", id: testCase.id, input: testCase.query,
-               expected: "일반 항목 상위 \(testCase.expect.within)개에 ‘\(testCase.expect.topGeneralContains)’",
-               actual: actual.isEmpty ? "일반 항목 없음 (전체 \(results.count)건)" : actual, failures: failures)
+               expected: expected.joined(separator: ", "), actual: actual.joined(separator: " / "), failures: failures)
     }
 }
 

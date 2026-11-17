@@ -51,7 +51,13 @@ struct NormalizationCase: Decodable, CustomTestStringConvertible {
 }
 
 struct SearchCase: Decodable, CustomTestStringConvertible {
-    struct Expect: Decodable { let topGeneralContains: String; let within: Int }
+    struct Expect: Decodable {
+        /// 일반 항목 상위 `within`개 안에 이 글자를 포함한 이름이 있어야 함
+        let topGeneralContains: String?
+        let within: Int?
+        /// 첫 가공식품 후보의 분류 코드(DB `category_code`)
+        let firstProductCategoryCode: Int?
+    }
     let id: String
     let query: String
     let note: String?

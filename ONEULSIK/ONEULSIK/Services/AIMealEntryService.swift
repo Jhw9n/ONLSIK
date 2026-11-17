@@ -876,6 +876,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
         }
         var seen = Set<String>()
         return ordered.filter { seen.insert(normalized($0.name + $0.brand)).inserted }
+            .groupedByMajorityCategory(sameNameAs: searchName(foodName(of: input)))
     }
 
     /// 참고표가 mL 기준 항목을 가리키고 같은 이름의 g 기준 항목이 있으면 g 항목을 쓴다.
@@ -896,12 +897,17 @@ final class AIMealEntryService: MealEntryAnalyzing {
     }
 
     private func productCandidates(from results: [FoodCatalogItem], input: MealFoodInput) -> [FoodCatalogItem] {
-        let name = input.brand.isEmpty ? input.name : input.name.replacingOccurrences(of: input.brand, with: "")
-        let query = normalized(searchName(name))
+        let name = searchName(foodName(of: input))
+        let query = normalized(name)
         guard !query.isEmpty else { return [] }
         return usableCandidates(from: results, input: input).filter {
             $0.category == "가공식품" && normalized($0.name).contains(query)
-        }
+        }.groupedByMajorityCategory(sameNameAs: name)
+    }
+
+    /// 입력 이름에서 브랜드를 뗀 음식 이름
+    private func foodName(of input: MealFoodInput) -> String {
+        input.brand.isEmpty ? input.name : input.name.replacingOccurrences(of: input.brand, with: "")
     }
 
     private func usableCandidates(from results: [FoodCatalogItem], input: MealFoodInput) -> [FoodCatalogItem] {
