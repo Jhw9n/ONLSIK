@@ -890,13 +890,18 @@ final class AIMealEntryService: MealEntryAnalyzing {
     /// 참고표가 mL 기준 항목을 가리키고 같은 이름의 g 기준 항목이 있으면 g 항목을 쓴다.
     /// 대표 분량(1인분 g)은 g 항목에만 붙기 때문이다. 없으면 참고표 항목 그대로.
     private func preferredReferenceFood(_ reference: FoodReference, food: FoodCatalogItem) async throws -> FoodCatalogItem {
-        guard food.amountUnit == "mL" else { return food }
+        try await gramFood(sameNameAs: food) ?? food
+    }
+
+    /// mL 기준 항목과 이름(정규화)·분류가 같은 브랜드 없는 g 기준 항목. 없거나 이미 g 항목이면 nil
+    private func gramFood(sameNameAs food: FoodCatalogItem) async throws -> FoodCatalogItem? {
+        guard food.amountUnit == "mL" else { return nil }
         let results = try await catalog.search(query: food.name)
         try Task.checkCancellation()
         return results.first { candidate in
             candidate.amountUnit == "g" && candidate.brand.isEmpty && candidate.category == food.category
                 && normalized(candidate.name) == normalized(food.name) && FoodCatalogQuality.isUsable(candidate)
-        } ?? food
+        }
     }
 
     /// 대표 항목(FoodReferences.json). 이름 그대로 없으면 앞쪽 수식어를 뗀 이름으로 찾는다.
@@ -1009,6 +1014,13 @@ final class AIMealEntryService: MealEntryAnalyzing {
 
     private func makeItem(_ selection: MealFoodSelection) async throws -> MealEntryItem {
         let food = selection.food
+        // 국물·면 mL 항목에 대표 분량을 mL로 쓰기 전에, 같은 이름의 g 항목이 있으면 그 항목을 쓴다(g 항목 우선).
+        if selection.portionOverride == nil, !["g", "mL"].contains(selection.input.unit),
+           FoodPortion.representative(for: food, allowsVolumeAsWeight: true)?.isVolumeAsWeight == true,
+           let gram = try await gramFood(sameNameAs: food) {
+            return try await makeItem(MealFoodSelection(input: selection.input, food: gram, isSimilar: selection.isSimilar,
+                isProductConfirmed: selection.isProductConfirmed))
+        }
         let input = try inputWithAssumedUnit(selection)
         if let reference = PreparedFoodReference.entries.first(where: { $0.food.id == food.id }) {
             return try preparedItem(input, reference: reference)
@@ -1039,6 +1051,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
         let unit: String
         let origin: MealPortionBasis
         var referencePortionUnit = ""
+        var volumeNote: String?
 
         if input.unit == "g" || input.unit == "mL" {
             guard input.unit == food.amountUnit else { throw MealEntryError.portionUnknown(input.name) }
@@ -1060,13 +1073,15 @@ final class AIMealEntryService: MealEntryAnalyzing {
             count = input.quantity
             unit = selectedUnit
             origin = .estimated
-        } else if let portion = food.representativePortion,
+        } else if let portion = FoodPortion.representative(for: food, allowsVolumeAsWeight: true),
                   portion.accepts(input.unit) || input.unit == "인분" {
+            // mL 기준 국물·면 항목이면 대표 분량 N g을 N mL로 본다(VolumeAsWeight.json).
             basis = portion.grams
             count = input.quantity
             // 입력한 단위를 그대로 보여준다. 1인분을 대표 분량 1단위(예: 1접시)로 계산했으면 그 단위를 안내에 남긴다.
             unit = input.unit
             if input.unit != portion.unit { referencePortionUnit = portion.unit }
+            if portion.isVolumeAsWeight { volumeNote = VolumeAsWeight.rule?.displayText }
             origin = .representative
         } else if input.brand.isEmpty, input.details.isEmpty,
                   let reference = referenceEntry(for: input.name),
@@ -1097,7 +1112,8 @@ final class AIMealEntryService: MealEntryAnalyzing {
             sourceDate: food.sourceDate, category: food.category
         )
         adjusted.referencePortionUnit = referencePortionUnit
-        let item = MealEntryItem(food: adjusted, servingCount: count, portionBasis: origin, nutritionBasis: selection.isSimilar ? .similarFood : .database)
+        var item = MealEntryItem(food: adjusted, servingCount: count, portionBasis: origin, nutritionBasis: selection.isSimilar ? .similarFood : .database)
+        item.volumeNote = volumeNote
         guard item.isValid else { throw MealEntryError.invalidResult }
         return item
     }
@@ -1118,7 +1134,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
             input = input.withUnit("개")
             return input
         }
-        if let portion = food.representativePortion {
+        if let portion = FoodPortion.representative(for: food, allowsVolumeAsWeight: true) {
             return input.withUnit(portion.unit)
         }
         if input.brand.isEmpty, input.details.isEmpty, let reference = referenceEntry(for: input.name) {

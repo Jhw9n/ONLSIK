@@ -187,7 +187,8 @@ struct MealEntryOutcomeTests {
             let names = [food.name, databaseName].compactMap { $0 }.map(FoodReferenceCatalog.normalized)
             let shownName = databaseName.map { $0 == food.name ? food.recordedName : "\(food.recordedName) (DB: \($0))" } ?? food.recordedName
             actual = "\(shownName) · \(item.amountDescription) · \(amount.short)\(food.amountUnit) · \(kcal.short)kcal · \(isGeneral ? "일반" : "가공")"
-                + (item.portionBasis.label.map { " · \($0)" } ?? "") + (item.quantityNote.map { " · \($0)" } ?? "")
+                + (item.portionBasis.label.map { " · \($0)" } ?? "") + (item.volumeNote.map { " · \($0)" } ?? "")
+                + (item.quantityNote.map { " · \($0)" } ?? "")
 
             // 2026-11-15 결정: 1,000kcal를 넘는 줄은 막지 않고 "이 양이 맞나요?" 확인을 거쳐야 한다.
             let confirmedAmount = questionLog.contains { $0.hasPrefix(Self.amountConfirmationTitle) }
@@ -199,6 +200,9 @@ struct MealEntryOutcomeTests {
             }
             if expect.asksAmount == true, !questionLog.contains(where: { $0.contains("얼마나 드셨나요") }) {
                 failures.append(Failure(type: .question, message: "수량 질문이 없음"))
+            }
+            if let volume = expect.volumeAsWeight, (item.volumeNote != nil) != volume {
+                failures.append(Failure(type: .amount, message: volume ? "국물 mL 안내가 없음" : "국물 mL 안내가 붙음: \(item.volumeNote ?? "")"))
             }
             if expect.asksUnitWeight == true, !questionLog.contains(where: { $0.contains("의 중량을 알려주세요") }) {
                 failures.append(Failure(type: .question, message: "1개 중량 질문이 없음"))

@@ -7,6 +7,8 @@ nonisolated struct FoodPortion: Hashable, Sendable {
     let source: String
     /// 같은 대표 분량으로 계산하는 다른 단위(예: 1인분과 1접시를 같은 양으로 보는 메뉴)
     var equivalentUnits: [String] = []
+    /// mL 기준 국물·면 항목에 g 대표 분량을 같은 숫자의 mL로 붙였는지(VolumeAsWeight.json, 1mL=1g)
+    var isVolumeAsWeight = false
 
     /// 외부 자료 URL. 내부 기준이면 nil
     var sourceURL: URL? {
@@ -210,15 +212,25 @@ nonisolated struct FoodPortion: Hashable, Sendable {
         return variants.filter { seen.insert(lookupKey($0)).inserted }
     }
 
-    /// 대표 분량. g 기준 일반 음식만 붙인다(g 값을 mL 항목에 쓰지 않는다).
+    /// 대표 분량. 브랜드 없는 일반 음식(가공식품 아님)에 붙인다.
     /// DB 이름으로 먼저 찾고, 없으면 그 항목을 가리키는 참고표(FoodReferences.json)의 대표 이름·별칭으로 찾는다.
-    static func representative(for food: FoodCatalogItem) -> FoodPortion? {
-        guard food.brand.isEmpty, food.category != "가공식품",
-              food.servingGrams > 0, food.servingMilliliters == 0 else { return nil }
+    /// 기본은 g 기준 항목만이다. `allowsVolumeAsWeight`이면(AI 식사 입력) mL 기준 항목 중 국물·면 요리
+    /// (VolumeAsWeight.json, 술 표 항목 제외)에도 g 대표 분량을 같은 숫자의 mL로 붙인다(1mL=1g, 2026-11-17 결정 B).
+    /// 같은 이름의 g 항목이 있으면 AI 식사 입력은 그 g 항목을 먼저 쓴다(AIMealEntryService.gramFood(sameNameAs:)).
+    static func representative(for food: FoodCatalogItem, allowsVolumeAsWeight: Bool = false) -> FoodPortion? {
+        guard food.brand.isEmpty, food.category != "가공식품" else { return nil }
+        let isVolume = food.servingMilliliters > 0 && food.servingGrams == 0
+        if isVolume {
+            guard allowsVolumeAsWeight, DrinkReferenceCatalog.entry(forFoodID: food.id) == nil,
+                  VolumeAsWeight.rule?.matches(food.name) == true else { return nil }
+        } else {
+            guard food.servingGrams > 0, food.servingMilliliters == 0 else { return nil }
+        }
         let referenceNames = FoodReferenceCatalog.entries.filter { $0.matches(food) }.flatMap(\.names)
         for name in nameVariants(food.name) + referenceNames {
             guard let row = index[lookupKey(name)], isValidSource(row.source) else { continue }
-            return FoodPortion(unit: row.unit, grams: row.grams, source: row.source, equivalentUnits: row.equivalentUnits)
+            return FoodPortion(unit: row.unit, grams: row.grams, source: row.source, equivalentUnits: row.equivalentUnits,
+                               isVolumeAsWeight: isVolume)
         }
         return nil
     }

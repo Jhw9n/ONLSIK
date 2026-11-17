@@ -117,6 +117,8 @@ struct MealCase: Decodable, CustomTestStringConvertible {
         var assumedQuantity: Bool?
         /// 포장제품 1개 중량 질문("… 1개의 중량을 알려주세요")을 거쳐야 함
         var asksUnitWeight: Bool?
+        /// mL 국물·면 항목에 대표 분량을 같은 숫자의 mL로 계산했다는 안내가 붙어야 함(false면 붙으면 안 됨)
+        var volumeAsWeight: Bool?
     }
     let id: String
     let input: String
@@ -146,6 +148,8 @@ struct MealCase: Decodable, CustomTestStringConvertible {
         if expect.asksAmount == true { parts.append("수량 질문") }
         if expect.assumedQuantity == true { parts.append("기본값 안내") }
         if expect.asksUnitWeight == true { parts.append("1개 중량 질문") }
+        if expect.volumeAsWeight == true { parts.append("국물 mL 안내") }
+        if expect.volumeAsWeight == false { parts.append("국물 mL 안내 없음") }
         return parts.joined(separator: ", ")
     }
 }
