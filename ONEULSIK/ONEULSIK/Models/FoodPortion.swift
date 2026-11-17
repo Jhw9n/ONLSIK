@@ -188,7 +188,8 @@ nonisolated struct FoodPortion: Hashable, Sendable {
     /// 2. 앞 단어를 뒤로 보낸 이름: "스파게티 해물 크림소스" → 해물크림소스스파게티, "덮밥 유산슬" → 유산슬덮밥
     /// 3. 분류어 뒤의 이름: 첫 조각(분류어)을 포함하는 마지막 조각. "케이크 생크림케이크", "빵, 곰보빵", "파이/만주 만주"
     /// 4. 괄호 안의 다른 이름: "완자전 소고기(동그랑땡/육원전)" → 동그랑땡, 육원전
-    /// 5. 음식 + 변형의 음식 이름(첫 단어): "메밀국수 온면" → 메밀국수, "김치찌개 참치" → 김치찌개
+    /// 5. 음식 + 변형의 음식 이름(첫 단어): "메밀국수 온면" → 메밀국수, "김치찌개 참치" → 김치찌개.
+    ///    공백으로만 나뉜 이름에 쓴다. 쉼표가 있는 이름("달걀, 가루", "쫄면, 말린것")은 원재료의 상태·가공 이름이라 쓰지 않는다.
     static func nameVariants(_ name: String) -> [String] {
         var variants = [name]
         let plain = name.replacingOccurrences(of: #"\([^)]*\)"#, with: " ", options: .regularExpression)
@@ -204,7 +205,7 @@ nonisolated struct FoodPortion: Hashable, Sendable {
             variants += name[range].dropFirst().dropLast().split(whereSeparator: { "/,".contains($0) })
                 .map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
         }
-        if words.count >= 2 { variants.append(words[0]) }
+        if words.count >= 2, !plain.contains(",") { variants.append(words[0]) }
         var seen = Set<String>()
         return variants.filter { seen.insert(lookupKey($0)).inserted }
     }
