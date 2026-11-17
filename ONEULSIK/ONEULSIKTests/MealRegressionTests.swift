@@ -200,6 +200,9 @@ struct MealEntryOutcomeTests {
             if expect.asksAmount == true, !questionLog.contains(where: { $0.contains("얼마나 드셨나요") }) {
                 failures.append(Failure(type: .question, message: "수량 질문이 없음"))
             }
+            if expect.asksUnitWeight == true, !questionLog.contains(where: { $0.contains("의 중량을 알려주세요") }) {
+                failures.append(Failure(type: .question, message: "1개 중량 질문이 없음"))
+            }
             if let assumed = expect.assumedQuantity, (item.quantityNote != nil) != assumed {
                 failures.append(Failure(type: .amount, message: assumed ? "기본값 안내가 없음" : "기본값 안내가 붙음: \(item.quantityNote ?? "")"))
             }

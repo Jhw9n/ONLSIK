@@ -115,6 +115,8 @@ struct MealCase: Decodable, CustomTestStringConvertible {
         var asksAmount: Bool?
         /// 수량을 적지 않아 기본값(대표 분량 1단위)으로 가정했고, 카드에 그 안내가 붙어야 함(false면 붙으면 안 됨)
         var assumedQuantity: Bool?
+        /// 포장제품 1개 중량 질문("… 1개의 중량을 알려주세요")을 거쳐야 함
+        var asksUnitWeight: Bool?
     }
     let id: String
     let input: String
@@ -143,6 +145,7 @@ struct MealCase: Decodable, CustomTestStringConvertible {
         if expect.basis == "package" { parts.append("제품 총중량 기준") }
         if expect.asksAmount == true { parts.append("수량 질문") }
         if expect.assumedQuantity == true { parts.append("기본값 안내") }
+        if expect.asksUnitWeight == true { parts.append("1개 중량 질문") }
         return parts.joined(separator: ", ")
     }
 }

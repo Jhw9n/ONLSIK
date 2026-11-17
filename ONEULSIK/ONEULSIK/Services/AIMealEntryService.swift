@@ -14,6 +14,13 @@ struct MealFoodInput: Codable {
     /// 수량을 적지 않음(예: "순두부찌개"). 대표 분량이 있으면 1단위로 가정하고, 없으면 수량을 묻는다.
     var omittedQuantity = false
 
+    /// 단위만 바꾼 입력(수량·단위를 적지 않은 입력의 단위를 정할 때)
+    func withUnit(_ unit: String) -> MealFoodInput {
+        MealFoodInput(name: name, sourceText: sourceText, quantity: quantity, unit: unit,
+            brand: brand, details: details, isSideDish: isSideDish,
+            hasConfirmedPortion: hasConfirmedPortion, omittedUnit: omittedUnit, omittedQuantity: omittedQuantity)
+    }
+
     var isValid: Bool {
         !name.isEmpty && name.count <= 60 && sourceText.count <= 500
             && quantity.isFinite && (0.1...10000).contains(quantity)
@@ -325,6 +332,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
     }
 
     private func resolveSelection(_ selection: MealFoodSelection, items: [MealEntryItem], remaining: [MealFoodInput]) async throws -> MealEntryAnalysis {
+        let selection = selectionWithAssumedPackageUnit(selection)
         guard FoodCatalogQuality.isUsable(selection.food) else { throw MealEntryError.foodNotFound(selection.input.name) }
         if let product = PackagedFoodCatalog.replacement(for: selection.food) {
             return packagedQuestion([product], input: selection.input, items: items, remaining: remaining)
@@ -1104,27 +1112,40 @@ final class AIMealEntryService: MealEntryAnalyzing {
         let food = selection.food
         guard input.omittedUnit || input.omittedQuantity, selection.portionOverride == nil,
               !["g", "mL"].contains(input.unit) else { return input }
-        func withUnit(_ unit: String) -> MealFoodInput {
-            MealFoodInput(name: input.name, sourceText: input.sourceText, quantity: input.quantity, unit: unit,
-                brand: input.brand, details: input.details, isSideDish: input.isSideDish,
-                hasConfirmedPortion: input.hasConfirmedPortion, omittedUnit: input.omittedUnit, omittedQuantity: input.omittedQuantity)
-        }
         if PreparedFoodReference.entries.contains(where: { $0.food.id == food.id }) { return input }
         if DrinkReferenceCatalog.entry(forFoodID: food.id) != nil { return input }
-        if PackagedFoodCatalog.entry(id: food.id) != nil || food.category == "가공식품" || !food.brand.isEmpty {
-            input = withUnit("개")
+        if isPackagedFood(food) {
+            input = input.withUnit("개")
             return input
         }
         if let portion = food.representativePortion {
-            return withUnit(portion.unit)
+            return input.withUnit(portion.unit)
         }
         if input.brand.isEmpty, input.details.isEmpty, let reference = referenceEntry(for: input.name) {
-            if reference.estimatedAmount(for: "인분", food: food) != nil { return withUnit("인분") }
+            if reference.estimatedAmount(for: "인분", food: food) != nil { return input.withUnit("인분") }
             if let unit = reference.estimatedPortions?.keys.sorted().first(where: { reference.estimatedAmount(for: $0, food: food) != nil }) {
-                return withUnit(unit)
+                return input.withUnit(unit)
             }
         }
         throw MealEntryError.portionUnknown(input.name)
+    }
+
+    /// 포장제품(포장제품 표, 가공식품, 브랜드 항목). 조리 음식 참고표와 술 표 항목은 제외
+    private func isPackagedFood(_ food: FoodCatalogItem) -> Bool {
+        !PreparedFoodReference.entries.contains(where: { $0.food.id == food.id })
+            && DrinkReferenceCatalog.entry(forFoodID: food.id) == nil
+            && (PackagedFoodCatalog.entry(id: food.id) != nil || food.category == "가공식품" || !food.brand.isEmpty)
+    }
+
+    /// 수량·단위를 적지 않은 포장제품은 인분이 아니라 1개(제품 총중량)로 본다(2026-11-17 결정 A).
+    /// 총중량 계산, 1개 중량 질문, 기본값 안내가 모두 같은 단위를 쓰도록 항목을 고른 단계에서 단위를 정한다.
+    private func selectionWithAssumedPackageUnit(_ selection: MealFoodSelection) -> MealFoodSelection {
+        let input = selection.input
+        guard input.omittedUnit || input.omittedQuantity, selection.portionOverride == nil,
+              !["g", "mL", "개"].contains(input.unit), isPackagedFood(selection.food) else { return selection }
+        return MealFoodSelection(input: input.withUnit("개"), food: selection.food, isSimilar: selection.isSimilar,
+            portionOverride: selection.portionOverride, portionUnit: selection.portionUnit,
+            isProductConfirmed: selection.isProductConfirmed)
     }
 
     /// 제품 총중량으로 계산하는 포장 단위. 인분은 총중량으로 보지 않는다.

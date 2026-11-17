@@ -332,6 +332,21 @@
       "id": "M54", "input": "계란 1개", "note": "같은 문제, 숫자+단위",
       "llm": { "food": "계란" },
       "expect": { "kind": "general", "nameContains": ["달걀"], "nameExcludes": ["국", "찌개"], "units": ["개"], "count": 1 }
+    },
+    {
+      "id": "M55", "input": "신라면", "note": "수량 없는 가공식품(2026-11-17 결정 A): 1개(제품 총중량)로 가정하고 안내. M25와 같은 항목·기대 범위",
+      "llm": { "food": "신라면" }, "choose": "120g",
+      "expect": { "maxQuestions": 1, "assumedQuantity": true, "basis": "package", "units": ["개"], "count": 1, "amount": { "units": ["g"], "min": 115, "max": 125 }, "kcal": { "min": 480, "max": 520 } }
+    },
+    {
+      "id": "M56", "input": "그릴닭가슴살", "note": "수량 없는 가공식품(결정 A) + 1,000kcal 초과 → 기존 양 확인 질문. M28과 같은 항목·기대 범위",
+      "llm": { "food": "그릴닭가슴살" }, "choose": "980g",
+      "expect": { "confirmsAmount": true, "assumedQuantity": true, "basis": "package", "amount": { "units": ["g"], "min": 950, "max": 1000 }, "kcal": { "min": 1100, "max": 1250 } }
+    },
+    {
+      "id": "M57", "input": "흑임자젤리", "note": "수량 없는 가공식품(결정 A)인데 총중량 정보 없음 → M29처럼 1개 중량 질문. answers는 M29와 같음",
+      "llm": { "food": "흑임자젤리" }, "answers": ["50g"],
+      "expect": { "maxQuestions": 2, "asksUnitWeight": true, "amount": { "units": ["g"], "min": 45, "max": 55 }, "kcal": { "min": 200, "max": 250 } }
     }
   ]
 }
