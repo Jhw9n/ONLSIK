@@ -1,0 +1,10 @@
+{
+  "_readme": [
+    "국물·면 요리 판정 표. mL 기준으로만 있는 일반 조리 음식 중 이 표에 맞는 국물·면 요리는 g 기준 자료를 찾기 전까지 대표 분량(g)을 같은 숫자의 mL로 본다(1mL=1g).",
+    "판정: DB 이름에서 괄호 안을 빼고 공백·쉼표로 나눈 조각 중 하나가 suffixes의 끝말로 끝나면 국물·면 요리. includeNames는 끝말과 상관없이 넣고, excludeNames는 끝말이 맞아도 뺀다(이름 비교는 정규화 후).",
+    "Scripts/compare_volume_weight_pairs.py가 같은 표로 g/mL 쌍을 비교한다. 근거는 Docs/MealPortionValidation.md의 'g/mL 같은 요리 쌍 비교' 절."
+  ],
+  "suffixes": ["찌개", "국", "탕", "국밥", "국수", "칼국수", "냉면", "우동", "면", "짬뽕", "전골", "수제비"],
+  "includeNames": [],
+  "excludeNames": ["감자그라탕", "고구마맛탕"]
+}
