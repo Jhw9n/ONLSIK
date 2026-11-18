@@ -31,14 +31,7 @@ enum MealFoodNames {
     static func range(of name: String, in text: String, after start: String.Index? = nil) -> Range<String.Index>? {
         let names = name == "카레라이스" ? ["카레라이스", "카레"] : (aliases[canonical(name)] ?? [name])
         return names.compactMap { variant -> Range<String.Index>? in
-            let pattern = FoodReferenceCatalog.standardizedSpelling(variant).filter { !$0.isWhitespace }
-                .replacingOccurrences(of: "계란", with: "달걀")
-                .map { NSRegularExpression.escapedPattern(for: String($0)) }
-                .joined(separator: "\\s*")
-                .replacingOccurrences(of: "달\\s*걀", with: "(?:달\\s*걀|계\\s*란)")
-                .replacingOccurrences(of: "소\\s*시\\s*지", with: "소\\s*(?:시|세)\\s*지")
-                .replacingOccurrences(of: "어\\s*묵", with: "(?:어\\s*묵|오\\s*뎅)")
-                .replacingOccurrences(of: "주\\s*꾸\\s*미", with: "(?:주|쭈)\\s*꾸\\s*미")
+            let pattern = SpellingVariant.widen(SpellingVariant.spacedPattern(FoodReferenceCatalog.standardizedSpelling(variant)))
             guard !pattern.isEmpty else { return nil }
             let boundary = names.count > 1 ? #"(?<![가-힣A-Za-z])"# : ""
             let ending = names.count > 1 ? #"(?=$|[\s\d.,!?·/]|이랑|랑|하고|이지만|은|는|을|에|과|와|도|만|없이|하나|한|두|둘|세|셋|네|넷|반|절반|조금|약간|먹)"# : ""
@@ -69,7 +62,11 @@ enum MealFoodNames {
 enum MealInputGrounding {
     private static let amountPattern = #"(?i)(-?\d{1,3}(?:,\d{3})+(?:\.\d+)?|-?\d+(?:[.,]\d+)?|하나|다섯|여섯|일곱|여덟|아홉|한|두|둘|세|셋|네|넷|열|반)\s*(밀리리터|킬로그램|숟가락|숟갈|수저|그램|리터|봉지|인분|그릇|접시|공기|조각|큰술|작은술|국자|종지|mL|kg|g|L|개|줄|컵|잔|병|캔|봉|팩)(?:\s*(반))?"#
 
+    /// 단위 없이 이름 뒤에 오는 개수(예: "김밥 하나", "만두 둘")
+    private static let standaloneCountPattern = #"(?:하나|둘|셋|넷|다섯|여섯|일곱|여덟|아홉|열)"#
+
     static func singleFoodWithAmount(in text: String) -> MealFoodInput? {
+        if let food = singleFoodWithCount(in: text) { return food }
         guard let range = text.range(of: amountPattern, options: .regularExpression),
               range.lowerBound != text.startIndex,
               text[range.upperBound...].range(of: #"^\s*(?:정도)?\s*(?:먹었어|먹었어요)?[.!]?\s*$"#, options: .regularExpression) != nil,
@@ -80,6 +77,20 @@ enum MealInputGrounding {
               name.allSatisfy({ $0.isLetter || $0.isWhitespace }),
               !["먹", "없이", "빼고", "말고", "대신", "하고", "이랑", "그리고"].contains(where: name.contains) else { return nil }
         return MealFoodInput(name: name, sourceText: text, quantity: amount.quantity, unit: amount.unit, brand: "")
+    }
+
+    /// "공기밥 하나"처럼 이름 + 단위 없는 개수. 단위는 음식을 찾은 뒤 대표 분량 단위로 정한다.
+    private static func singleFoodWithCount(in text: String) -> MealFoodInput? {
+        let pattern = #"^(.+?)\s+("# + standaloneCountPattern + #")\s*(?:정도)?\s*(?:먹었어|먹었어요)?[.!]?\s*$"#
+        guard let expression = try? NSRegularExpression(pattern: pattern),
+              let match = expression.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
+              let nameRange = Range(match.range(at: 1), in: text),
+              let countRange = Range(match.range(at: 2), in: text),
+              let count = explicitAmount(in: String(text[countRange]) + "인분")?.quantity else { return nil }
+        let name = text[nameRange].trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty, name.count <= 60, name.allSatisfy({ $0.isLetter || $0.isWhitespace }),
+              !["먹", "없이", "빼고", "말고", "대신", "하고", "이랑", "그리고"].contains(where: name.contains) else { return nil }
+        return MealFoodInput(name: name, sourceText: text, quantity: count, unit: "인분", brand: "", omittedUnit: true)
     }
 
     static func portionAnswer(_ answer: String, defaultUnit: String) -> (quantity: Double, unit: String)? {
@@ -159,7 +170,9 @@ enum MealInputGrounding {
                 name: name, sourceText: source,
                 quantity: amount?.quantity ?? count ?? (isHalf ? 0.5 : 1),
                 unit: isRice && unit == "개" ? "공기" : unit,
-                brand: input.brand
+                brand: input.brand,
+                omittedUnit: amount == nil && count != nil,
+                omittedQuantity: amount == nil && count == nil && !isSmall && !isHalf
             )
         }
         guard !grounded.isEmpty else { throw MealEntryError.invalidResult }
@@ -192,11 +205,19 @@ enum MealInputGrounding {
     }
 
     private static func standaloneCount(in text: String) -> Double? {
-        guard let range = text.range(of: #"^\s*(?:하나|둘|셋|넷|다섯|여섯|일곱|여덟|아홉|열)(?=\s|$|랑|와|과|만|을|먹)"#, options: .regularExpression) else { return nil }
+        guard let range = text.range(of: #"^\s*"# + standaloneCountPattern + #"(?=\s|$|랑|와|과|만|을|정도|먹)"#, options: .regularExpression) else { return nil }
         return explicitAmount(in: text[range].trimmingCharacters(in: .whitespacesAndNewlines) + "인분")?.quantity
     }
 
+    /// 모델이 돌려준 음식 이름 끝에 붙은 양 표현을 뗀다.
+    /// 숫자+단위(예: "김밥 1줄")와 단위 없는 양(예: "된장찌개 절반", "공기밥 하나", "김치 조금")을 모두 뗀다.
+    /// 떼어낸 양은 원문에서 다시 읽는다(ground).
     private static func foodName(_ name: String) -> String {
+        let trailing = #"\s+(?:"# + standaloneCountPattern + #"|절반|반|조금|약간)\s*(?:정도)?\s*$"#
+        if let range = name.range(of: trailing, options: .regularExpression), range.lowerBound != name.startIndex {
+            let stripped = name[..<range.lowerBound].trimmingCharacters(in: .whitespacesAndNewlines)
+            if !stripped.isEmpty { return foodName(stripped) }
+        }
         guard let amountRange = name.range(of: amountPattern, options: .regularExpression),
               amountRange.lowerBound != name.startIndex,
               name[amountRange.upperBound...].trimmingCharacters(in: .whitespacesAndNewlines).isEmpty

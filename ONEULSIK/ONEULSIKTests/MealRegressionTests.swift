@@ -73,15 +73,28 @@ struct SearchTests {
     func search(_ testCase: SearchCase) async throws {
         let results = try await FoodCatalogService().search(query: testCase.query)
         let general = results.filter { $0.brand.isEmpty && $0.category != "가공식품" }
-        let top = general.prefix(testCase.expect.within)
         var failures: [Failure] = []
-        if !top.contains(where: { $0.name.contains(testCase.expect.topGeneralContains) }) {
-            failures.append(Failure(type: .search, message: "일반 항목 상위 \(testCase.expect.within)개에 ‘\(testCase.expect.topGeneralContains)’ 없음"))
+        var expected: [String] = []
+        var actual: [String] = []
+        if let contains = testCase.expect.topGeneralContains {
+            let within = testCase.expect.within ?? 1
+            expected.append("일반 항목 상위 \(within)개에 ‘\(contains)’")
+            if !general.prefix(within).contains(where: { $0.name.contains(contains) }) {
+                failures.append(Failure(type: .search, message: "일반 항목 상위 \(within)개에 ‘\(contains)’ 없음"))
+            }
+            let names = general.prefix(3).map(\.name).joined(separator: " | ")
+            actual.append(names.isEmpty ? "일반 항목 없음 (전체 \(results.count)건)" : names)
         }
-        let actual = general.prefix(3).map(\.name).joined(separator: " | ")
+        if let code = testCase.expect.firstProductCategoryCode {
+            let product = results.first { $0.category == "가공식품" }
+            expected.append("첫 가공식품 후보의 분류 코드 \(code)")
+            if product?.categoryCode != code {
+                failures.append(Failure(type: .search, message: "첫 가공식품 후보의 분류 코드가 \(code)가 아님"))
+            }
+            actual.append(product.map { "첫 가공식품 \($0.recordedName) [\($0.id), 분류 \($0.categoryCode.map(String.init) ?? "없음")]" } ?? "가공식품 후보 없음")
+        }
         report(suite: "검색", id: testCase.id, input: testCase.query,
-               expected: "일반 항목 상위 \(testCase.expect.within)개에 ‘\(testCase.expect.topGeneralContains)’",
-               actual: actual.isEmpty ? "일반 항목 없음 (전체 \(results.count)건)" : actual, failures: failures)
+               expected: expected.joined(separator: ", "), actual: actual.joined(separator: " / "), failures: failures)
     }
 }
 
@@ -174,7 +187,8 @@ struct MealEntryOutcomeTests {
             let names = [food.name, databaseName].compactMap { $0 }.map(FoodReferenceCatalog.normalized)
             let shownName = databaseName.map { $0 == food.name ? food.recordedName : "\(food.recordedName) (DB: \($0))" } ?? food.recordedName
             actual = "\(shownName) · \(item.amountDescription) · \(amount.short)\(food.amountUnit) · \(kcal.short)kcal · \(isGeneral ? "일반" : "가공")"
-                + (item.portionBasis.label.map { " · \($0)" } ?? "")
+                + (item.portionBasis.label.map { " · \($0)" } ?? "") + (item.volumeNote.map { " · \($0)" } ?? "")
+                + (item.quantityNote.map { " · \($0)" } ?? "")
 
             // 2026-11-15 결정: 1,000kcal를 넘는 줄은 막지 않고 "이 양이 맞나요?" 확인을 거쳐야 한다.
             let confirmedAmount = questionLog.contains { $0.hasPrefix(Self.amountConfirmationTitle) }
@@ -183,6 +197,18 @@ struct MealEntryOutcomeTests {
             }
             if expect.confirmsAmount == true, !confirmedAmount {
                 failures.append(Failure(type: .question, message: "양 확인 질문(\(Self.amountConfirmationTitle))이 없음"))
+            }
+            if expect.asksAmount == true, !questionLog.contains(where: { $0.contains("얼마나 드셨나요") }) {
+                failures.append(Failure(type: .question, message: "수량 질문이 없음"))
+            }
+            if let volume = expect.volumeAsWeight, (item.volumeNote != nil) != volume {
+                failures.append(Failure(type: .amount, message: volume ? "국물 mL 안내가 없음" : "국물 mL 안내가 붙음: \(item.volumeNote ?? "")"))
+            }
+            if expect.asksUnitWeight == true, !questionLog.contains(where: { $0.contains("의 중량을 알려주세요") }) {
+                failures.append(Failure(type: .question, message: "1개 중량 질문이 없음"))
+            }
+            if let assumed = expect.assumedQuantity, (item.quantityNote != nil) != assumed {
+                failures.append(Failure(type: .amount, message: assumed ? "기본값 안내가 없음" : "기본값 안내가 붙음: \(item.quantityNote ?? "")"))
             }
             if let basis = expect.basis, item.portionBasis.rawValue != basis {
                 failures.append(Failure(type: .amount, message: "분량 근거 \(item.portionBasis.rawValue) (기대 \(basis))"))

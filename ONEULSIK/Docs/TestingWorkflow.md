@@ -12,6 +12,7 @@ Git 이슈·브랜치·커밋·PR 규칙은 `Docs/GitWorkflow.md`를 따른다.
 | 전체 테스트 실행 | `Scripts/run_tests.sh` |
 | 테스트 보고서 | `TestReports/YYYY-MM-DD_HHMM.md` |
 | 메뉴 커버리지 점검 | `Scripts/check_menu_coverage.py`, `Docs/MenuCoverage.txt` |
+| 대표 분량 연결 점검 | `ONEULSIKTests/PortionLinkTests.swift`(앱이 고르는 항목에 대표 분량이 붙는지) |
 | 음식 데이터 파일 | `ONEULSIK/Resource/Data/*.json` |
 | 음식 DB | `ONEULSIK/Resource/Data/FoodCatalog.sqlite` |
 

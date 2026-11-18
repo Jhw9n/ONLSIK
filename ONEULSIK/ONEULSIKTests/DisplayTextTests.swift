@@ -7,7 +7,7 @@ import Testing
 @MainActor
 @Suite("화면 문구")
 struct DisplayTextTests {
-    static let dataFiles = ["FoodReferences", "FoodModifiers", "DrinkReferences", "PackagedFoodReferences"]
+    static let dataFiles = ["FoodReferences", "FoodModifiers", "DrinkReferences", "PackagedFoodReferences", "VolumeAsWeight"]
     /// 화면에 보이는 필드 이름. 데이터 파일에 새 화면용 필드를 추가하면 여기에 넣는다.
     static let displayKeys: Set<String> = ["displayText", "rawDisplayText"]
 
@@ -60,12 +60,12 @@ struct DisplayTextTests {
     @Test("앱이 읽은 화면 문구")
     func decodedDisplayText() {
         let texts = FoodReferenceCatalog.entries.compactMap(\.displayText) + FoodModifierCatalog.entries.map(\.displayText)
-            + FoodModifierCatalog.entries.compactMap(\.rawDisplayText)
+            + FoodModifierCatalog.entries.compactMap(\.rawDisplayText) + [VolumeAsWeight.rule?.displayText].compactMap { $0 }
         let failures = texts.flatMap { text in
             Self.forbiddenParts(in: text).map { Failure(type: .displayText, message: "‘\(text)’에 ‘\($0)’") }
         }
         let missing = texts.isEmpty ? [Failure(type: .displayText, message: "읽은 화면 문구가 없음")] : []
-        report(suite: "화면 문구", id: "T02", input: "FoodReferenceCatalog, FoodModifierCatalog",
+        report(suite: "화면 문구", id: "T02", input: "FoodReferenceCatalog, FoodModifierCatalog, VolumeAsWeight",
                expected: "날짜·결정·내부 용어 없음", actual: "문구 \(texts.count)개", failures: failures + missing)
     }
 
@@ -95,6 +95,26 @@ struct DisplayTextTests {
         }
         report(suite: "화면 문구", id: id, input: input, expected: "질문 문구에 날짜·결정·내부 용어 없음",
                actual: shown.joined(separator: " / "), failures: failures)
+    }
+
+    /// 수량 없이 입력해 1단위로 가정했을 때 카드에 붙는 안내(MealEntryItem.quantityNote)
+    @Test("기본값 안내 문구")
+    func assumedQuantityNote() {
+        let expected = ["인분": "1인분으로", "공기": "1공기로", "줄": "1줄로", "개": "1개로", "병": "1병으로", "그릇": "1그릇으로"]
+        var failures: [Failure] = []
+        var shown: [String] = []
+        for (unit, phrase) in expected.sorted(by: { $0.key < $1.key }) {
+            let note = MealEntryItem.assumedQuantityNote(unit: unit)
+            shown.append(note)
+            if !note.contains(phrase) {
+                failures.append(Failure(type: .displayText, message: "‘\(note)’ (기대 ‘\(phrase)’)"))
+            }
+            for part in Self.forbiddenParts(in: note) {
+                failures.append(Failure(type: .displayText, message: "‘\(note)’에 ‘\(part)’"))
+            }
+        }
+        report(suite: "화면 문구", id: "T07", input: expected.keys.sorted().joined(separator: ", "),
+               expected: "수량이 없어서 1(단위)로/으로 가정했어요, 내부 용어 없음", actual: shown.first ?? "-", failures: failures)
     }
 }
 

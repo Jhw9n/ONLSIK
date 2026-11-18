@@ -17,7 +17,14 @@
     { "id": "G07", "input": "냉동만두 5개", "food": "냉동만두", "expect": { "quantity": 5, "unit": "개" } },
     { "id": "G08", "input": "닭가슴살 1팩", "food": "닭가슴살", "expect": { "quantity": 1, "unit": "팩" } },
     { "id": "G09", "input": "숯불쭈꾸미 1인분", "food": "숯불쭈꾸미", "expect": { "quantity": 1, "unit": "인분" } },
-    { "id": "G10", "input": "신라면 1개", "food": "신라면", "expect": { "quantity": 1, "unit": "개" } }
+    { "id": "G10", "input": "신라면 1개", "food": "신라면", "expect": { "quantity": 1, "unit": "개" } },
+    { "id": "G11", "input": "공기밥 하나", "food": "공기밥", "expect": { "quantity": 1, "unit": "공기" } },
+    { "id": "G12", "input": "밥 하나", "food": "밥", "expect": { "quantity": 1, "unit": "공기" } },
+    { "id": "G13", "input": "햄버거 두개", "food": "햄버거", "expect": { "quantity": 2, "unit": "개" } },
+    { "id": "G14", "input": "만두 세 개", "food": "만두", "expect": { "quantity": 3, "unit": "개" } },
+    { "id": "G15", "input": "된장찌개 절반", "food": "된장찌개 절반", "expect": { "quantity": 0.5, "unit": "인분" } },
+    { "id": "G16", "input": "순두부찌개 절반", "food": "순두부찌개 절반", "expect": { "quantity": 0.5, "unit": "인분" } },
+    { "id": "G17", "input": "공기밥 하나", "food": "공기밥 하나", "expect": { "quantity": 1, "unit": "공기" } }
   ],
   "normalization": [
     { "id": "N01", "a": "쭈꾸미볶음", "b": "주꾸미볶음", "equal": true },
@@ -39,7 +46,8 @@
     { "id": "S05", "query": "삼겹살구이", "expect": { "topGeneralContains": "삼겹살구이", "within": 1 } },
     { "id": "S06", "query": "김치찌개", "expect": { "topGeneralContains": "김치찌개", "within": 1 } },
     { "id": "S07", "query": "오뎅", "expect": { "topGeneralContains": "어묵", "within": 3 } },
-    { "id": "S08", "query": "막걸리", "note": "술(탁주) 항목이 일반 항목 중 첫 번째여야 함. 막걸리 발효 찐빵이 아님", "expect": { "topGeneralContains": "탁주", "within": 1 } }
+    { "id": "S08", "query": "막걸리", "note": "술(탁주) 항목이 일반 항목 중 첫 번째여야 함. 막걸리 발효 찐빵이 아님", "expect": { "topGeneralContains": "탁주", "within": 1 } },
+    { "id": "S09", "query": "바나나우유", "note": "같은 이름 제품 후보는 분류 코드 다수결(가공유 128)이 먼저. 식품코드 순으로 과자 분류(1) 항목이 첫째가 되지 않아야 함(2026-11-17)", "expect": { "firstProductCategoryCode": 128 } }
   ],
   "plausibility": [
     { "id": "P01", "unit": "인분", "food": "소주", "amount": 1000, "amountUnit": "g", "expect": false },
@@ -141,7 +149,7 @@
       "expect": { "amount": { "units": ["g"], "min": 180, "max": 230 }, "kcal": { "min": 250, "max": 380 } }
     },
     {
-      "id": "M18", "input": "바나나우유 1개", "note": "가공식품 차단 위험 확인. 1개 240mL",
+      "id": "M18", "input": "바나나우유 1개", "note": "가공식품 차단 위험 확인. 1개 240mL. 2026-11-17 해결: 원인은 검색 상위 10개가 정규화한 이름(10위 ‘바나나 우유’는 띄어쓰기만 다름)·우선순위·자료일이 같아 마지막 정렬 기준인 식품코드 순으로 분류 코드 1(과자류·빵류 또는 떡류/과자) P101-106000100-3529 ‘바나나우유’(명품디저트, 300g, 1개 1,209kcal)가 첫 선택지였던 것. 같은 이름 후보의 분류 코드 다수결 규칙으로 가공유(분류 128) 후보가 먼저 오고, 첫 선택지는 P119-204020400-0201(동원에프앤비, 1개 300mL, 약 225kcal). 가공유 안의 순서는 여전히 식품코드 순이라 통과가 이 순서에 의존함. 과자 분류 항목의 열량·총중량 값이 원본 오류인지는 확인하지 못함",
       "llm": { "food": "바나나우유", "portion": { "amount": 240 } },
       "expect": { "drink": true, "amount": { "units": ["mL", "g"], "min": 200, "max": 300 }, "kcal": { "min": 150, "max": 260 } }
     },
@@ -161,7 +169,7 @@
       "expect": { "amount": { "units": ["g"], "min": 180, "max": 230 }, "kcal": { "min": 250, "max": 380 } }
     },
     {
-      "id": "M22", "input": "바나나우유 1개", "note": "포장 중량을 모를 때 질문 → 240mL 입력(숫자만)",
+      "id": "M22", "input": "바나나우유 1개", "note": "포장 중량을 모를 때 질문 → 240mL 입력(숫자만). 2026-11-17 해결: 원인은 검색 상위 10개가 정규화한 이름(10위 ‘바나나 우유’는 띄어쓰기만 다름)·우선순위·자료일이 같아 마지막 정렬 기준인 식품코드 순으로 분류 코드 1(과자류·빵류 또는 떡류/과자) P101-106000100-3529 ‘바나나우유’(명품디저트, 300g, 1개 1,209kcal)가 첫 선택지였던 것. 같은 이름 후보의 분류 코드 다수결 규칙으로 가공유(분류 128) 후보가 먼저 오고, 첫 선택지는 P119-204020400-0201(동원에프앤비, 1개 300mL, 약 225kcal). 가공유 안의 순서는 여전히 식품코드 순이라 통과가 이 순서에 의존함. 과자 분류 항목의 열량·총중량 값이 원본 오류인지는 확인하지 못함",
       "llm": { "food": "바나나우유", "portion": { "amount": 240 } }, "answers": ["240"],
       "expect": { "drink": true, "amount": { "units": ["mL", "g"], "min": 200, "max": 300 }, "kcal": { "min": 150, "max": 260 } }
     },
@@ -186,19 +194,19 @@
       "expect": { "kind": "general", "nameContains": ["낙지볶음"], "amount": { "units": ["g"], "min": 190, "max": 210 }, "kcal": { "min": 170, "max": 195 } }
     },
     {
-      "id": "M33", "input": "숯불오징어 1인분", "note": "숯불: 구이 음식 > 원재료 구운것 > 생것. 국·탕·조림·전·찜으로 연결되지 않음",
+      "id": "M33", "input": "숯불오징어 1인분", "note": "숯불: 구이 음식 > 원재료 구운것 > 생것. 국·탕·조림·전·찜으로 연결되지 않음. 2026-11-17 정정: 연결 항목의 종류와 이름만 본다. 이전 분량·열량 범위(190~210g, 200~230kcal)는 가짜 해석기의 분량 답(200g)에서 나온 값이라 근거가 아니어서 뺌(5f068ef에서 M35에 한 것과 같은 방식)",
       "llm": { "food": "숯불오징어", "portion": { "amount": 200 } },
-      "expect": { "kind": "general", "nameContains": ["오징어", "구운것"], "nameExcludes": ["국", "탕", "조림", "전", "찜"], "amount": { "units": ["g"], "min": 190, "max": 210 }, "kcal": { "min": 200, "max": 230 } }
+      "expect": { "kind": "general", "nameContains": ["오징어", "구운것"], "nameExcludes": ["국", "탕", "조림", "전", "찜"] }
     },
     {
-      "id": "M34", "input": "숯불장어 1인분", "note": "숯불: 구이 음식 우선",
+      "id": "M34", "input": "숯불장어 1인분", "note": "숯불: 구이 음식 우선. 2026-11-17 정정: 연결 항목의 종류와 이름만 본다. 이전 분량·열량 범위(190~210g, 540~620kcal)는 가짜 해석기의 분량 답(200g)에서 나온 값이라 근거가 아니어서 뺌(5f068ef에서 M35에 한 것과 같은 방식)",
       "llm": { "food": "숯불장어", "portion": { "amount": 200 } },
-      "expect": { "kind": "general", "nameContains": ["장어구이"], "nameExcludes": ["국", "탕", "조림", "전", "찜"], "amount": { "units": ["g"], "min": 190, "max": 210 }, "kcal": { "min": 540, "max": 620 } }
+      "expect": { "kind": "general", "nameContains": ["장어구이"], "nameExcludes": ["국", "탕", "조림", "전", "찜"] }
     },
     {
-      "id": "M35", "input": "숯불고등어 1인분", "note": "숯불: 구이 음식 우선",
+      "id": "M35", "input": "숯불고등어 1인분", "note": "숯불: 구이 음식 우선. 2026-11-17 정정: 분량은 식약처 외식 영양성분 자료집 제2권(2013) 항목 002 고등어구이 제공량 1중간접시(250g), 열량은 DB ‘고등어구이 석쇠’ 100g당 340kcal × 250g = 850kcal ±5%. 5f068ef에서 뺐던 분량·열량 범위를 이 근거로 복원(가짜 해석기 분량 200g은 쓰지 않음)",
       "llm": { "food": "숯불고등어", "portion": { "amount": 200 } },
-      "expect": { "kind": "general", "nameContains": ["고등어구이"], "nameExcludes": ["국", "탕", "조림", "전", "찜"], "amount": { "units": ["g"], "min": 190, "max": 210 }, "kcal": { "min": 640, "max": 720 } }
+      "expect": { "kind": "general", "nameContains": ["고등어구이"], "nameExcludes": ["국", "탕", "조림", "전", "찜"], "amount": { "units": ["g"], "min": 245, "max": 255 }, "kcal": { "min": 807.5, "max": 892.5 } }
     },
     {
       "id": "M36", "input": "숯불돼지갈비 1인분", "note": "숯불: 구이 음식 우선",
@@ -234,6 +242,136 @@
       "id": "M29", "input": "흑임자젤리 1개", "note": "식품중량이 빈 제품 → 1개 중량(g) 질문 폴백",
       "llm": { "food": "흑임자젤리" }, "answers": ["50g"],
       "expect": { "maxQuestions": 2, "amount": { "units": ["g"], "min": 45, "max": 55 }, "kcal": { "min": 200, "max": 250 } }
+    },
+    {
+      "id": "M37", "input": "공기밥 하나", "note": "단위 없는 개수(하나). 기존 M11 ‘밥 한공기’와 같은 결과. ‘공기밥’의 ‘공기’를 단위로 읽지 않아야 함. 실기기 실패 원인(모델 응답)을 몰라 모델 없이 앱이 직접 읽는지 확인(llm 비움)",
+      "llm": { },
+      "expect": { "maxQuestions": 0, "kind": "general", "nameContains": ["밥"], "units": ["공기"], "count": 1, "amount": { "units": ["g"], "min": 205, "max": 215 }, "kcal": { "min": 250, "max": 400 } }
+    },
+    {
+      "id": "M38", "input": "밥 하나", "note": "단위 없는 개수. 쌀밥 대표 분량 단위(공기)로 기록. 모델 없이 앱이 직접 읽는지 확인(llm 비움)",
+      "llm": { },
+      "expect": { "maxQuestions": 0, "kind": "general", "nameContains": ["밥"], "units": ["공기"], "count": 1, "amount": { "units": ["g"], "min": 205, "max": 215 }, "kcal": { "min": 250, "max": 400 } }
+    },
+    {
+      "id": "M39", "input": "달걀 하나", "note": "단위 없는 개수. 대표 분량 단위(개, 50g)로 기록. 2026-11-16 해결: 대표 분량표 이름 비교에서 기호를 무시해 ‘달걀 삶은것’이 ‘달걀,삶은것’ 행(1개 50g)과 연결됨",
+      "llm": { "food": "달걀" },
+      "expect": { "kind": "general", "nameContains": ["달걀"], "units": ["개"], "count": 1, "amount": { "units": ["g"], "min": 45, "max": 55 } }
+    },
+    {
+      "id": "M40", "input": "김밥 하나", "note": "단위 없는 개수. 대표 분량 단위(줄, 200g)로 기록",
+      "llm": { "food": "김밥" },
+      "expect": { "kind": "general", "nameContains": ["김밥"], "units": ["줄"], "count": 1, "amount": { "units": ["g"], "min": 195, "max": 205 } }
+    },
+    {
+      "id": "M41", "input": "햄버거 두개", "note": "단위가 붙은 개수(두개)",
+      "llm": { "food": "햄버거", "portion": { "amount": 200 } },
+      "expect": { "units": ["개"], "count": 2 }
+    },
+    {
+      "id": "M42", "input": "만두 세 개", "note": "숫자와 단위 사이 띄어쓰기(세 개)",
+      "llm": { "food": "만두", "portion": { "amount": 30 } },
+      "expect": { "units": ["개"], "count": 3 }
+    },
+    {
+      "id": "M43", "input": "순두부찌개 1인분", "note": "대표 분량표 1인분 400g. kcal는 항목 기준단위(g/mL)에 따라 달라져 보지 않음. 2026-11-17 해결: 참고표가 가리키는 mL 항목 ‘순두부찌개 모듬’(같은 이름 g 항목 없음)에 대표 분량 1인분 400g이 400mL로 붙음(결정 B, 국물·면 1mL=1g, VolumeAsWeight.json). 카드에 국물·면 안내",
+      "llm": { "food": "순두부찌개" },
+      "expect": { "maxQuestions": 0, "kind": "general", "nameContains": ["순두부찌개"], "units": ["인분"], "count": 1, "amount": { "units": ["g", "mL"], "min": 390, "max": 410 } }
+    },
+    {
+      "id": "M44", "input": "순두부찌개", "note": "수량 없음 + 대표 분량 있음 → 1인분으로 가정해 기록 카드, 기본값 안내 표시. 2026-11-17 해결: M43과 같이 ‘순두부찌개 모듬’ mL 항목에 1인분 400mL가 붙음(결정 B, VolumeAsWeight.json). 기본값 안내와 국물·면 안내가 함께 붙음",
+      "llm": { "food": "순두부찌개" },
+      "expect": { "maxQuestions": 0, "assumedQuantity": true, "kind": "general", "nameContains": ["순두부찌개"], "units": ["인분"], "count": 1, "amount": { "units": ["g", "mL"], "min": 390, "max": 410 } }
+    },
+    {
+      "id": "M45", "input": "김치찌개", "note": "수량 없음 + 대표 분량 있음(1인분 400g)",
+      "llm": { "food": "김치찌개" },
+      "expect": { "maxQuestions": 0, "assumedQuantity": true, "kind": "general", "nameContains": ["김치찌개"], "units": ["인분"], "count": 1, "amount": { "units": ["g"], "min": 390, "max": 410 } }
+    },
+    {
+      "id": "M46", "input": "김밥", "note": "수량 없음 + 대표 분량 있음(1줄 200g)",
+      "llm": { "food": "김밥" },
+      "expect": { "maxQuestions": 0, "assumedQuantity": true, "kind": "general", "nameContains": ["김밥"], "units": ["줄"], "count": 1, "amount": { "units": ["g"], "min": 195, "max": 205 } }
+    },
+    {
+      "id": "M47", "input": "밥", "note": "수량 없음 + 대표 분량 있음(1공기 210g)",
+      "llm": { "food": "밥" },
+      "expect": { "maxQuestions": 0, "assumedQuantity": true, "kind": "general", "nameContains": ["밥"], "units": ["공기"], "count": 1, "amount": { "units": ["g"], "min": 205, "max": 215 } }
+    },
+    {
+      "id": "M48", "input": "제육볶음", "note": "수량 없음 + 대표 분량 없음 → 지금처럼 수량 질문. LLM이 분량을 답할 수 있어도(portion) 묻는지 확인. 답은 1인분",
+      "llm": { "food": "제육볶음", "portion": { "amount": 200 } }, "choose": "1인분",
+      "expect": { "asksAmount": true, "assumedQuantity": false, "units": ["인분"], "count": 1 }
+    },
+    {
+      "id": "M49", "input": "된장찌개 절반", "note": "실기기(2026-11-16): 모델이 이름에 ‘절반’을 붙여 돌려줘 ‘된장찌개 절반’과 가까운 음식 질문이 나오고 절반이 사라짐. 모델 응답 재현",
+      "llm": { "food": "된장찌개 절반", "portion": { "amount": 400 } },
+      "expect": { "maxQuestions": 0, "kind": "general", "nameContains": ["된장찌개"], "units": ["인분"], "count": 0.5 }
+    },
+    {
+      "id": "M50", "input": "순두부찌개 절반", "note": "실기기(2026-11-16): 모델이 이름에 ‘절반’을 붙여 돌려줘 ‘순두부찌개 김치’ 유사 음식 질문이 나옴. 모델 응답 재현. 2026-11-17부터 분량 근거는 AI 추정이 아니라 대표 분량(국물·면 1mL=1g, 결정 B)",
+      "llm": { "food": "순두부찌개 절반", "portion": { "amount": 400 } },
+      "expect": { "maxQuestions": 0, "kind": "general", "nameContains": ["순두부찌개"], "units": ["인분"], "count": 0.5 }
+    },
+    {
+      "id": "M51", "input": "공기밥 하나", "note": "모델이 이름에 ‘하나’를 붙여 돌려준 경우 재현(M37과 같은 결과)",
+      "llm": { "food": "공기밥 하나" },
+      "expect": { "maxQuestions": 0, "kind": "general", "nameContains": ["밥"], "units": ["공기"], "count": 1, "amount": { "units": ["g"], "min": 205, "max": 215 } }
+    },
+    {
+      "id": "M52", "input": "계란 하나", "note": "‘계란’만 입력하면 달걀국으로 연결되던 문제(2026-11-16 점검 테스트에서 발견). 달걀 계열, 국·찌개 아님",
+      "llm": { "food": "계란" },
+      "expect": { "kind": "general", "nameContains": ["달걀"], "nameExcludes": ["국", "찌개"], "units": ["개"], "count": 1 }
+    },
+    {
+      "id": "M53", "input": "계란 두 개", "note": "같은 문제, 수량 2개",
+      "llm": { "food": "계란" },
+      "expect": { "kind": "general", "nameContains": ["달걀"], "nameExcludes": ["국", "찌개"], "units": ["개"], "count": 2 }
+    },
+    {
+      "id": "M54", "input": "계란 1개", "note": "같은 문제, 숫자+단위",
+      "llm": { "food": "계란" },
+      "expect": { "kind": "general", "nameContains": ["달걀"], "nameExcludes": ["국", "찌개"], "units": ["개"], "count": 1 }
+    },
+    {
+      "id": "M55", "input": "신라면", "note": "수량 없는 가공식품(2026-11-17 결정 A): 1개(제품 총중량)로 가정하고 안내. M25와 같은 항목·기대 범위",
+      "llm": { "food": "신라면" }, "choose": "120g",
+      "expect": { "maxQuestions": 1, "assumedQuantity": true, "basis": "package", "units": ["개"], "count": 1, "amount": { "units": ["g"], "min": 115, "max": 125 }, "kcal": { "min": 480, "max": 520 } }
+    },
+    {
+      "id": "M56", "input": "그릴닭가슴살", "note": "수량 없는 가공식품(결정 A) + 1,000kcal 초과 → 기존 양 확인 질문. M28과 같은 항목·기대 범위",
+      "llm": { "food": "그릴닭가슴살" }, "choose": "980g",
+      "expect": { "confirmsAmount": true, "assumedQuantity": true, "basis": "package", "amount": { "units": ["g"], "min": 950, "max": 1000 }, "kcal": { "min": 1100, "max": 1250 } }
+    },
+    {
+      "id": "M57", "input": "흑임자젤리", "note": "수량 없는 가공식품(결정 A)인데 총중량 정보 없음 → M29처럼 1개 중량 질문. answers는 M29와 같음",
+      "llm": { "food": "흑임자젤리" }, "answers": ["50g"],
+      "expect": { "maxQuestions": 2, "asksUnitWeight": true, "amount": { "units": ["g"], "min": 45, "max": 55 }, "kcal": { "min": 200, "max": 250 } }
+    },
+    {
+      "id": "M58", "input": "우동 1그릇", "note": "국물·면 mL 항목(2026-11-17 결정 B, VolumeAsWeight.json): DB 우동은 mL 기준만 있음. 대표 분량표 우동 1그릇 700g → 700mL, 국물 안내",
+      "llm": { "food": "우동" },
+      "expect": { "maxQuestions": 0, "volumeAsWeight": true, "kind": "general", "nameContains": ["우동"], "units": ["그릇"], "count": 1, "amount": { "units": ["mL"], "min": 690, "max": 710 } }
+    },
+    {
+      "id": "M59", "input": "우동", "note": "M58과 같은 음식을 수량 없이 입력: 1그릇 가정 안내와 국물 안내가 함께",
+      "llm": { "food": "우동" },
+      "expect": { "maxQuestions": 0, "assumedQuantity": true, "volumeAsWeight": true, "kind": "general", "nameContains": ["우동"], "units": ["그릇"], "count": 1, "amount": { "units": ["mL"], "min": 690, "max": 710 } }
+    },
+    {
+      "id": "M60", "input": "탕수육", "note": "국물·면이 아닌 mL 항목(DB 탕수육은 mL 기준만 있음)은 결정 B를 적용하지 않고 지금처럼 수량 질문. 형식은 M48과 같음(수량 없이 입력, 답은 1인분). ‘탕수육 1인분’처럼 수량을 적으면 질문 없이 AI 추정으로 가서 이 확인에 쓰지 않음",
+      "llm": { "food": "탕수육", "portion": { "amount": 200 } }, "choose": "1인분",
+      "expect": { "asksAmount": true, "volumeAsWeight": false, "units": ["인분"], "count": 1 }
+    },
+    {
+      "id": "M61", "input": "우럭매운탕 1인분", "note": "같은 요리의 g 항목 우선(2026-11-17 결정, 어순만 다른 이름 포함): DB 검색은 mL 항목 ‘우럭 매운탕’을 먼저 고르지만 어순만 다른 g 항목 ‘매운탕 우럭’(D306-280210000-0001, 100g당 68kcal)이 있으므로 그 항목을 쓰고 1mL=1g은 쓰지 않음. 대표 분량표 매운탕 1인분 600g. 열량 68 × 6 = 408kcal, ±5% → 388~428",
+      "llm": { "food": "우럭매운탕" },
+      "expect": { "maxQuestions": 0, "volumeAsWeight": false, "kind": "general", "nameContains": ["우럭"], "units": ["인분"], "count": 1, "amount": { "units": ["g"], "min": 590, "max": 610 }, "kcal": { "min": 388, "max": 428 } }
+    },
+    {
+      "id": "M62", "input": "물냉면 1그릇", "note": "M61과 같은 규칙: mL 항목 ‘물냉면’ 대신 어순만 다른 g 항목 ‘냉면 물냉면’(D103-144180000-0001, 100g당 55kcal, g 후보 중 검색 순서 첫 항목)을 씀. 대표 분량표 물냉면 1그릇 800g. 열량 55 × 8 = 440kcal, ±5% → 418~462",
+      "llm": { "food": "물냉면" },
+      "expect": { "maxQuestions": 0, "volumeAsWeight": false, "kind": "general", "nameContains": ["물냉면"], "units": ["그릇"], "count": 1, "amount": { "units": ["g"], "min": 790, "max": 810 }, "kcal": { "min": 418, "max": 462 } }
     }
   ]
 }

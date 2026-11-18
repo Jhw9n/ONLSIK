@@ -9,6 +9,17 @@ struct MealFoodInput: Codable {
     var details: String = ""
     var isSideDish = false
     var hasConfirmedPortion = false
+    /// 개수만 있고 단위가 없음(예: "김밥 하나"). 단위는 음식의 대표 분량 단위로 정한다.
+    var omittedUnit = false
+    /// 수량을 적지 않음(예: "순두부찌개"). 대표 분량이 있으면 1단위로 가정하고, 없으면 수량을 묻는다.
+    var omittedQuantity = false
+
+    /// 단위만 바꾼 입력(수량·단위를 적지 않은 입력의 단위를 정할 때)
+    func withUnit(_ unit: String) -> MealFoodInput {
+        MealFoodInput(name: name, sourceText: sourceText, quantity: quantity, unit: unit,
+            brand: brand, details: details, isSideDish: isSideDish,
+            hasConfirmedPortion: hasConfirmedPortion, omittedUnit: omittedUnit, omittedQuantity: omittedQuantity)
+    }
 
     var isValid: Bool {
         !name.isEmpty && name.count <= 60 && sourceText.count <= 500
@@ -321,6 +332,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
     }
 
     private func resolveSelection(_ selection: MealFoodSelection, items: [MealEntryItem], remaining: [MealFoodInput]) async throws -> MealEntryAnalysis {
+        let selection = selectionWithAssumedPackageUnit(selection)
         guard FoodCatalogQuality.isUsable(selection.food) else { throw MealEntryError.foodNotFound(selection.input.name) }
         if let product = PackagedFoodCatalog.replacement(for: selection.food) {
             return packagedQuestion([product], input: selection.input, items: items, remaining: remaining)
@@ -340,9 +352,12 @@ final class AIMealEntryService: MealEntryAnalyzing {
                     selection: confirmed, remainingFoods: remaining)]
             ))
         }
-        let item: MealEntryItem
+        var item: MealEntryItem
         do {
             item = try await makeItem(selection)
+            if selection.input.omittedQuantity, item.portionBasis != .entered {
+                item.quantityNote = MealEntryItem.assumedQuantityNote(unit: item.food.servingUnit)
+            }
         } catch MealEntryError.portionUnknown {
             try Task.checkCancellation()
             if PackagedFoodCatalog.entry(id: selection.food.id) != nil {
@@ -566,7 +581,8 @@ final class AIMealEntryService: MealEntryAnalyzing {
                 name: prefersProducts ? original.name : canonicalName,
                 sourceText: original.sourceText, quantity: original.quantity,
                 unit: original.unit == "인분" ? preparedReference?.food.servingUnit ?? original.unit : original.unit,
-                brand: original.brand, details: original.details, isSideDish: original.isSideDish, hasConfirmedPortion: original.hasConfirmedPortion
+                brand: original.brand, details: original.details, isSideDish: original.isSideDish, hasConfirmedPortion: original.hasConfirmedPortion,
+                omittedUnit: original.omittedUnit, omittedQuantity: original.omittedQuantity
             )
             let remaining = Array(inputs.dropFirst(index + 1))
             if let drink = DrinkReferenceCatalog.entry(for: input.name) {
@@ -588,8 +604,11 @@ final class AIMealEntryService: MealEntryAnalyzing {
                let reference = FoodReferenceCatalog.entry(for: input.name),
                let food = try await catalog.food(id: reference.referenceID) {
                 try Task.checkCancellation()
-                if reference.matches(food), candidates(from: [food], input: input).first != nil {
-                    return try await resolveSelection(MealFoodSelection(input: input, food: food, isSimilar: normalized(food.name) != normalized(input.name)), items: items, remaining: remaining)
+                if reference.matches(food) {
+                    let food = try await preferredReferenceFood(reference, food: food)
+                    if candidates(from: [food], input: input).first != nil {
+                        return try await resolveSelection(MealFoodSelection(input: input, food: food, isSimilar: normalized(food.name) != normalized(input.name)), items: items, remaining: remaining)
+                    }
                 }
             }
             let foodName = input.brand.isEmpty ? input.name : input.name.replacingOccurrences(of: input.brand, with: "")
@@ -625,7 +644,8 @@ final class AIMealEntryService: MealEntryAnalyzing {
             let needsSauce = !prefersProducts && ["스파게티", "파스타"].contains(normalized(input.name)) && input.details.isEmpty
             if !prefersProducts, input.details.isEmpty,
                let reference = FoodReferenceCatalog.entry(for: input.name),
-               let food = compatible.first(where: reference.matches) {
+               let referenced = compatible.first(where: reference.matches) {
+                let food = try await preferredReferenceFood(reference, food: referenced)
                 return try await resolveSelection(MealFoodSelection(input: input, food: food, isSimilar: normalized(food.name) != normalized(input.name)), items: items, remaining: remaining)
             }
             let exact = compatible.filter { normalized($0.name) == normalized(query) }
@@ -811,7 +831,8 @@ final class AIMealEntryService: MealEntryAnalyzing {
         try Task.checkCancellation()
         let recorded = MealFoodInput(name: input.name, sourceText: input.sourceText, quantity: input.quantity, unit: unit,
             brand: input.brand, details: input.details, isSideDish: input.isSideDish, hasConfirmedPortion: input.hasConfirmedPortion)
-        let item = try drinkItem(recorded, drink: drink, food: food)
+        var item = try drinkItem(recorded, drink: drink, food: food)
+        if input.omittedQuantity { item.quantityNote = MealEntryItem.assumedQuantityNote(unit: item.food.servingUnit) }
         return try await resolve(remaining, items: items + [item])
     }
 
@@ -863,6 +884,36 @@ final class AIMealEntryService: MealEntryAnalyzing {
         }
         var seen = Set<String>()
         return ordered.filter { seen.insert(normalized($0.name + $0.brand)).inserted }
+            .groupedByMajorityCategory(sameNameAs: searchName(foodName(of: input)))
+    }
+
+    /// 참고표가 mL 기준 항목을 가리키고 같은 요리(어순만 다른 이름 포함)의 g 기준 항목이 있으면 g 항목을 쓴다.
+    /// 대표 분량(1인분 g)은 g 항목에만 붙기 때문이다. 없으면 참고표 항목 그대로.
+    private func preferredReferenceFood(_ reference: FoodReference, food: FoodCatalogItem) async throws -> FoodCatalogItem {
+        try await gramFood(sameNameAs: food) ?? food
+    }
+
+    /// mL 기준 항목과 같은 요리이고 분류가 같은 브랜드 없는 g 기준 항목. 없거나 이미 g 항목이면 nil
+    /// 같은 요리: 두 이름에 대표 분량 이름 규칙 1~4(FoodPortion.sameDishNames: 그대로, 순서 뒤집기, 분류어, 괄호)를
+    /// 적용해 정규화한 이름이 하나라도 겹치면 같은 요리로 본다. 예: "우럭 매운탕"(mL)과 "매운탕 우럭"(g).
+    /// 후보는 mL 항목 이름, 그다음 규칙 2~4 이름으로 찾은 검색 결과 순서이고, 그중 첫 항목을 쓴다.
+    private func gramFood(sameNameAs food: FoodCatalogItem) async throws -> FoodCatalogItem? {
+        guard food.amountUnit == "mL" else { return nil }
+        let names = FoodPortion.sameDishNames(food.name)
+        let keys = Set(names.map(normalized))
+        var seen = Set<String>()
+        for name in names {
+            let results = try await catalog.search(query: name)
+            try Task.checkCancellation()
+            let match = results.first { candidate in
+                seen.insert(candidate.id).inserted
+                    && candidate.amountUnit == "g" && candidate.brand.isEmpty && candidate.category == food.category
+                    && FoodCatalogQuality.isUsable(candidate)
+                    && FoodPortion.sameDishNames(candidate.name).contains { keys.contains(normalized($0)) }
+            }
+            if let match { return match }
+        }
+        return nil
     }
 
     /// 대표 항목(FoodReferences.json). 이름 그대로 없으면 앞쪽 수식어를 뗀 이름으로 찾는다.
@@ -871,12 +922,17 @@ final class AIMealEntryService: MealEntryAnalyzing {
     }
 
     private func productCandidates(from results: [FoodCatalogItem], input: MealFoodInput) -> [FoodCatalogItem] {
-        let name = input.brand.isEmpty ? input.name : input.name.replacingOccurrences(of: input.brand, with: "")
-        let query = normalized(searchName(name))
+        let name = searchName(foodName(of: input))
+        let query = normalized(name)
         guard !query.isEmpty else { return [] }
         return usableCandidates(from: results, input: input).filter {
             $0.category == "가공식품" && normalized($0.name).contains(query)
-        }
+        }.groupedByMajorityCategory(sameNameAs: name)
+    }
+
+    /// 입력 이름에서 브랜드를 뗀 음식 이름
+    private func foodName(of input: MealFoodInput) -> String {
+        input.brand.isEmpty ? input.name : input.name.replacingOccurrences(of: input.brand, with: "")
     }
 
     private func usableCandidates(from results: [FoodCatalogItem], input: MealFoodInput) -> [FoodCatalogItem] {
@@ -926,6 +982,8 @@ final class AIMealEntryService: MealEntryAnalyzing {
     }
 
     private func estimatedItem(_ input: MealFoodInput, estimate: MealNutritionEstimate) throws -> MealEntryItem {
+        // 수량을 적지 않았고 대표 분량도 없으면 AI 분량으로 채우지 않고 수량을 묻는다.
+        guard !input.omittedQuantity else { throw MealEntryError.portionUnknown(input.name) }
         guard estimate.isValid else { throw MealEntryError.invalidResult }
         let isMeasured = input.unit == "g" || input.unit == "mL"
         guard !isMeasured || input.unit == estimate.amountUnit else { throw MealEntryError.portionUnknown(input.name) }
@@ -967,8 +1025,15 @@ final class AIMealEntryService: MealEntryAnalyzing {
     }
 
     private func makeItem(_ selection: MealFoodSelection) async throws -> MealEntryItem {
-        let input = selection.input
         let food = selection.food
+        // 국물·면 mL 항목에 대표 분량을 mL로 쓰기 전에, 같은 요리(어순만 다른 이름 포함)의 g 항목이 있으면 그 항목을 쓴다(g 항목 우선).
+        if selection.portionOverride == nil, !["g", "mL"].contains(selection.input.unit),
+           FoodPortion.representative(for: food, allowsVolumeAsWeight: true)?.isVolumeAsWeight == true,
+           let gram = try await gramFood(sameNameAs: food) {
+            return try await makeItem(MealFoodSelection(input: selection.input, food: gram, isSimilar: selection.isSimilar,
+                isProductConfirmed: selection.isProductConfirmed))
+        }
+        let input = try inputWithAssumedUnit(selection)
         if let reference = PreparedFoodReference.entries.first(where: { $0.food.id == food.id }) {
             return try preparedItem(input, reference: reference)
         }
@@ -998,6 +1063,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
         let unit: String
         let origin: MealPortionBasis
         var referencePortionUnit = ""
+        var volumeNote: String?
 
         if input.unit == "g" || input.unit == "mL" {
             guard input.unit == food.amountUnit else { throw MealEntryError.portionUnknown(input.name) }
@@ -1019,13 +1085,15 @@ final class AIMealEntryService: MealEntryAnalyzing {
             count = input.quantity
             unit = selectedUnit
             origin = .estimated
-        } else if let portion = food.representativePortion,
+        } else if let portion = FoodPortion.representative(for: food, allowsVolumeAsWeight: true),
                   portion.accepts(input.unit) || input.unit == "인분" {
+            // mL 기준 국물·면 항목이면 대표 분량 N g을 N mL로 본다(VolumeAsWeight.json).
             basis = portion.grams
             count = input.quantity
             // 입력한 단위를 그대로 보여준다. 1인분을 대표 분량 1단위(예: 1접시)로 계산했으면 그 단위를 안내에 남긴다.
             unit = input.unit
             if input.unit != portion.unit { referencePortionUnit = portion.unit }
+            if portion.isVolumeAsWeight { volumeNote = VolumeAsWeight.rule?.displayText }
             origin = .representative
         } else if input.brand.isEmpty, input.details.isEmpty,
                   let reference = referenceEntry(for: input.name),
@@ -1056,9 +1124,56 @@ final class AIMealEntryService: MealEntryAnalyzing {
             sourceDate: food.sourceDate, category: food.category
         )
         adjusted.referencePortionUnit = referencePortionUnit
-        let item = MealEntryItem(food: adjusted, servingCount: count, portionBasis: origin, nutritionBasis: selection.isSimilar ? .similarFood : .database)
+        var item = MealEntryItem(food: adjusted, servingCount: count, portionBasis: origin, nutritionBasis: selection.isSimilar ? .similarFood : .database)
+        item.volumeNote = volumeNote
         guard item.isValid else { throw MealEntryError.invalidResult }
         return item
+    }
+
+    /// 단위나 수량을 적지 않은 입력의 단위를 정한다.
+    /// - 포장제품: 개(제품 1개)
+    /// - 대표 분량이 있는 음식: 대표 분량 단위(예: 김밥 → 줄, 쌀밥 → 공기)
+    /// - 참고표(FoodReferences.json)의 estimatedPortions가 있는 음식: 그 단위(인분 우선)
+    /// - 근거가 없으면 AI 분량으로 채우지 않고 수량을 묻는다(portionUnknown).
+    private func inputWithAssumedUnit(_ selection: MealFoodSelection) throws -> MealFoodInput {
+        var input = selection.input
+        let food = selection.food
+        guard input.omittedUnit || input.omittedQuantity, selection.portionOverride == nil,
+              !["g", "mL"].contains(input.unit) else { return input }
+        if PreparedFoodReference.entries.contains(where: { $0.food.id == food.id }) { return input }
+        if DrinkReferenceCatalog.entry(forFoodID: food.id) != nil { return input }
+        if isPackagedFood(food) {
+            input = input.withUnit("개")
+            return input
+        }
+        if let portion = FoodPortion.representative(for: food, allowsVolumeAsWeight: true) {
+            return input.withUnit(portion.unit)
+        }
+        if input.brand.isEmpty, input.details.isEmpty, let reference = referenceEntry(for: input.name) {
+            if reference.estimatedAmount(for: "인분", food: food) != nil { return input.withUnit("인분") }
+            if let unit = reference.estimatedPortions?.keys.sorted().first(where: { reference.estimatedAmount(for: $0, food: food) != nil }) {
+                return input.withUnit(unit)
+            }
+        }
+        throw MealEntryError.portionUnknown(input.name)
+    }
+
+    /// 포장제품(포장제품 표, 가공식품, 브랜드 항목). 조리 음식 참고표와 술 표 항목은 제외
+    private func isPackagedFood(_ food: FoodCatalogItem) -> Bool {
+        !PreparedFoodReference.entries.contains(where: { $0.food.id == food.id })
+            && DrinkReferenceCatalog.entry(forFoodID: food.id) == nil
+            && (PackagedFoodCatalog.entry(id: food.id) != nil || food.category == "가공식품" || !food.brand.isEmpty)
+    }
+
+    /// 수량·단위를 적지 않은 포장제품은 인분이 아니라 1개(제품 총중량)로 본다(2026-11-17 결정 A).
+    /// 총중량 계산, 1개 중량 질문, 기본값 안내가 모두 같은 단위를 쓰도록 항목을 고른 단계에서 단위를 정한다.
+    private func selectionWithAssumedPackageUnit(_ selection: MealFoodSelection) -> MealFoodSelection {
+        let input = selection.input
+        guard input.omittedUnit || input.omittedQuantity, selection.portionOverride == nil,
+              !["g", "mL", "개"].contains(input.unit), isPackagedFood(selection.food) else { return selection }
+        return MealFoodSelection(input: input.withUnit("개"), food: selection.food, isSimilar: selection.isSimilar,
+            portionOverride: selection.portionOverride, portionUnit: selection.portionUnit,
+            isProductConfirmed: selection.isProductConfirmed)
     }
 
     /// 제품 총중량으로 계산하는 포장 단위. 인분은 총중량으로 보지 않는다.

@@ -32,6 +32,10 @@ struct MealEntryItem: Identifiable {
     var scale: Double = 1
     let portionBasis: MealPortionBasis
     let nutritionBasis: MealNutritionBasis
+    /// 수량을 적지 않아 기본값으로 가정했을 때 카드에 보여줄 안내(화면 문구). 기록에는 저장하지 않는다.
+    var quantityNote: String?
+    /// mL 기준 국물·면 항목에 g 대표 분량을 같은 숫자의 mL로 계산했을 때의 안내(VolumeAsWeight.json displayText). 기록에는 저장하지 않는다.
+    var volumeNote: String?
 
     init(id: UUID = UUID(), food: FoodCatalogItem, servingCount: Double, portionBasis: MealPortionBasis = .recorded, nutritionBasis: MealNutritionBasis = .database) {
         self.id = id
@@ -54,7 +58,21 @@ struct MealEntryItem: Identifiable {
         let amount = "약 \((food.baseAmount * count).formatted(.number.precision(.fractionLength(0...1))))\(food.amountUnit)"
         let reference = portionBasis == .representative && !food.referencePortionUnit.isEmpty
             && food.referencePortionUnit != food.servingUnit ? "대표 분량 1\(food.referencePortionUnit) 기준" : nil
-        return [amount, reference, portionBasis.label].compactMap { $0 }.joined(separator: " · ")
+        // 기본값 안내는 처음 가정한 수량 그대로일 때만 보여준다(± 버튼으로 바꾸면 숨김).
+        let note = abs(scale - 1) < 0.000_001 ? quantityNote : nil
+        return [amount, reference, portionBasis.label, volumeNote, note].compactMap { $0 }.joined(separator: " · ")
+    }
+
+    /// 수량을 적지 않아 1단위로 가정했을 때의 화면 문구. 예: "수량이 없어서 1인분으로 가정했어요"
+    static func assumedQuantityNote(unit: String) -> String {
+        let particle: String
+        if let last = unit.unicodeScalars.last, (0xAC00...0xD7A3).contains(last.value) {
+            let final = (last.value - 0xAC00) % 28
+            particle = final == 0 || final == 8 ? "로" : "으로"   // 받침 없음 또는 ㄹ 받침
+        } else {
+            particle = "로"
+        }
+        return "수량이 없어서 1\(unit)\(particle) 가정했어요"
     }
     var amountDescription: String {
         if food.servingUnit == "g" || food.servingUnit == "mL" {

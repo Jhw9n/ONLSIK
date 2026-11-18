@@ -51,7 +51,13 @@ struct NormalizationCase: Decodable, CustomTestStringConvertible {
 }
 
 struct SearchCase: Decodable, CustomTestStringConvertible {
-    struct Expect: Decodable { let topGeneralContains: String; let within: Int }
+    struct Expect: Decodable {
+        /// 일반 항목 상위 `within`개 안에 이 글자를 포함한 이름이 있어야 함
+        let topGeneralContains: String?
+        let within: Int?
+        /// 첫 가공식품 후보의 분류 코드(DB `category_code`)
+        let firstProductCategoryCode: Int?
+    }
     let id: String
     let query: String
     let note: String?
@@ -105,6 +111,14 @@ struct MealCase: Decodable, CustomTestStringConvertible {
         var confirmsAmount: Bool?
         /// 분량 근거(MealPortionBasis rawValue). 예: "package" = 제품 총중량 기준
         var basis: String?
+        /// 수량 질문("얼마나 드셨나요?")을 거쳐야 함
+        var asksAmount: Bool?
+        /// 수량을 적지 않아 기본값(대표 분량 1단위)으로 가정했고, 카드에 그 안내가 붙어야 함(false면 붙으면 안 됨)
+        var assumedQuantity: Bool?
+        /// 포장제품 1개 중량 질문("… 1개의 중량을 알려주세요")을 거쳐야 함
+        var asksUnitWeight: Bool?
+        /// mL 국물·면 항목에 대표 분량을 같은 숫자의 mL로 계산했다는 안내가 붙어야 함(false면 붙으면 안 됨)
+        var volumeAsWeight: Bool?
     }
     let id: String
     let input: String
@@ -131,6 +145,11 @@ struct MealCase: Decodable, CustomTestStringConvertible {
         if expect.drink == true { parts.append("인분 아님") }
         if expect.confirmsAmount == true { parts.append("양 확인 질문") }
         if expect.basis == "package" { parts.append("제품 총중량 기준") }
+        if expect.asksAmount == true { parts.append("수량 질문") }
+        if expect.assumedQuantity == true { parts.append("기본값 안내") }
+        if expect.asksUnitWeight == true { parts.append("1개 중량 질문") }
+        if expect.volumeAsWeight == true { parts.append("국물 mL 안내") }
+        if expect.volumeAsWeight == false { parts.append("국물 mL 안내 없음") }
         return parts.joined(separator: ", ")
     }
 }
