@@ -1,5 +1,14 @@
 [
   {
+    "name": "카레라이스",
+    "aliases": [],
+    "referenceID": "D101-044000000-0001",
+    "referenceName": "카레라이스",
+    "amountUnit": "g",
+    "source": "식품의약품안전처",
+    "sourceDate": "2026-08-28"
+  },
+  {
     "name": "쌀밥",
     "aliases": [
       "밥",
@@ -381,7 +390,7 @@
   },
   {
     "name": "배추김치",
-    "aliases": [],
+    "aliases": ["김치"],
     "referenceID": "D315-670000000-0001",
     "referenceName": "배추김치",
     "amountUnit": "g",

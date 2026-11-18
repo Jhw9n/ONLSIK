@@ -1,0 +1,179 @@
+{
+  "_readme": [
+    "식사 입력 회귀 테스트 케이스. 새 실패 사례는 해당 배열에 한 항목씩 추가하면 됩니다.",
+    "기대값은 DB 행 ID가 아니라 결과(단위, 분량 범위, 열량 범위, 일반 음식/가공식품 구분)로 적습니다.",
+    "meals.llm은 가짜 해석기의 응답입니다. food=LLM이 뽑은 음식 이름, portion=LLM 분량 추정(unit 생략 시 DB 항목 단위), pick=후보 중 고를 이름(생략 시 첫 후보), estimate=DB에 없을 때의 영양 추정. portion이 없으면 LLM이 분량을 모른다고 답한 것으로 처리합니다.",
+    "확인 질문은 첫 번째 선택지를 고르는 것으로 진행하고 횟수를 기록합니다. maxQuestions를 넘으면 실패입니다.",
+    "선택지 없는 자유 입력 질문은 answers에 적힌 사용자 입력을 순서대로 넣고, answers가 없거나 모자라면 실패입니다.",
+    "모든 meals 케이스에는 공통 조건이 붙습니다: 한 줄이 1,000kcal를 넘으면 \"이 양이 맞나요?\" 확인 질문을 거쳐야 함(2026-11-15 결정), drink=true이면 기록 단위가 인분이 아니어야 함."
+  ],
+  "grounding": [
+    { "id": "G01", "input": "소주 한병", "food": "소주", "expect": { "quantity": 1, "unit": "병" } },
+    { "id": "G02", "input": "맥주 한캔", "food": "맥주", "expect": { "quantity": 1, "unit": "캔" } },
+    { "id": "G03", "input": "막걸리 한병", "food": "막걸리", "expect": { "quantity": 1, "unit": "병" } },
+    { "id": "G04", "input": "치즈폭탄계란찜 반", "food": "치즈폭탄계란찜", "expect": { "quantity": 0.5, "unit": "인분" } },
+    { "id": "G05", "input": "밥 한공기", "food": "밥", "expect": { "quantity": 1, "unit": "공기" } },
+    { "id": "G06", "input": "아아 한잔", "food": "아아", "expect": { "quantity": 1, "unit": "잔" } },
+    { "id": "G07", "input": "냉동만두 5개", "food": "냉동만두", "expect": { "quantity": 5, "unit": "개" } },
+    { "id": "G08", "input": "닭가슴살 1팩", "food": "닭가슴살", "expect": { "quantity": 1, "unit": "팩" } },
+    { "id": "G09", "input": "숯불쭈꾸미 1인분", "food": "숯불쭈꾸미", "expect": { "quantity": 1, "unit": "인분" } },
+    { "id": "G10", "input": "신라면 1개", "food": "신라면", "expect": { "quantity": 1, "unit": "개" } }
+  ],
+  "normalization": [
+    { "id": "N01", "a": "쭈꾸미볶음", "b": "주꾸미볶음", "equal": true },
+    { "id": "N02", "a": "오뎅", "b": "어묵", "equal": true },
+    { "id": "N03", "a": "소세지볶음", "b": "소시지볶음", "equal": true },
+    { "id": "N04", "a": "계란찜", "b": "달걀찜", "equal": true },
+    { "id": "N05", "a": "돈까스", "b": "돈가스", "equal": true },
+    { "id": "N06", "a": "흰쌀밥", "b": "쌀밥", "equal": true },
+    { "id": "N07", "a": "김치", "b": "김치찌개", "equal": false },
+    { "id": "N08", "alias": "아아", "canonical": "아메리카노" },
+    { "id": "N09", "alias": "김치", "canonical": "배추김치" },
+    { "id": "N10", "alias": "공기밥", "canonical": "쌀밥" }
+  ],
+  "search": [
+    { "id": "S01", "query": "소주", "note": "희석식 17.8%가 일반 항목 중 첫 번째여야 함(문제 2)", "expect": { "topGeneralContains": "17.8", "within": 1 } },
+    { "id": "S02", "query": "쭈꾸미볶음", "expect": { "topGeneralContains": "주꾸미볶음", "within": 1 } },
+    { "id": "S03", "query": "숯불쭈꾸미", "note": "수식어(숯불)를 떼고 찾는 단계", "expect": { "topGeneralContains": "주꾸미", "within": 3 } },
+    { "id": "S04", "query": "냉동삼겹살", "note": "수식어(냉동)를 떼고 찾는 단계", "expect": { "topGeneralContains": "삼겹살", "within": 3 } },
+    { "id": "S05", "query": "삼겹살구이", "expect": { "topGeneralContains": "삼겹살구이", "within": 1 } },
+    { "id": "S06", "query": "김치찌개", "expect": { "topGeneralContains": "김치찌개", "within": 1 } },
+    { "id": "S07", "query": "오뎅", "expect": { "topGeneralContains": "어묵", "within": 3 } },
+    { "id": "S08", "query": "막걸리", "note": "술(탁주) 항목이 일반 항목 중 첫 번째여야 함. 막걸리 발효 찐빵이 아님", "expect": { "topGeneralContains": "탁주", "within": 1 } }
+  ],
+  "plausibility": [
+    { "id": "P01", "unit": "인분", "food": "소주", "amount": 1000, "amountUnit": "g", "expect": false },
+    { "id": "P02", "unit": "병", "food": "소주", "amount": 360, "amountUnit": "mL", "expect": true },
+    { "id": "P03", "unit": "잔", "food": "소주", "amount": 50, "amountUnit": "mL", "expect": true },
+    { "id": "P04", "unit": "인분", "food": "삼겹살구이", "amount": 1000, "amountUnit": "g", "note": "인분 상한 없음(문제 1의 일반 원인)", "expect": false },
+    { "id": "P05", "unit": "인분", "food": "김치찌개", "amount": 3000, "amountUnit": "g", "expect": false },
+    { "id": "P06", "unit": "병", "food": "맥주", "amount": 3000, "amountUnit": "mL", "note": "소주 외 병 단위 상한 없음", "expect": false },
+    { "id": "P07", "unit": "잔", "food": "맥주", "amount": 2000, "amountUnit": "mL", "expect": false },
+    { "id": "P08", "unit": "공기", "food": "쌀밥", "amount": 210, "amountUnit": "g", "expect": true },
+    { "id": "P09", "unit": "인분", "food": "삼겹살구이", "amount": 200, "amountUnit": "g", "expect": true },
+    { "id": "P10", "unit": "인분", "food": "삼겹살구이", "amount": 2, "amountUnit": "g", "expect": false }
+  ],
+  "meals": [
+    {
+      "id": "M01", "input": "소주 한병", "note": "질문 없이 기록되어야 함. LLM이 1,000g으로 답한 원래 버그를 재현",
+      "llm": { "food": "소주", "portion": { "amount": 1000, "unit": "g" } },
+      "expect": { "maxQuestions": 0, "drink": true, "units": ["병"], "amount": { "units": ["mL", "g"], "min": 300, "max": 370 }, "kcal": { "min": 280, "max": 450 } }
+    },
+    {
+      "id": "M02", "input": "숯불쭈꾸미 1인분",
+      "llm": { "food": "숯불쭈꾸미", "portion": { "amount": 250 } },
+      "expect": { "kind": "general", "nameContains": ["주꾸미"], "amount": { "units": ["g"], "min": 150, "max": 400 }, "kcal": { "min": 150, "max": 700 } }
+    },
+    {
+      "id": "M03", "input": "냉동삼겹살 1인분",
+      "llm": { "food": "냉동삼겹살", "portion": { "amount": 200 } },
+      "expect": { "kind": "general", "nameContains": ["삼겹살"], "amount": { "units": ["g"], "min": 150, "max": 300 } }
+    },
+    {
+      "id": "M04", "input": "치즈폭탄계란찜 반", "note": "기존 정상 동작 회귀 확인(0.5인분)",
+      "llm": { "food": "치즈폭탄계란찜", "portion": { "amount": 200 },
+               "estimate": { "referenceFood": "달걀찜", "amount": 200, "amountUnit": "g", "calories": 120, "carbohydrate": 3, "protein": 9, "fat": 8, "ingredients": "달걀, 치즈" } },
+      "expect": { "count": 0.5, "units": ["인분"], "kcal": { "min": 30, "max": 400 } }
+    },
+    {
+      "id": "M05", "input": "맥주 한캔", "note": "LLM이 1,000mL로 답한 경우 재현. 캔 1개 약 355mL",
+      "llm": { "food": "맥주", "portion": { "amount": 1000 } },
+      "expect": { "drink": true, "units": ["캔"], "amount": { "units": ["mL", "g"], "min": 300, "max": 400 }, "kcal": { "min": 100, "max": 250 } }
+    },
+    {
+      "id": "M06", "input": "막걸리 한병", "note": "LLM이 1,000mL로 답한 경우 재현. 한 병 750mL",
+      "llm": { "food": "막걸리", "portion": { "amount": 1000 } },
+      "expect": { "drink": true, "units": ["병"], "amount": { "units": ["mL", "g"], "min": 700, "max": 800 }, "kcal": { "min": 300, "max": 600 } }
+    },
+    {
+      "id": "M07", "input": "쭈꾸미볶음 1인분",
+      "llm": { "food": "쭈꾸미볶음", "portion": { "amount": 250 } },
+      "expect": { "kind": "general", "nameContains": ["주꾸미"], "amount": { "units": ["g"], "min": 150, "max": 400 }, "kcal": { "min": 150, "max": 700 } }
+    },
+    {
+      "id": "M08", "input": "오뎅 1인분",
+      "llm": { "food": "오뎅", "portion": { "amount": 150 } },
+      "expect": { "kind": "general", "nameContains": ["어묵"], "kcal": { "min": 30, "max": 500 } }
+    },
+    {
+      "id": "M09", "input": "생삼겹살 1인분",
+      "llm": { "food": "생삼겹살", "portion": { "amount": 200 } },
+      "expect": { "kind": "general", "nameContains": ["삼겹살"], "amount": { "units": ["g"], "min": 150, "max": 300 } }
+    },
+    {
+      "id": "M10", "input": "숯불삼겹살 1인분",
+      "llm": { "food": "숯불삼겹살", "portion": { "amount": 200 } },
+      "expect": { "kind": "general", "nameContains": ["삼겹살"], "amount": { "units": ["g"], "min": 150, "max": 300 } }
+    },
+    {
+      "id": "M11", "input": "밥 한공기",
+      "llm": { "food": "밥", "portion": { "amount": 210 } },
+      "expect": { "kind": "general", "nameContains": ["밥"], "units": ["공기"], "amount": { "units": ["g"], "min": 180, "max": 230 }, "kcal": { "min": 250, "max": 400 } }
+    },
+    {
+      "id": "M12", "input": "김치찌개 1인분",
+      "llm": { "food": "김치찌개", "portion": { "amount": 400 } },
+      "expect": { "kind": "general", "nameContains": ["김치찌개"], "amount": { "units": ["g", "mL"], "min": 250, "max": 600 }, "kcal": { "min": 100, "max": 500 } }
+    },
+    {
+      "id": "M13", "input": "김치 1인분", "note": "배추김치 별칭 추가의 영향 확인. 반찬 1인분",
+      "llm": { "food": "김치", "portion": { "amount": 50 } },
+      "expect": { "kind": "general", "nameContains": ["김치"], "nameExcludes": ["찌개", "볶음밥"], "amount": { "units": ["g"], "min": 30, "max": 100 }, "kcal": { "min": 5, "max": 80 } }
+    },
+    {
+      "id": "M14", "input": "아아 한잔",
+      "llm": { "food": "아아", "portion": { "amount": 355 } },
+      "expect": { "drink": true, "nameContains": ["아메리카노"], "units": ["잔"], "amount": { "units": ["mL", "g"], "min": 200, "max": 500 }, "kcal": { "min": 0, "max": 40 } }
+    },
+    {
+      "id": "M15", "input": "냉동만두 5개", "note": "어떤 항목이 선택됐는지는 보지 않음. 수식어를 떼지 않아도 되는 경우",
+      "llm": { "food": "냉동만두", "portion": { "amount": 35 } },
+      "expect": { "amount": { "units": ["g"], "min": 150, "max": 250 }, "kcal": { "min": 300, "max": 500 } }
+    },
+    {
+      "id": "M16", "input": "신라면 1개", "note": "가공식품 차단 위험 확인. 1봉 120g",
+      "llm": { "food": "신라면", "portion": { "amount": 120 } },
+      "expect": { "amount": { "units": ["g"], "min": 100, "max": 140 }, "kcal": { "min": 400, "max": 600 } }
+    },
+    {
+      "id": "M17", "input": "햇반 1개", "note": "가공식품 차단 위험 확인. 1개 210g",
+      "llm": { "food": "햇반", "portion": { "amount": 210 } },
+      "expect": { "amount": { "units": ["g"], "min": 180, "max": 230 }, "kcal": { "min": 250, "max": 380 } }
+    },
+    {
+      "id": "M18", "input": "바나나우유 1개", "note": "가공식품 차단 위험 확인. 1개 240mL",
+      "llm": { "food": "바나나우유", "portion": { "amount": 240 } },
+      "expect": { "drink": true, "amount": { "units": ["mL", "g"], "min": 200, "max": 300 }, "kcal": { "min": 150, "max": 260 } }
+    },
+    {
+      "id": "M19", "input": "닭가슴살 1팩", "note": "가공식품 차단 위험 확인. 1팩 약 100g",
+      "llm": { "food": "닭가슴살", "portion": { "amount": 100 } },
+      "expect": { "amount": { "units": ["g"], "min": 80, "max": 150 }, "kcal": { "min": 80, "max": 200 } }
+    },
+    {
+      "id": "M20", "input": "신라면 1개", "note": "포장 중량을 모를 때 g 질문 → 사용자가 포장의 120g 입력",
+      "llm": { "food": "신라면", "portion": { "amount": 120 } }, "answers": ["120g"],
+      "expect": { "amount": { "units": ["g"], "min": 100, "max": 140 }, "kcal": { "min": 400, "max": 600 } }
+    },
+    {
+      "id": "M21", "input": "햇반 1개", "note": "포장 중량을 모를 때 g 질문 → 210g 입력",
+      "llm": { "food": "햇반", "portion": { "amount": 210 } }, "answers": ["210g"],
+      "expect": { "amount": { "units": ["g"], "min": 180, "max": 230 }, "kcal": { "min": 250, "max": 380 } }
+    },
+    {
+      "id": "M22", "input": "바나나우유 1개", "note": "포장 중량을 모를 때 질문 → 240mL 입력(숫자만)",
+      "llm": { "food": "바나나우유", "portion": { "amount": 240 } }, "answers": ["240"],
+      "expect": { "drink": true, "amount": { "units": ["mL", "g"], "min": 200, "max": 300 }, "kcal": { "min": 150, "max": 260 } }
+    },
+    {
+      "id": "M23", "input": "닭가슴살 1팩", "note": "포장 중량을 모를 때 g 질문 → 100g 입력",
+      "llm": { "food": "닭가슴살", "portion": { "amount": 100 } }, "answers": ["100g"],
+      "expect": { "amount": { "units": ["g"], "min": 80, "max": 150 }, "kcal": { "min": 80, "max": 200 } }
+    },
+    {
+      "id": "M24", "input": "삼겹살구이 2인분", "note": "한 줄 1,000kcal 초과 → 막지 않고 양 확인 질문 후 그대로 기록",
+      "llm": { "food": "삼겹살구이", "portion": { "amount": 200 } },
+      "expect": { "confirmsAmount": true, "kind": "general", "nameContains": ["삼겹살"], "amount": { "units": ["g"], "min": 300, "max": 500 }, "kcal": { "min": 1400, "max": 2400 } }
+    }
+  ]
+}

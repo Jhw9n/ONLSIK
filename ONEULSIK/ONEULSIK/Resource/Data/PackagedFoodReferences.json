@@ -1,0 +1,18 @@
+[
+  {
+    "id": "package:ottogi-kokkok-ramenbokki-120g",
+    "name": "콕콕콕 라면볶이 큰컵 120g",
+    "brand": "오뚜기",
+    "aliases": ["라면볶이", "콕콕콕 라면볶이", "콕콕콕 라면볶이 큰컵", "콕콕콕 라면볶이 용기", "라면볶이 큰컵", "라면볶이 용기"],
+    "productAliases": ["콕콕콕 라면볶이", "콕콕콕 라면볶이 큰컵", "콕콕콕 라면볶이 용기", "라면볶이 큰컵", "라면볶이 용기"],
+    "brandAliases": ["오뚜기라면(주)", "오뚜기라면"],
+    "catalogIDs": ["P108-009000400-0011"],
+    "packageGrams": 120,
+    "calories": 455,
+    "carbohydrates": 77,
+    "protein": 8,
+    "fat": 13,
+    "sourceURL": "https://www.costco.co.kr/Foods/Processed-Food/PastaNoodles/Ottogi-Rappoki-Bowl-120g-x-12/p/687105",
+    "checkedAt": "2026-11-05"
+  }
+]

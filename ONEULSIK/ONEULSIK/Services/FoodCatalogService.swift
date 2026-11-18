@@ -9,13 +9,14 @@ struct FoodCatalogService {
     func search(query: String) async throws -> [FoodCatalogItem] {
         let span = MealPerformance.begin("db.search")
         defer { span?.finish() }
-        return try await Self.database.search(query: query)
+        return try await Self.database.search(query: query).filter(FoodCatalogQuality.isUsable)
     }
 
     func food(id: String) async throws -> FoodCatalogItem? {
         let span = MealPerformance.begin("db.lookup")
         defer { span?.finish() }
-        return try await Self.database.food(id: id)
+        guard let food = try await Self.database.food(id: id), FoodCatalogQuality.isUsable(food) else { return nil }
+        return food
     }
 
     static let previewFood = FoodCatalogItem(

@@ -11,7 +11,7 @@ struct MealEntryView: View {
     @State private var showsFoodSearch = false
     @State private var savedThroughSearch = false
     @State private var footerHeight: CGFloat = 0
-    @FocusState private var isInputFocused: Bool
+    @FocusState private var focusedRowID: UUID?
     private let isPreview: Bool
 
     init(
@@ -40,7 +40,7 @@ struct MealEntryView: View {
     }
     #endif
 
-    private var isInputActive: Bool { isInputFocused || !viewModel.text.isEmpty }
+    private var isInputActive: Bool { focusedRowID != nil || !viewModel.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -77,7 +77,7 @@ struct MealEntryView: View {
                 onSaved: { savedThroughSearch = true }
             )
         }
-        .alert("저장 안내", isPresented: Binding(
+        .alert("안내", isPresented: Binding(
             get: { viewModel.saveError != nil },
             set: { if !$0 { viewModel.saveError = nil } }
         )) {
@@ -90,21 +90,31 @@ struct MealEntryView: View {
     private var mealContent: some View {
         VStack(spacing: 0) {
             header
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    mealSelector
-                    introduction
-                        .padding(.top, 24)
-                    inputCard
-                        .padding(.top, 16)
-                    resultSection
-                        .padding(.top, 30)
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        mealSelector
+                        introduction
+                            .padding(.top, 24)
+                        inputCard
+                            .padding(.top, 16)
+                        resultSection
+                            .padding(.top, 30)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 24)
                 }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 24)
+                .scrollDismissesKeyboard(.interactively)
+                .scrollIndicators(.hidden)
+                .onChange(of: focusedRowID) { _, rowID in
+                    guard let rowID else { return }
+                    withAnimation(.easeOut(duration: 0.2)) { proxy.scrollTo(rowID, anchor: .center) }
+                }
+                .onChange(of: viewModel.failedRowID) { _, rowID in
+                    guard let rowID else { return }
+                    withAnimation(.easeOut(duration: 0.2)) { proxy.scrollTo(rowID, anchor: .center) }
+                }
             }
-            .scrollDismissesKeyboard(.interactively)
-            .scrollIndicators(.hidden)
         }
     }
 
@@ -200,7 +210,7 @@ struct MealEntryView: View {
                 .font(.pretendardBold(24))
                 .tracking(-0.48)
                 .frame(minHeight: 36)
-            Text("먹은 음식과 양을 편하게 적어주세요")
+            Text("한 줄에 음식 하나와 대략적인 양을 꼭 입력해주세요")
                 .font(.pretendardMedium(14))
                 .foregroundStyle(Color.gray04)
                 .frame(minHeight: 21)
@@ -209,51 +219,71 @@ struct MealEntryView: View {
     }
 
     private var inputCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("AI 식사 입력")
-                .font(.pretendardSemiBold(12))
-                .foregroundStyle(Color.green03)
-                .frame(height: 22)
-
-            TextField(
-                "",
-                text: Binding(get: { viewModel.text }, set: { viewModel.updateText($0) }),
-                prompt: Text("ex) 김밥 한 줄이랑 라면").foregroundStyle(Color.gray04),
-                axis: .vertical
-            )
-            .font(.pretendardMedium(14))
-            .lineLimit(1...6)
-            .frame(minHeight: 21)
-            .focused($isInputFocused)
-            .tint(Color.green03)
-            .accessibilityLabel("먹은 음식과 양")
-            .accessibilityIdentifier("mealEntryInput")
-
+        VStack(alignment: .leading, spacing: 0) {
             HStack {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 13, weight: .semibold))
+                Text("AI 식사 입력")
+                    .font(.pretendardSemiBold(12))
                 Spacer()
+                Text("\(viewModel.inputRows.count)/8")
+                    .font(.pretendardMedium(11))
+                    .foregroundStyle(Color.gray04)
+                    .monospacedDigit()
+                    .accessibilityLabel("입력칸 \(viewModel.inputRows.count)개, 최대 8개")
+            }
+            .foregroundStyle(Color.green03)
+            .padding(.bottom, 10)
+
+            ForEach(Array(viewModel.inputRows.enumerated()), id: \.element.id) { index, row in
+                if index > 0 {
+                    Rectangle()
+                        .fill(Color.gray02.opacity(0.6))
+                        .frame(height: 1)
+                        .padding(.leading, 36)
+                }
+                inputRow(row, index: index)
+                    .id(row.id)
+            }
+
+            HStack(spacing: 12) {
                 Button {
-                    isInputFocused = false
+                    if let rowID = viewModel.addRow() { focusedRowID = rowID }
+                } label: {
+                    Label("음식 추가", systemImage: "plus")
+                        .font(.pretendardSemiBold(13))
+                        .foregroundStyle(viewModel.canAddRow ? Color.green03 : Color.gray04)
+                        .frame(minHeight: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .disabled(!viewModel.canAddRow)
+                .accessibilityIdentifier("mealEntryAddRow")
+                Spacer(minLength: 4)
+                Button {
+                    focusedRowID = nil
                     viewModel.submit()
                 } label: {
-                    Image(viewModel.canSubmit ? "mealEntrySend" : "mealEntrySendDisabled")
-                        .renderingMode(.original)
-                        .frame(width: 40, height: 40)
-                        .frame(width: 44, height: 44)
-                        .contentShape(Rectangle())
+                    HStack(spacing: 6) {
+                        Text("분석하기")
+                            .font(.pretendardSemiBold(13))
+                        Image(systemName: "arrow.up")
+                            .font(.system(size: 13, weight: .semibold))
+                    }
+                    .foregroundStyle(viewModel.canSubmit ? Color.white : Color.gray04)
+                    .padding(.horizontal, 16)
+                    .frame(height: 40)
+                    .background(viewModel.canSubmit ? Color.green03 : Color.gray01, in: Capsule())
+                    .frame(minHeight: 44)
                 }
                 .buttonStyle(.plain)
                 .disabled(!viewModel.canSubmit)
                 .accessibilityLabel("식사 분석하기")
             }
+            .padding(.top, 10)
         }
-        .padding(.horizontal, 14)
-        .padding(.top, 12)
-        .padding(.bottom, 16)
-        .background {
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color.white)
-                .onTapGesture { isInputFocused = true }
-        }
+        .padding(16)
+        .background(Color.white, in: RoundedRectangle(cornerRadius: 16))
         .overlay {
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(isInputActive ? Color.green03 : Color.clear, lineWidth: 1)
@@ -265,33 +295,125 @@ struct MealEntryView: View {
         .mealEntryInputRegion()
     }
 
+    private func inputRow(_ row: MealEntryViewModel.InputRow, index: Int) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 10) {
+                Group {
+                    if viewModel.isRowComplete(row.id) {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 10, weight: .bold))
+                    } else {
+                        Text("\(index + 1)")
+                            .font(.pretendardSemiBold(12))
+                    }
+                }
+                .foregroundStyle(focusedRowID == row.id || viewModel.isRowComplete(row.id) ? Color.white : Color.gray05)
+                .frame(width: 26, height: 26)
+                .background(focusedRowID == row.id || viewModel.isRowComplete(row.id) ? Color.green03 : Color.gray02.opacity(0.4), in: Circle())
+                .accessibilityLabel(viewModel.isRowComplete(row.id) ? "분석 완료" : "\(index + 1)번째 음식")
+
+                TextField("", text: Binding(
+                    get: { viewModel.inputRows.first(where: { $0.id == row.id })?.text ?? "" },
+                    set: { value in
+                        if let nextID = viewModel.updateRow(row.id, text: value) { focusedRowID = nextID }
+                    }
+                ), prompt: Text(inputPlaceholder(at: index)).foregroundStyle(Color.gray04))
+                .font(.pretendardMedium(14))
+                .tint(Color.green03)
+                .focused($focusedRowID, equals: row.id)
+                .submitLabel(.next)
+                .onSubmit {
+                    if let nextID = viewModel.addRow(after: row.id) { focusedRowID = nextID }
+                }
+                .accessibilityLabel("\(index + 1)번째 먹은 음식과 양")
+                .accessibilityIdentifier("mealEntryInput_\(index)")
+
+                if viewModel.inputRows.count > 1 || !row.text.isEmpty {
+                    Button {
+                        let wasFocused = focusedRowID == row.id
+                        let nextID = viewModel.removeRow(row.id)
+                        if wasFocused { focusedRowID = nextID }
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(Color.gray04)
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("\(index + 1)번째 음식 입력 삭제")
+                }
+            }
+            .frame(minHeight: 54)
+
+            if viewModel.failedRowID == row.id, case .failed(let message) = viewModel.phase {
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: "exclamationmark.circle.fill")
+                        .foregroundStyle(Color.red02)
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(message)
+                        if viewModel.showsSplitHint {
+                            Text("여러 음식을 적었다면 한 줄씩 나눠주세요.")
+                        }
+                    }
+                }
+                .font(.pretendardMedium(13))
+                .foregroundStyle(Color.black02)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.red01, in: RoundedRectangle(cornerRadius: 10))
+                .padding(.bottom, 12)
+            }
+        }
+    }
+
+    private func inputPlaceholder(at index: Int) -> String {
+        let examples = ["ex) 김밥 반 줄", "ex) 밥 한 공기", "ex) 계란 두 개"]
+        return examples[index % examples.count]
+    }
+
     @ViewBuilder
     private var resultSection: some View {
         switch viewModel.phase {
         case .idle:
-            recentMealsSection
+            if viewModel.items.isEmpty {
+                recentMealsSection
+            } else {
+                confirmationSection
+            }
         case .analyzing:
             HStack(spacing: 12) {
                 ProgressView().tint(Color.green03)
-                Text("먹은 식사를 확인하고 있어요")
+                Text("\(activeRowNumber.map { "\($0)번째 음식을" } ?? "먹은 식사를") 확인하고 있어요")
                     .font(.pretendardMedium(14))
             }
             .frame(maxWidth: .infinity, minHeight: 100)
             .accessibilityElement(children: .combine)
         case .question(let question):
-            questionCard(question)
+            VStack(alignment: .leading, spacing: 10) {
+                if let number = activeRowNumber {
+                    Text("\(number)번째 음식 확인")
+                        .font(.pretendardSemiBold(12))
+                        .foregroundStyle(Color.green03)
+                        .padding(.horizontal, 4)
+                }
+                questionCard(question)
+            }
         case .ready:
             confirmationSection
         case .failed(let message):
             VStack(alignment: .leading, spacing: 16) {
-                Text(message)
-                    .font(.pretendardMedium(14))
-                    .fixedSize(horizontal: false, vertical: true)
+                if viewModel.failedRowID == nil {
+                    Text(message)
+                        .font(.pretendardMedium(14))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 HStack(spacing: 20) {
                     Button("다시 시도") { viewModel.retry() }
                     if !isPreview {
                         Button("음식 직접 검색") {
-                            isInputFocused = false
+                            focusedRowID = nil
                             showsFoodSearch = true
                         }
                     }
@@ -328,7 +450,7 @@ struct MealEntryView: View {
                 List {
                     ForEach(viewModel.recentMeals) { meal in
                         Button {
-                            isInputFocused = false
+                            focusedRowID = nil
                             viewModel.selectRecent(meal)
                         } label: {
                             HStack(spacing: 12) {
@@ -378,21 +500,54 @@ struct MealEntryView: View {
         .padding(.horizontal, 4)
     }
 
+    private var activeRowNumber: Int? {
+        viewModel.inputRows.firstIndex(where: { $0.id == viewModel.activeRowID }).map { $0 + 1 }
+    }
+
     private func questionCard(_ question: MealEntryQuestion) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
+        let fullWidth = question.choices.count == 1 || question.choices.contains { $0.subtitle != nil }
+        let householdPortion = question.clarification?.portionInput != nil
+        let columns = Array(repeating: GridItem(.flexible()), count: fullWidth ? 1 : 2)
+        return VStack(alignment: .leading, spacing: 16) {
             sectionHeading(question.title, subtitle: question.explanation)
-            if question.clarification != nil {
+            if question.clarification != nil && !householdPortion {
                 MealEntryClarificationInput(placeholder: question.inputPlaceholder, onSubmit: viewModel.answer)
                     .id(question.id)
             }
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+            LazyVGrid(columns: columns, spacing: 10) {
                 ForEach(question.choices) { choice in
-                    Button(choice.title) { viewModel.select(choice) }
-                        .font(.pretendardSemiBold(14))
+                    Button { viewModel.select(choice) } label: {
+                        HStack(spacing: 12) {
+                            VStack(alignment: fullWidth ? .leading : .center, spacing: 6) {
+                                Text(choice.title)
+                                    .font(.pretendardSemiBold(fullWidth ? 16 : 14))
+                                    .fixedSize(horizontal: false, vertical: true)
+                                if let subtitle = choice.subtitle {
+                                    Text(subtitle)
+                                        .font(.pretendardMedium(13))
+                                        .foregroundStyle(Color.gray04)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                            }
+                            .frame(maxWidth: .infinity, alignment: fullWidth ? .leading : .center)
+                            if fullWidth {
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundStyle(Color.gray04)
+                            }
+                        }
+                        .multilineTextAlignment(fullWidth ? .leading : .center)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, fullWidth ? 18 : 12)
                         .frame(maxWidth: .infinity, minHeight: 48)
                         .background(Color.white, in: RoundedRectangle(cornerRadius: 12))
-                        .buttonStyle(.plain)
+                    }
+                    .buttonStyle(.plain)
                 }
+            }
+            if householdPortion {
+                MealEntryClarificationInput(placeholder: question.inputPlaceholder, onSubmit: viewModel.answer)
+                    .id(question.id)
             }
         }
     }

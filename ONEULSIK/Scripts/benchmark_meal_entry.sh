@@ -4,9 +4,9 @@ root="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$root"
 export DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}"
 folder="$(mktemp -d "${TMPDIR:-/tmp}/oneulsik-benchmark.XXXXXX")"
-cp ONEULSIK/Resource/Data/FoodCatalog.sqlite ONEULSIK/Resource/Data/FoodReferences.json "$folder/"
+cp ONEULSIK/Resource/Data/FoodCatalog.sqlite ONEULSIK/Resource/Data/FoodReferences.json ONEULSIK/Resource/Data/PackagedFoodReferences.json "$folder/"
 xcrun swiftc -D DEBUG -O -swift-version 5 -default-isolation MainActor -parse-as-library \
-    ONEULSIK/Models/FoodReference.swift ONEULSIK/Models/MealEntryDraft.swift \
+    ONEULSIK/Models/FoodReference.swift ONEULSIK/Models/PackagedFoodReference.swift ONEULSIK/Models/PreparedFoodReference.swift ONEULSIK/Models/MealEntryDraft.swift \
     ONEULSIK/Models/MealRecord.swift ONEULSIK/Models/MealType.swift \
     ONEULSIK/Models/FoodCatalogItem.swift ONEULSIK/Models/FoodPortion.swift \
     ONEULSIK/Models/UserProfile.swift ONEULSIK/Stores/MealRecordStore.swift \
