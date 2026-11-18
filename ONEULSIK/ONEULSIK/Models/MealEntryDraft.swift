@@ -7,9 +7,15 @@ enum MealPortionBasis: String {
     case entered
     /// 가공식품 원본의 제품 총중량(식품중량) × 개수
     case package
+    /// 온디바이스 모델이 추정한 분량(근거 데이터 없음)
+    case aiEstimated
 
     var label: String? {
-        self == .package ? "제품 총중량 기준" : nil
+        switch self {
+        case .package: "제품 총중량 기준"
+        case .aiEstimated: "AI 추정"
+        default: nil
+        }
     }
 }
 
@@ -37,6 +43,8 @@ struct MealEntryItem: Identifiable {
 
     var count: Double { servingCount * scale }
     var nutrition: NutritionValues { food.nutrition(for: count) }
+    /// 화면에 보이는 음식별 열량(정수 반올림). 합계도 이 값을 더해 보여준다.
+    var displayedCalories: Int { Int(nutrition.calories.rounded()) }
     var usesWeight: Bool { food.servingUnit == "g" || food.servingUnit == "mL" }
     var quantityUnit: String { usesWeight ? food.amountUnit : food.servingUnit }
     var quantity: Double { usesWeight ? food.baseAmount * count : count }
@@ -44,7 +52,9 @@ struct MealEntryItem: Identifiable {
     var basisDescription: String? {
         guard food.baseAmount > 0, !usesWeight else { return nil }
         let amount = "약 \((food.baseAmount * count).formatted(.number.precision(.fractionLength(0...1))))\(food.amountUnit)"
-        return [amount, portionBasis.label].compactMap { $0 }.joined(separator: " · ")
+        let reference = portionBasis == .representative && !food.referencePortionUnit.isEmpty
+            && food.referencePortionUnit != food.servingUnit ? "대표 분량 1\(food.referencePortionUnit) 기준" : nil
+        return [amount, reference, portionBasis.label].compactMap { $0 }.joined(separator: " · ")
     }
     var amountDescription: String {
         if food.servingUnit == "g" || food.servingUnit == "mL" {

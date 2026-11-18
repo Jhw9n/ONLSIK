@@ -155,7 +155,8 @@ def main():
             ) AS duplicate_rank FROM foods
         ) WHERE duplicate_rank > 1
     )""")
-    connection.execute("CREATE INDEX food_display_order ON foods(priority, name, id)")
+    # 앱 검색은 계산식으로 정렬해 인덱스를 쓰지 않으므로 food_display_order 인덱스는 만들지 않는다(2026-11-15 확인).
+    # 제품 총중량·분류 코드는 이어서 Scripts/add_package_weights.py로 덧붙인다.
     connection.commit()
     connection.execute("VACUUM")
     report = {

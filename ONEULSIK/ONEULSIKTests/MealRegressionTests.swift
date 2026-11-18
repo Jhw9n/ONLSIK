@@ -227,7 +227,7 @@ struct MealEntryOutcomeTests {
 }
 
 @MainActor
-private func report(suite: String, id: String, input: String, expected: String, actual: String,
+func report(suite: String, id: String, input: String, expected: String, actual: String,
                     questions: Int? = nil, questionLog: [String] = [], failures: [Failure]) {
     var seen = Set<String>()
     TestResultRecorder.record(.init(

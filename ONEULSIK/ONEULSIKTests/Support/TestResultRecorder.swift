@@ -46,6 +46,8 @@ enum FailureType: String {
     case normalization = "정규화·별칭"
     case search = "검색·정렬"
     case plausibility = "분량 타당성"
+    case displayText = "화면 문구"
+    case totals = "열량 합계"
 }
 
 struct Failure {

@@ -1,11 +1,23 @@
 {
-  "note": "음식 이름 앞에 붙는 상태·조리 수식어. 이름 그대로 일반 음식을 찾지 못할 때만 떼고 다시 찾으며, 결과는 비슷한 음식 확인 질문으로 보여준다.",
+  "basisNote": "음식 이름 앞에 붙는 상태·조리 수식어. 이름 그대로 일반 음식을 찾지 못할 때만 떼고 다시 찾으며, 결과는 비슷한 음식 확인 질문으로 보여준다. 후보 순서: 뗀 이름과 정확히 같은 항목 > preferNameSuffixes(조리 음식 '재료+끝말') > rawStates(원재료 '재료, 상태') > prefersCategory > 그 밖 > avoidNameSuffixes(뗀 이름 자체가 그 끝말로 끝나면 적용하지 않음). 2026-11-15 결정(C안).",
   "modifiers": [
-    { "word": "냉동", "prefersCategory": null, "explanation": "냉동은 보관 상태라 같은 음식 기준으로 찾았어요" },
-    { "word": "냉장", "prefersCategory": null, "explanation": "냉장은 보관 상태라 같은 음식 기준으로 찾았어요" },
-    { "word": "생", "prefersCategory": "원재료성 식품", "explanation": "굽기 전 생재료 기준으로 찾았어요" },
-    { "word": "숯불", "prefersCategory": "음식", "explanation": "숯불 메뉴의 정확한 정보가 없어 조리된 일반 음식 기준으로 찾았어요. 양념과 조리법에 따라 영양값은 달라질 수 있어요" },
-    { "word": "직화", "prefersCategory": "음식", "explanation": "직화 메뉴의 정확한 정보가 없어 조리된 일반 음식 기준으로 찾았어요. 양념과 조리법에 따라 영양값은 달라질 수 있어요" }
+    { "word": "냉동", "prefersCategory": null,
+      "displayText": "냉동은 보관 상태라 같은 음식 기준으로 찾았어요" },
+    { "word": "냉장", "prefersCategory": null,
+      "displayText": "냉장은 보관 상태라 같은 음식 기준으로 찾았어요" },
+    { "word": "생", "prefersCategory": "원재료성 식품", "rawStates": ["생것"],
+      "displayText": "굽기 전 생재료 기준으로 찾았어요",
+      "rawDisplayText": "굽기 전 생재료 기준으로 찾았어요. 양념과 기름은 반영하지 않아요" },
+    { "word": "숯불", "prefersCategory": "음식",
+      "preferNameSuffixes": ["구이"], "rawStates": ["구운것", "생것"],
+      "avoidNameSuffixes": ["국", "탕", "조림", "전", "찜", "볶음"],
+      "displayText": "숯불 메뉴의 정확한 정보가 없어 가까운 음식 기준으로 찾았어요. 양념과 굽는 방법에 따라 영양값은 달라질 수 있어요",
+      "rawDisplayText": "숯불 메뉴의 정확한 정보가 없어 원재료 기준으로 찾았어요. 양념과 기름은 반영하지 않아요" },
+    { "word": "직화", "prefersCategory": "음식",
+      "preferNameSuffixes": ["구이"], "rawStates": ["구운것", "생것"],
+      "avoidNameSuffixes": ["국", "탕", "조림", "전", "찜", "볶음"],
+      "displayText": "직화 메뉴의 정확한 정보가 없어 가까운 음식 기준으로 찾았어요. 양념과 굽는 방법에 따라 영양값은 달라질 수 있어요",
+      "rawDisplayText": "직화 메뉴의 정확한 정보가 없어 원재료 기준으로 찾았어요. 양념과 기름은 반영하지 않아요" }
   ],
   "keepWords": ["생강", "생선", "생크림", "생수", "생맥주", "생면", "생율", "생채", "생식", "냉동실", "냉장고"]
 }

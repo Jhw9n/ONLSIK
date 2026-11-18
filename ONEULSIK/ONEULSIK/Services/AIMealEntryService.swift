@@ -729,7 +729,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
                 }
                 let reference = referenceEntry(for: input.name).flatMap { $0.matches(food) ? $0 : nil }
                 return similarFoodQuestion([food], input: input, items: items, remaining: remaining,
-                    explanation: reference?.explanation ?? FoodModifierCatalog.stripped(input.name)?.explanation)
+                    explanation: reference?.displayText ?? FoodModifierCatalog.stripped(input.name)?.displayText(for: food))
             }
             if !products.isEmpty {
                 return packagedQuestion(products, input: input, items: items, remaining: remaining)
@@ -820,11 +820,12 @@ final class AIMealEntryService: MealEntryAnalyzing {
         guard input.unit == "mL" || container != nil else { throw MealEntryError.portionUnknown(input.name) }
         let amount = container?.milliliters ?? 1
         let isProduct = drink.isProduct(input.name)
-        let basis = container.map { " · 1\($0.unit) \($0.milliliters.formatted(.number.precision(.fractionLength(0...1))))mL: \($0.source)" } ?? ""
+        // 저장되는 출처는 사용자에게 보여도 되는 문구만 쓴다. 용기 용량의 내부 근거(DrinkReferences.json의 source)는 저장하지 않는다.
+        let basis = container.map { " · 1\($0.unit) \($0.milliliters.formatted(.number.precision(.fractionLength(0...1))))mL 기준" } ?? ""
         let adjusted = FoodCatalogItem(id: food.id, name: isProduct ? food.name : input.name, servingUnit: input.unit,
             servingGrams: 0, nutrition: food.nutrition(for: amount / food.baseAmount), servingMilliliters: amount,
             brand: isProduct ? food.brand : "",
-            source: "\(isProduct ? "" : "대표값: ")\(food.recordedName) · \(food.source)\(basis)",
+            source: "\(food.source) · \(isProduct ? food.recordedName : "\(food.recordedName) 영양값 기준")\(basis)",
             sourceDate: food.sourceDate, category: food.category)
         let item = MealEntryItem(food: adjusted, servingCount: input.quantity,
             portionBasis: input.unit == "mL" ? .entered : .representative,
@@ -844,13 +845,17 @@ final class AIMealEntryService: MealEntryAnalyzing {
             filtered = compatible.filter { $0.brand.isEmpty && $0.category != "가공식품" }
         }
         let reference = referenceEntry(for: input.name)
-        let preferredCategory = FoodModifierCatalog.stripped(input.name)?.prefersCategory
+        let stripped = FoodModifierCatalog.stripped(input.name)
         let ordered = filtered.sorted { left, right in
             let leftIsReference = reference?.matches(left) == true
             let rightIsReference = reference?.matches(right) == true
             if leftIsReference != rightIsReference { return leftIsReference }
-            if let preferredCategory, (left.category == preferredCategory) != (right.category == preferredCategory) {
-                return left.category == preferredCategory
+            // 이름 그대로 같은 항목은 항상 먼저, 수식어를 뗀 후보는 FoodModifiers.json 규칙 순서
+            let leftIsExact = normalized(left.name) == normalized(input.name)
+            let rightIsExact = normalized(right.name) == normalized(input.name)
+            if leftIsExact != rightIsExact { return leftIsExact }
+            if let stripped, stripped.rank(left) != stripped.rank(right) {
+                return stripped.rank(left) < stripped.rank(right)
             }
             if (left.category == "음식") != (right.category == "음식") { return left.category == "음식" }
             if (left.amountUnit == "g") != (right.amountUnit == "g") { return left.amountUnit == "g" }
@@ -935,9 +940,9 @@ final class AIMealEntryService: MealEntryAnalyzing {
             servingGrams: estimate.amountUnit == "g" ? basis : 0,
             nutrition: estimate.nutritionPer100 * (basis / 100),
             servingMilliliters: estimate.amountUnit == "mL" ? basis : 0,
-            source: "온디바이스 영양 추정 · \(estimate.ingredients)", category: "추정 음식"
+            source: "AI 영양 추정 · \(estimate.ingredients)", category: "추정 음식"
         )
-        let item = MealEntryItem(food: food, servingCount: count, portionBasis: isMeasured ? .entered : .estimated, nutritionBasis: .estimated)
+        let item = MealEntryItem(food: food, servingCount: count, portionBasis: isMeasured ? .entered : .aiEstimated, nutritionBasis: .estimated)
         guard item.isValid else { throw MealEntryError.invalidResult }
         return item
     }
@@ -992,6 +997,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
         let count: Double
         let unit: String
         let origin: MealPortionBasis
+        var referencePortionUnit = ""
 
         if input.unit == "g" || input.unit == "mL" {
             guard input.unit == food.amountUnit else { throw MealEntryError.portionUnknown(input.name) }
@@ -1014,10 +1020,12 @@ final class AIMealEntryService: MealEntryAnalyzing {
             unit = selectedUnit
             origin = .estimated
         } else if let portion = food.representativePortion,
-                  input.unit == portion.unit || input.unit == "인분" {
+                  portion.accepts(input.unit) || input.unit == "인분" {
             basis = portion.grams
             count = input.quantity
-            unit = portion.unit
+            // 입력한 단위를 그대로 보여준다. 1인분을 대표 분량 1단위(예: 1접시)로 계산했으면 그 단위를 안내에 남긴다.
+            unit = input.unit
+            if input.unit != portion.unit { referencePortionUnit = portion.unit }
             origin = .representative
         } else if input.brand.isEmpty, input.details.isEmpty,
                   let reference = referenceEntry(for: input.name),
@@ -1035,10 +1043,10 @@ final class AIMealEntryService: MealEntryAnalyzing {
             basis = estimate.amountPerUnit
             count = input.quantity
             unit = input.unit == "소량" ? "접시" : input.unit
-            origin = .estimated
+            origin = .aiEstimated
         }
         guard (0.1...10000).contains(basis * count) else { throw MealEntryError.portionUnknown(input.name) }
-        let adjusted = FoodCatalogItem(
+        var adjusted = FoodCatalogItem(
             id: food.id, name: selection.isSimilar ? input.name : food.name, servingUnit: unit,
             servingGrams: food.amountUnit == "g" ? basis : 0,
             nutrition: food.nutrition(for: basis / food.baseAmount),
@@ -1047,6 +1055,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
             source: selection.isSimilar ? "유사 음식: \(food.recordedName) · \(food.source)" : food.source,
             sourceDate: food.sourceDate, category: food.category
         )
+        adjusted.referencePortionUnit = referencePortionUnit
         let item = MealEntryItem(food: adjusted, servingCount: count, portionBasis: origin, nutritionBasis: selection.isSimilar ? .similarFood : .database)
         guard item.isValid else { throw MealEntryError.invalidResult }
         return item

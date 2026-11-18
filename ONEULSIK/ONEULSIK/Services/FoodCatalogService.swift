@@ -65,10 +65,16 @@ private actor FoodCatalogDatabase {
         // 일반 음식이 하나도 없으면 앞쪽 수식어(FoodModifiers.json)를 떼고 다시 찾아 뒤에 붙인다.
         if !foods.contains(where: { $0.brand.isEmpty && $0.category != "가공식품" }),
            let stripped = FoodModifierCatalog.stripped(query) {
+            var related: [FoodCatalogItem] = []
             for term in FoodReferenceCatalog.queries(for: stripped.base) {
-                foods += try searchExact(query: term, preferredID: preferredID(for: stripped.base))
+                related += try searchExact(query: term, preferredID: preferredID(for: stripped.base))
                     .filter { seen.insert($0.id).inserted }
             }
+            // 수식어 규칙(FoodModifiers.json) 순서로 다시 정렬한다. 같은 순위 안에서는 검색 순서를 유지한다.
+            foods += related.enumerated().sorted { left, right in
+                let leftRank = stripped.rank(left.element), rightRank = stripped.rank(right.element)
+                return leftRank != rightRank ? leftRank < rightRank : left.offset < right.offset
+            }.map(\.element)
         }
         try Task.checkCancellation()
         let result = Array(foods.prefix(resultLimit))
