@@ -455,5 +455,17 @@
     "amountUnit": "g",
     "source": "식품의약품안전처",
     "sourceDate": "2026-08-28"
+  },
+  {
+    "name": "삼겹살",
+    "aliases": ["냉삼"],
+    "referenceID": "RDA-I014000F110a",
+    "referenceName": "돼지고기, 삼겹살, 생것",
+    "amountUnit": "g",
+    "source": "농촌진흥청 국가표준식품성분 DB 10.4 (2026)",
+    "sourceDate": "2026-04-28",
+    "category": "원재료성 식품",
+    "estimatedPortions": { "인분": 170 },
+    "explanation": "삼겹살 1인분은 조리 전 생고기 170g, 생삼겹살 영양값 기준으로 계산해요(2026-11-15 결정). 굽는 동안 빠지는 기름은 반영하지 않아요"
   }
 ]

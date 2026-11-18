@@ -40,7 +40,7 @@ private actor FoodCatalogDatabase {
     private var connection: CatalogConnection?
     private var cache: [String: [FoodCatalogItem]] = [:]
     private var cacheOrder: [String] = []
-    private let columns = "id, name, brand, basis_unit, calories, carbohydrates, protein, fat, source, source_date, category"
+    private let columns = "id, name, brand, basis_unit, calories, carbohydrates, protein, fat, source, source_date, category, package_amount, package_unit"
 
     init(url: URL?) {
         self.url = url
@@ -53,12 +53,20 @@ private actor FoodCatalogDatabase {
         var foods: [FoodCatalogItem] = []
         var seen = Set<String>()
         for term in FoodReferenceCatalog.queries(for: query) {
-            foods += try searchExact(query: term, reference: FoodReferenceCatalog.entry(for: query))
+            foods += try searchExact(query: term, preferredID: preferredID(for: query))
                 .filter { seen.insert($0.id).inserted }
         }
         if foods.isEmpty {
             for reference in FoodReferenceCatalog.spellingCandidates(for: query) {
-                foods += try searchExact(query: reference.referenceName, reference: reference)
+                foods += try searchExact(query: reference.referenceName, preferredID: reference.referenceID)
+                    .filter { seen.insert($0.id).inserted }
+            }
+        }
+        // 일반 음식이 하나도 없으면 앞쪽 수식어(FoodModifiers.json)를 떼고 다시 찾아 뒤에 붙인다.
+        if !foods.contains(where: { $0.brand.isEmpty && $0.category != "가공식품" }),
+           let stripped = FoodModifierCatalog.stripped(query) {
+            for term in FoodReferenceCatalog.queries(for: stripped.base) {
+                foods += try searchExact(query: term, preferredID: preferredID(for: stripped.base))
                     .filter { seen.insert($0.id).inserted }
             }
         }
@@ -95,7 +103,12 @@ private actor FoodCatalogDatabase {
         }
     }
 
-    private func searchExact(query: String, reference: FoodReference?) throws -> [FoodCatalogItem] {
+    /// 데이터 파일(FoodReferences.json, DrinkReferences.json)이 지정한 대표 일반 항목
+    private func preferredID(for query: String) -> String? {
+        FoodReferenceCatalog.entry(for: query)?.referenceID ?? DrinkReferenceCatalog.entry(for: query)?.generalReferenceID
+    }
+
+    private func searchExact(query: String, preferredID: String?) throws -> [FoodCatalogItem] {
         try Task.checkCancellation()
 
         var terms = query.split(whereSeparator: \.isWhitespace)
@@ -138,12 +151,23 @@ private actor FoodCatalogDatabase {
             )
             SELECT \(columns) FROM matches WHERE duplicate_rank = 1
             """
-        parameters.insert(reference?.referenceID ?? "", at: 0)
+        parameters.insert(preferredID ?? "", at: 0)
         if !terms.isEmpty {
-            sql += " ORDER BY CASE WHEN id = ? THEN 0 ELSE 1 END, display_priority, CASE WHEN search_name IN (?, ?, ?) THEN 0 WHEN search_name LIKE ? THEN 1 ELSE 2 END, CASE WHEN category = '원재료성 식품' THEN 0 ELSE 1 END, length(name), name, source_date DESC, id"
-            parameters.append(reference?.referenceID ?? "")
+            // 이름 일치 순위: 전체 일치 > 쉼표로 나뉜 이름 조각 일치(예: "증류주, 소주, 희석식") >
+            // 첫 단어 일치(예: "만두 군만두"의 "만두") > 접두사(예: "만두국") > 조각 접두사 >
+            // 그 밖의 부분 일치(예: "채소 주스"의 "소주"). 이름 길이는 같은 순위 안에서만 본다.
+            let segments = "(',' || REPLACE(name, ' ', '') || ',')"
+            sql += """
+                 ORDER BY CASE WHEN id = ? THEN 0 ELSE 1 END, display_priority,
+                    CASE WHEN search_name IN (?, ?, ?) THEN 0 WHEN \(segments) LIKE ? THEN 1 WHEN name LIKE ? THEN 2
+                         WHEN search_name LIKE ? THEN 3 WHEN \(segments) LIKE ? THEN 4 ELSE 5 END,
+                    CASE WHEN category = '원재료성 식품' THEN 0 ELSE 1 END, length(name), name, source_date DESC, id
+                """
+            parameters.append(preferredID ?? "")
             let fullQuery = normalized(query)
-            parameters += [fullQuery, fullQuery + "생것", reversedDishName(fullQuery) ?? fullQuery, "\(fullQuery)%"]
+            let compactQuery = query.filter { !$0.isWhitespace }
+            parameters += [fullQuery, fullQuery + "생것", reversedDishName(fullQuery) ?? fullQuery,
+                           "%,\(compactQuery),%", "\(compactQuery) %", "\(fullQuery)%", "%,\(compactQuery)%"]
         } else {
             sql += " ORDER BY display_priority, name, source_date DESC, id"
         }
@@ -180,6 +204,10 @@ private actor FoodCatalogDatabase {
         while result == SQLITE_ROW {
             try Task.checkCancellation()
             let isVolume = string(statement, column: 3) == "mL"
+            // 제품 총중량은 영양 기준 단위(g/mL)와 같은 단위일 때만 쓴다.
+            let packageAmount = sqlite3_column_double(statement, 11)
+            let packageUnit = string(statement, column: 12).lowercased()
+            let usesPackage = packageAmount.isFinite && packageAmount > 0 && packageUnit == (isVolume ? "ml" : "g")
             foods.append(FoodCatalogItem(
                 id: string(statement, column: 0),
                 name: string(statement, column: 1),
@@ -195,7 +223,8 @@ private actor FoodCatalogDatabase {
                 brand: string(statement, column: 2),
                 source: string(statement, column: 8),
                 sourceDate: string(statement, column: 9),
-                category: string(statement, column: 10)
+                category: string(statement, column: 10),
+                packageAmount: usesPackage ? packageAmount : 0
             ))
             result = sqlite3_step(statement)
         }

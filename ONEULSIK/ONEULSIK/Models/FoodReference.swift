@@ -9,13 +9,17 @@ nonisolated struct FoodReference: Decodable, Sendable {
     let source: String
     let sourceDate: String
     let estimatedPortions: [String: Double]?
+    /// DB 항목의 분류. 없으면 조리 음식("음식")
+    let category: String?
+    /// 비슷한 음식 확인 질문에 보여줄 기준 설명(선택)
+    let explanation: String?
 
     var names: [String] { [name] + aliases }
 
     func matches(_ food: FoodCatalogItem) -> Bool {
         food.id == referenceID && food.name == referenceName && food.amountUnit == amountUnit
             && food.source == source && food.sourceDate == sourceDate
-            && food.brand.isEmpty && food.category == "음식"
+            && food.brand.isEmpty && food.category == (category ?? "음식")
     }
 
     func estimatedAmount(for unit: String, food: FoodCatalogItem) -> Double? {
@@ -86,19 +90,6 @@ nonisolated enum FoodReferenceCatalog {
 
     static func similarDishQuery(for name: String) -> String? {
         similarDishIngredients(name)?.sorted().joined(separator: " ")
-    }
-
-    static func preparedAlternative(for name: String, source: String) -> (name: String, explanation: String)? {
-        let key = normalized(name)
-        if ["삼겹살", "냉동삼겹살", "냉삼"].contains(key),
-           source.range(of: #"생\s*(?:고기|삼겹살|것)|(?:굽기|조리)\s*전|안\s*구운"#, options: .regularExpression) == nil {
-            return ("삼겹살구이", "냉동은 보관 상태라 일반 삼겹살구이를 참고할 수 있어요. 구워 먹은 고기 기준이며, 식당 메뉴에 적힌 굽기 전 중량과는 다를 수 있어요")
-        }
-        if ["숯불주꾸미", "숯불주꾸미볶음", "숯불주꾸미구이", "직화주꾸미", "직화주꾸미볶음"].contains(key)
-            || key == "주꾸미" && (source.contains("숯불") || source.contains("직화")) {
-            return ("주꾸미볶음", "숯불·직화 메뉴의 정확한 정보가 없어 일반 주꾸미볶음을 참고해요. 양념과 기름, 조리 방법에 따라 영양값은 달라질 수 있어요")
-        }
-        return nil
     }
 
     static func isSimilarPreparedDish(_ name: String, to candidate: String) -> Bool {

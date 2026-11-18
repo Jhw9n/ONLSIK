@@ -130,8 +130,11 @@ struct MealEntryOutcomeTests {
                         failures.append(Failure(type: .question, message: "질문이 \(Self.maxQuestionRounds)회를 넘음"))
                         break loop
                     }
-                    if let first = question.choices.first {
-                        questionLog.append("\(question.title) → \(first.title)")
+                    let preferred = testCase.choose.flatMap { wanted in
+                        question.choices.first { "\($0.title) \($0.subtitle ?? "")".contains(wanted) }
+                    }
+                    if let first = preferred ?? question.choices.first {
+                        questionLog.append("\(question.title) → \(first.title)\(first.subtitle.map { " (\($0))" } ?? "")")
                         analysis = try await service.resolve(first)
                     } else if var typed = question.clarification, typed.continuationInput != nil,
                               answers.indices.contains(answerIndex) {
@@ -171,6 +174,7 @@ struct MealEntryOutcomeTests {
             let names = [food.name, databaseName].compactMap { $0 }.map(FoodReferenceCatalog.normalized)
             let shownName = databaseName.map { $0 == food.name ? food.recordedName : "\(food.recordedName) (DB: \($0))" } ?? food.recordedName
             actual = "\(shownName) · \(item.amountDescription) · \(amount.short)\(food.amountUnit) · \(kcal.short)kcal · \(isGeneral ? "일반" : "가공")"
+                + (item.portionBasis.label.map { " · \($0)" } ?? "")
 
             // 2026-11-15 결정: 1,000kcal를 넘는 줄은 막지 않고 "이 양이 맞나요?" 확인을 거쳐야 한다.
             let confirmedAmount = questionLog.contains { $0.hasPrefix(Self.amountConfirmationTitle) }
@@ -179,6 +183,9 @@ struct MealEntryOutcomeTests {
             }
             if expect.confirmsAmount == true, !confirmedAmount {
                 failures.append(Failure(type: .question, message: "양 확인 질문(\(Self.amountConfirmationTitle))이 없음"))
+            }
+            if let basis = expect.basis, item.portionBasis.rawValue != basis {
+                failures.append(Failure(type: .amount, message: "분량 근거 \(item.portionBasis.rawValue) (기대 \(basis))"))
             }
             if expect.drink == true, food.servingUnit == "인분" {
                 failures.append(Failure(type: .limit, message: "음료가 인분으로 기록됨"))

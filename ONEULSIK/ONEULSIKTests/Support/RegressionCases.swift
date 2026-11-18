@@ -84,6 +84,8 @@ struct MealCase: Decodable, CustomTestStringConvertible {
             let ingredients: String
         }
         let food: String?
+        /// 모델이 원문에서 뽑은 브랜드(없으면 "")
+        let brand: String?
         let portion: Portion?
         let pick: String?
         let estimate: Estimate?
@@ -101,6 +103,8 @@ struct MealCase: Decodable, CustomTestStringConvertible {
         var kcal: ValueRange?
         /// 1,000kcal 초과로 "이 양이 맞나요?" 확인 질문이 나와야 함
         var confirmsAmount: Bool?
+        /// 분량 근거(MealPortionBasis rawValue). 예: "package" = 제품 총중량 기준
+        var basis: String?
     }
     let id: String
     let input: String
@@ -108,6 +112,8 @@ struct MealCase: Decodable, CustomTestStringConvertible {
     let llm: LLM?
     /// 선택지 없는 질문(자유 입력)에 사용자가 적을 답. 순서대로 사용한다.
     let answers: [String]?
+    /// 선택지 질문에서 제목이나 부제에 이 글자가 들어간 선택지를 고른다(없으면 첫 선택지)
+    let choose: String?
     let expect: Expect
     var testDescription: String { "\(id) \(input)" }
 
@@ -124,6 +130,7 @@ struct MealCase: Decodable, CustomTestStringConvertible {
         if let max = expect.maxQuestions { parts.append("질문 \(max)회 이하") }
         if expect.drink == true { parts.append("인분 아님") }
         if expect.confirmsAmount == true { parts.append("양 확인 질문") }
+        if expect.basis == "package" { parts.append("제품 총중량 기준") }
         return parts.joined(separator: ", ")
     }
 }
