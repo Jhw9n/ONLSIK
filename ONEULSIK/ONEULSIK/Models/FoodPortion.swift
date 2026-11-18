@@ -193,6 +193,17 @@ nonisolated struct FoodPortion: Hashable, Sendable {
     /// 5. 음식 + 변형의 음식 이름(첫 단어): "메밀국수 온면" → 메밀국수, "김치찌개 참치" → 김치찌개.
     ///    공백으로만 나뉜 이름에 쓴다. 쉼표가 있는 이름("달걀, 가루", "쫄면, 말린것")은 원재료의 상태·가공 이름이라 쓰지 않는다.
     static func nameVariants(_ name: String) -> [String] {
+        var variants = sameDishNames(name)
+        let plain = name.replacingOccurrences(of: #"\([^)]*\)"#, with: " ", options: .regularExpression)
+        let words = plain.split(whereSeparator: { $0.isWhitespace || $0 == "," }).map(String.init)
+        if words.count >= 2, !plain.contains(",") { variants.append(words[0]) }
+        var seen = Set<String>()
+        return variants.filter { seen.insert(lookupKey($0)).inserted }
+    }
+
+    /// nameVariants의 규칙 1~4(그대로, 순서 뒤집기, 분류어, 괄호)만. 같은 요리의 다른 표기(어순)를 찾을 때 쓴다.
+    /// 규칙 5(첫 단어)는 "칼국수 해물"을 "칼국수"처럼 다른 요리로 넓히므로 넣지 않는다.
+    static func sameDishNames(_ name: String) -> [String] {
         var variants = [name]
         let plain = name.replacingOccurrences(of: #"\([^)]*\)"#, with: " ", options: .regularExpression)
         let words = plain.split(whereSeparator: { $0.isWhitespace || $0 == "," }).map(String.init)
@@ -207,7 +218,6 @@ nonisolated struct FoodPortion: Hashable, Sendable {
             variants += name[range].dropFirst().dropLast().split(whereSeparator: { "/,".contains($0) })
                 .map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
         }
-        if words.count >= 2, !plain.contains(",") { variants.append(words[0]) }
         var seen = Set<String>()
         return variants.filter { seen.insert(lookupKey($0)).inserted }
     }
@@ -216,7 +226,8 @@ nonisolated struct FoodPortion: Hashable, Sendable {
     /// DB 이름으로 먼저 찾고, 없으면 그 항목을 가리키는 참고표(FoodReferences.json)의 대표 이름·별칭으로 찾는다.
     /// 기본은 g 기준 항목만이다. `allowsVolumeAsWeight`이면(AI 식사 입력) mL 기준 항목 중 국물·면 요리
     /// (VolumeAsWeight.json, 술 표 항목 제외)에도 g 대표 분량을 같은 숫자의 mL로 붙인다(1mL=1g, 2026-11-17 결정 B).
-    /// 같은 이름의 g 항목이 있으면 AI 식사 입력은 그 g 항목을 먼저 쓴다(AIMealEntryService.gramFood(sameNameAs:)).
+    /// 같은 요리(정확히 같은 이름 또는 어순만 다른 이름, sameDishNames)의 g 항목이 있으면 AI 식사 입력은 그 g 항목을 먼저 쓴다
+    /// (AIMealEntryService.gramFood(sameNameAs:)).
     static func representative(for food: FoodCatalogItem, allowsVolumeAsWeight: Bool = false) -> FoodPortion? {
         guard food.brand.isEmpty, food.category != "가공식품" else { return nil }
         let isVolume = food.servingMilliliters > 0 && food.servingGrams == 0

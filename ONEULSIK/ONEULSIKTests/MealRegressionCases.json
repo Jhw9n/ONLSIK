@@ -362,6 +362,16 @@
       "id": "M60", "input": "탕수육", "note": "국물·면이 아닌 mL 항목(DB 탕수육은 mL 기준만 있음)은 결정 B를 적용하지 않고 지금처럼 수량 질문. 형식은 M48과 같음(수량 없이 입력, 답은 1인분). ‘탕수육 1인분’처럼 수량을 적으면 질문 없이 AI 추정으로 가서 이 확인에 쓰지 않음",
       "llm": { "food": "탕수육", "portion": { "amount": 200 } }, "choose": "1인분",
       "expect": { "asksAmount": true, "volumeAsWeight": false, "units": ["인분"], "count": 1 }
+    },
+    {
+      "id": "M61", "input": "우럭매운탕 1인분", "note": "같은 요리의 g 항목 우선(2026-11-17 결정, 어순만 다른 이름 포함): DB 검색은 mL 항목 ‘우럭 매운탕’을 먼저 고르지만 어순만 다른 g 항목 ‘매운탕 우럭’(D306-280210000-0001, 100g당 68kcal)이 있으므로 그 항목을 쓰고 1mL=1g은 쓰지 않음. 대표 분량표 매운탕 1인분 600g. 열량 68 × 6 = 408kcal, ±5% → 388~428",
+      "llm": { "food": "우럭매운탕" },
+      "expect": { "maxQuestions": 0, "volumeAsWeight": false, "kind": "general", "nameContains": ["우럭"], "units": ["인분"], "count": 1, "amount": { "units": ["g"], "min": 590, "max": 610 }, "kcal": { "min": 388, "max": 428 } }
+    },
+    {
+      "id": "M62", "input": "물냉면 1그릇", "note": "M61과 같은 규칙: mL 항목 ‘물냉면’ 대신 어순만 다른 g 항목 ‘냉면 물냉면’(D103-144180000-0001, 100g당 55kcal, g 후보 중 검색 순서 첫 항목)을 씀. 대표 분량표 물냉면 1그릇 800g. 열량 55 × 8 = 440kcal, ±5% → 418~462",
+      "llm": { "food": "물냉면" },
+      "expect": { "maxQuestions": 0, "volumeAsWeight": false, "kind": "general", "nameContains": ["물냉면"], "units": ["그릇"], "count": 1, "amount": { "units": ["g"], "min": 790, "max": 810 }, "kcal": { "min": 418, "max": 462 } }
     }
   ]
 }

@@ -887,21 +887,33 @@ final class AIMealEntryService: MealEntryAnalyzing {
             .groupedByMajorityCategory(sameNameAs: searchName(foodName(of: input)))
     }
 
-    /// 참고표가 mL 기준 항목을 가리키고 같은 이름의 g 기준 항목이 있으면 g 항목을 쓴다.
+    /// 참고표가 mL 기준 항목을 가리키고 같은 요리(어순만 다른 이름 포함)의 g 기준 항목이 있으면 g 항목을 쓴다.
     /// 대표 분량(1인분 g)은 g 항목에만 붙기 때문이다. 없으면 참고표 항목 그대로.
     private func preferredReferenceFood(_ reference: FoodReference, food: FoodCatalogItem) async throws -> FoodCatalogItem {
         try await gramFood(sameNameAs: food) ?? food
     }
 
-    /// mL 기준 항목과 이름(정규화)·분류가 같은 브랜드 없는 g 기준 항목. 없거나 이미 g 항목이면 nil
+    /// mL 기준 항목과 같은 요리이고 분류가 같은 브랜드 없는 g 기준 항목. 없거나 이미 g 항목이면 nil
+    /// 같은 요리: 두 이름에 대표 분량 이름 규칙 1~4(FoodPortion.sameDishNames: 그대로, 순서 뒤집기, 분류어, 괄호)를
+    /// 적용해 정규화한 이름이 하나라도 겹치면 같은 요리로 본다. 예: "우럭 매운탕"(mL)과 "매운탕 우럭"(g).
+    /// 후보는 mL 항목 이름, 그다음 규칙 2~4 이름으로 찾은 검색 결과 순서이고, 그중 첫 항목을 쓴다.
     private func gramFood(sameNameAs food: FoodCatalogItem) async throws -> FoodCatalogItem? {
         guard food.amountUnit == "mL" else { return nil }
-        let results = try await catalog.search(query: food.name)
-        try Task.checkCancellation()
-        return results.first { candidate in
-            candidate.amountUnit == "g" && candidate.brand.isEmpty && candidate.category == food.category
-                && normalized(candidate.name) == normalized(food.name) && FoodCatalogQuality.isUsable(candidate)
+        let names = FoodPortion.sameDishNames(food.name)
+        let keys = Set(names.map(normalized))
+        var seen = Set<String>()
+        for name in names {
+            let results = try await catalog.search(query: name)
+            try Task.checkCancellation()
+            let match = results.first { candidate in
+                seen.insert(candidate.id).inserted
+                    && candidate.amountUnit == "g" && candidate.brand.isEmpty && candidate.category == food.category
+                    && FoodCatalogQuality.isUsable(candidate)
+                    && FoodPortion.sameDishNames(candidate.name).contains { keys.contains(normalized($0)) }
+            }
+            if let match { return match }
         }
+        return nil
     }
 
     /// 대표 항목(FoodReferences.json). 이름 그대로 없으면 앞쪽 수식어를 뗀 이름으로 찾는다.
@@ -1014,7 +1026,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
 
     private func makeItem(_ selection: MealFoodSelection) async throws -> MealEntryItem {
         let food = selection.food
-        // 국물·면 mL 항목에 대표 분량을 mL로 쓰기 전에, 같은 이름의 g 항목이 있으면 그 항목을 쓴다(g 항목 우선).
+        // 국물·면 mL 항목에 대표 분량을 mL로 쓰기 전에, 같은 요리(어순만 다른 이름 포함)의 g 항목이 있으면 그 항목을 쓴다(g 항목 우선).
         if selection.portionOverride == nil, !["g", "mL"].contains(selection.input.unit),
            FoodPortion.representative(for: food, allowsVolumeAsWeight: true)?.isVolumeAsWeight == true,
            let gram = try await gramFood(sameNameAs: food) {
