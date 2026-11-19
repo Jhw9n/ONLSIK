@@ -15,6 +15,8 @@ enum TestResultRecorder {
         let passed: Bool
         let failureTypes: [String]
         let reasons: [String]
+        /// 통과해도 보고서에 남길 내용(L03 원인별 목록 등). 없으면 빈 배열
+        let details: [String]
     }
 
     static func record(_ record: Record) {
@@ -49,6 +51,7 @@ enum FailureType: String {
     case displayText = "화면 문구"
     case totals = "열량 합계"
     case portionLink = "대표 분량 연결"
+    case audit = "대표 분량 음식 점검"
 }
 
 struct Failure {

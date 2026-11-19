@@ -119,6 +119,24 @@ def main():
                     values.insert(5, record["questions"] if record["questions"] is not None else "")
             lines.append("| " + " | ".join(cell(v) for v in values) + " |")
 
+    # 통과해도 남기는 점검 상세(예: L03 대표 분량 음식 점검의 원인별 목록). details가 없는 기록은 표시하지 않는다.
+    detailed = [(case, record) for _, case, record, _ in rows if record and record.get("details")]
+    for case, record in detailed:
+        details = record["details"]
+        causes = [line for line in details[1:] if line.startswith("원인 ")]
+        inputs = [line for line in details[1:] if line.startswith("입력 ")]
+        lines += ["", f"## 점검 상세: {case['id']}", "", cell(details[0]), ""]
+        if causes:
+            lines += ["| 원인 | 건수 | 목록 |", "|---|---:|---|"]
+            for line in causes:
+                head, _, items = line[len("원인 "):].partition(": ")
+                name, _, count = head.rpartition(" ")
+                lines.append(f"| {cell(name)} | {cell(count.removesuffix('건'))} | {cell(items)} |")
+        if inputs:
+            lines += ["", "<details><summary>입력별 기록 자료</summary>", ""]
+            lines += [f"- {cell(line[len('입력 '):])}" for line in inputs]
+            lines += ["", "</details>"]
+
     asked = [(case, record) for suite, case, record, _ in rows if suite == "식사" and record and record["questionLog"]]
     if asked:
         lines += ["", "## 확인 질문 기록", "", "첫 번째 선택지를 고르는 것으로 진행했습니다.", ""]
