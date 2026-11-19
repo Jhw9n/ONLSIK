@@ -110,5 +110,18 @@
         "package"
       ]
     }
+  },
+  "guideRepresentatives": {
+    "source": {
+      "title": "식품의약품안전처 「외식 영양성분 자료집 제2권」(2013)",
+      "url": "https://www.foodsafetykorea.go.kr/upload/mkisna/2013.pdf",
+      "sha256": "3dbbf29e58131288efb928367cf71848da78e4876db4874521dcf2dab1716316",
+      "pages": 116,
+      "items": 108,
+      "checkedOn": "2026-11-19"
+    },
+    "purpose": "대표 분량표(FoodPortion.swift)의 출처가 이 자료집인 음식에서 자료집의 100g당 열량과 ±2% 안에서 맞는 g 기준 DB 자료를 대표 자료로 지정(Resource/Data/GuideRepresentatives.json). 영양값을 DB에 넣지 않고 기존 DB 자료의 선택에만 쓴다.",
+    "script": "Scripts/build_guide_representatives.py",
+    "entries": 53
   }
 }
