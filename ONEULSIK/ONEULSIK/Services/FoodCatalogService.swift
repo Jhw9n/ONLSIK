@@ -151,13 +151,16 @@ private actor FoodCatalogDatabase {
                     ROW_NUMBER() OVER (
                         PARTITION BY \(nameKey), \(brandKey), basis_unit,
                             CASE WHEN \(isGeneralFood) THEN 0 ELSE 1 END, \(nutritionKey)
-                        ORDER BY CASE WHEN id = ? THEN 0 ELSE 1 END, \(priority), source_date DESC, id
+                        ORDER BY CASE WHEN id = ? THEN 0 WHEN id IN (SELECT value FROM json_each(?)) THEN 1 ELSE 2 END,
+                            \(priority), source_date DESC, id
                     ) AS duplicate_rank
                 FROM foods\(filter)
             )
             SELECT \(columns) FROM matches WHERE duplicate_rank = 1
             """
-        parameters.insert(preferredID ?? "", at: 0)
+        // 같은 이름·단위 자료 중 남길 하나: 참고표 지정(preferredID) > 대표 자료 지정 표(GuideRepresentatives.json)
+        // > priority > 최신 기준일 > 식품코드. 일반 음식은 기준일이 모두 같아 지정이 없으면 식품코드 순으로 정해진다.
+        parameters.insert(contentsOf: [preferredID ?? "", GuideRepresentativeCatalog.foodIDsJSON], at: 0)
         if !terms.isEmpty {
             // 이름 일치 순위: 전체 일치 > 쉼표로 나뉜 이름 조각 일치(예: "증류주, 소주, 희석식") >
             // 첫 단어 일치(예: "만두 군만두"의 "만두") > 접두사(예: "만두국") > 조각 접두사 >
