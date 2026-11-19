@@ -254,13 +254,14 @@ struct MealEntryOutcomeTests {
 
 @MainActor
 func report(suite: String, id: String, input: String, expected: String, actual: String,
-                    questions: Int? = nil, questionLog: [String] = [], failures: [Failure]) {
+                    questions: Int? = nil, questionLog: [String] = [], failures: [Failure], details: [String] = []) {
     var seen = Set<String>()
     TestResultRecorder.record(.init(
         suite: suite, id: id, input: input, expected: expected, actual: actual,
         questions: questions, questionLog: questionLog, passed: failures.isEmpty,
         failureTypes: failures.map(\.type.rawValue).filter { seen.insert($0).inserted },
-        reasons: failures.map(\.message)
+        reasons: failures.map(\.message),
+        details: details
     ))
     for failure in failures {
         Issue.record("[\(failure.type.rawValue)] \(id) \(input): \(failure.message)")
