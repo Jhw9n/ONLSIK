@@ -611,6 +611,18 @@ final class AIMealEntryService: MealEntryAnalyzing {
                     }
                 }
             }
+            // 대표 분량표의 같은 행 이름을 같은 음식의 별칭으로 보고 자료집 지정 자료를 쓴다(2026-11-19 결정).
+            // 참고표 지정 다음, 검색 앞. 참고표 이름이거나 브랜드·제품 입력·추가 설명이 있으면 쓰지 않는다.
+            if !prefersProducts, input.brand.isEmpty, input.details.isEmpty,
+               FoodReferenceCatalog.entry(for: input.name) == nil,
+               let alias = GuideRepresentativeCatalog.entry(forName: input.name),
+               let food = try await catalog.food(id: alias.foodID) {
+                try Task.checkCancellation()
+                // 참고표 지정과 같은 방식: 입력 이름과 DB 이름이 다르면 입력 이름으로 보여주고 근거에 DB 자료를 남긴다.
+                if candidates(from: [food], input: input).first != nil {
+                    return try await resolveSelection(MealFoodSelection(input: input, food: food, isSimilar: normalized(food.name) != normalized(input.name)), items: items, remaining: remaining)
+                }
+            }
             let foodName = input.brand.isEmpty ? input.name : input.name.replacingOccurrences(of: input.brand, with: "")
             let query = searchName(foodName)
             guard !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw MealEntryError.invalidResult }

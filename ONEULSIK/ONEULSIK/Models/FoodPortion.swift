@@ -41,8 +41,17 @@ nonisolated struct FoodPortion: Hashable, Sendable {
     private static let riceSource = "https://www.foodsafetykorea.go.kr/upload/20170417/20170417053825_1492418305214.pdf"
     private static let mealSource = "https://www.foodsafetykorea.go.kr/portal/board/boardDetail.do?bbs_no=bbs039&menu_grp=MENU_NEW03&menu_no=4847&ntctxt_no=22493"
     private static let eggSource = "https://www.foodsafetykorea.go.kr/portal/cookrcp/cookrcpInfoDtl.do?menu_grp=MENU_NEW03&menu_no=3608&rcp_seq=3185"
+    /// 식약처 「외식 영양성분 자료집 제2권」(2013). 행의 출처는 이 주소 + 쪽 번호
+    private static let guidePagePrefix = "https://www.foodsafetykorea.go.kr/upload/mkisna/2013.pdf#page="
     private static func guideSource(page: Int) -> String {
-        "https://www.foodsafetykorea.go.kr/upload/mkisna/2013.pdf#page=\(page)"
+        guidePagePrefix + String(page)
+    }
+
+    /// 대표 분량표에서 이 이름이 걸리는 행의 출처가 자료집이면 그 쪽 번호(이름 비교는 lookupKey, 먼저 나온 행).
+    /// 같은 행의 이름들은 같은 음식의 표기로 본다(GuideRepresentativeCatalog.entry(forName:), 2026-11-19 결정).
+    static func guidePage(forName name: String) -> Int? {
+        guard let source = index[lookupKey(name)]?.source, source.hasPrefix(guidePagePrefix) else { return nil }
+        return Int(source.dropFirst(guidePagePrefix.count))
     }
 
     private static let rows: [Row] = [

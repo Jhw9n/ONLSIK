@@ -52,7 +52,12 @@ private actor FoodCatalogDatabase {
         if let cached = cachedFoods(for: key) { return cached }
         var foods: [FoodCatalogItem] = []
         var seen = Set<String>()
-        for term in FoodReferenceCatalog.queries(for: query) {
+        // 대표 분량표의 같은 행 이름(별칭)으로 지정 자료가 있으면 그 DB 이름을 먼저 찾아 첫 일반 음식 후보로 둔다.
+        var terms = FoodReferenceCatalog.queries(for: query)
+        if let alias = guideAlias(for: query) {
+            terms = [alias.name] + terms.filter { $0 != alias.name }
+        }
+        for term in terms {
             foods += try searchExact(query: term, preferredID: preferredID(for: query))
                 .filter { seen.insert($0.id).inserted }
         }
@@ -112,6 +117,13 @@ private actor FoodCatalogDatabase {
     /// 데이터 파일(FoodReferences.json, DrinkReferences.json)이 지정한 대표 일반 항목
     private func preferredID(for query: String) -> String? {
         FoodReferenceCatalog.entry(for: query)?.referenceID ?? DrinkReferenceCatalog.entry(for: query)?.generalReferenceID
+            ?? guideAlias(for: query)?.foodID
+    }
+
+    /// 대표 분량표 별칭으로 찾은 자료집 지정 자료. 참고표 이름이면 참고표 지정이 우선하므로 쓰지 않는다.
+    private func guideAlias(for query: String) -> GuideRepresentativeCatalog.Entry? {
+        guard FoodReferenceCatalog.entry(for: query) == nil else { return nil }
+        return GuideRepresentativeCatalog.entry(forName: query)
     }
 
     private func searchExact(query: String, preferredID: String?) throws -> [FoodCatalogItem] {
