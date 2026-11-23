@@ -412,6 +412,11 @@
       "id": "M70", "input": "김치찌게 1인분", "note": "표기 변형 찌게 → 찌개(2026-11-23, #37): 김치찌개 1인분(M12)과 같은 결과. 참고표 김치찌개(D306-266000000-0001, 100g당 61kcal), 대표 분량표 1인분 400g. 열량 기대: 61 × 4 = 244kcal ±5% → 232~256",
       "llm": { "food": "김치찌게" },
       "expect": { "maxQuestions": 0, "kind": "general", "nameContains": ["김치찌개"], "units": ["인분"], "count": 1, "amount": { "units": ["g"], "min": 390, "max": 410 }, "kcal": { "min": 232, "max": 256 } }
+    },
+    {
+      "id": "M71", "input": "신라면", "note": "실기기 기록 재현(2026-11-23, #39): 모델 검색어 '라면, 라면 국물'로 일반 '라면'(D103)이 비슷한 음식으로 골라지던 경로. 이름이 정확히 같은 일반 음식이 없고 같은 이름 가공식품이 있으면 검색어 단계보다 먼저 제품 확인으로 간다. 기대값은 M55와 같음(제품 총중량 120g, 100g당 약 417kcal)",
+      "llm": { "food": "신라면", "searchTerms": ["라면", "라면 국물"] },
+      "expect": { "maxQuestions": 1, "assumedQuantity": true, "basis": "package", "units": ["개"], "count": 1, "amount": { "units": ["g"], "min": 115, "max": 125 }, "kcal": { "min": 480, "max": 520 } }
     }
   ]
 }

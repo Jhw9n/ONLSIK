@@ -95,6 +95,10 @@ struct MealCase: Decodable, CustomTestStringConvertible {
         let portion: Portion?
         let pick: String?
         let estimate: Estimate?
+        /// 모델이 돌려줄 검색어(실기기 기록 재현용, #39). 없으면 빈 목록
+        var searchTerms: [String]? = nil
+        /// 한 줄에서 모델이 뽑을 음식 이름들(원문에 있는 것만 돌려준다). 없으면 food 하나
+        var foods: [String]? = nil
     }
     struct AmountRange: Decodable { let units: [String]; let min: Double; let max: Double }
     struct Expect: Decodable {

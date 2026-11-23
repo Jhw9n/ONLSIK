@@ -734,6 +734,13 @@ final class AIMealEntryService: MealEntryAnalyzing {
                     return similarFoodQuestion(options, input: input, items: items, remaining: remaining)
                 }
             }
+            // 검색에서 일반 음식 후보가 하나도 없고 같은 이름 가공식품이 있으면, 모델 검색어로 비슷한 음식을 찾기 전에
+            // 제품 확인으로 간다(2026-11-23, #39). 실기기에서 "신라면"이 검색어 "라면"을 거쳐 일반 "라면"으로 기록되던 문제.
+            // 일반 음식 후보가 있으면(예: 만두 → 만두 군만두) 지금처럼 그 후보를 먼저 본다.
+            // 브랜드 없는 입력의 productMatches는 이름이 같은 제품만 남는다(#37 G1).
+            if !prefersProducts, input.brand.isEmpty, exact.isEmpty, compatible.isEmpty, !productMatches.isEmpty {
+                return productQuestion(productMatches, input: input, items: items, remaining: remaining)
+            }
             var selected: FoodCatalogItem?
             var missingInformation = MealClarificationReason.none
             for attempt in 0..<2 {
