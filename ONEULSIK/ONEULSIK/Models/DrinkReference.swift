@@ -35,8 +35,9 @@ nonisolated struct DrinkReference: Decodable, Sendable {
         return productNames.contains { FoodReferenceCatalog.normalized($0) == key }
     }
 
+    /// 대표 DB 항목인지. mL 기준 자료뿐 아니라 g 기준 자료(농진청 술 항목 등)도 받고 1mL=1g으로 본다(2026-11-23, #37).
     func matches(_ food: FoodCatalogItem) -> Bool {
-        food.id == referenceID && food.name == referenceName && food.amountUnit == "mL" && food.baseAmount > 0
+        food.id == referenceID && food.name == referenceName && ["mL", "g"].contains(food.amountUnit) && food.baseAmount > 0
     }
 }
 

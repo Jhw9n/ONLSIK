@@ -237,6 +237,17 @@ nonisolated struct FoodPortion: Hashable, Sendable {
     /// (VolumeAsWeight.json, 술 표 항목 제외)에도 g 대표 분량을 같은 숫자의 mL로 붙인다(1mL=1g, 2026-11-17 결정 B).
     /// 같은 요리(정확히 같은 이름 또는 어순만 다른 이름, sameDishNames)의 g 항목이 있으면 AI 식사 입력은 그 g 항목을 먼저 쓴다
     /// (AIMealEntryService.gramFood(sameNameAs:)).
+    /// 이름으로만 찾는 대표 분량(DB 자료 조건 없음). 총중량을 쓰지 않는 대용량 포장 가공식품에 쓴다(#37).
+    /// 이름 변형(nameVariants)과 그 이름의 참고표 이름·별칭으로 찾는다.
+    static func tablePortion(forName name: String) -> FoodPortion? {
+        let names = nameVariants(name) + (FoodReferenceCatalog.entry(for: name)?.names ?? [])
+        for candidate in names {
+            guard let row = index[lookupKey(candidate)], isValidSource(row.source) else { continue }
+            return FoodPortion(unit: row.unit, grams: row.grams, source: row.source, equivalentUnits: row.equivalentUnits)
+        }
+        return nil
+    }
+
     static func representative(for food: FoodCatalogItem, allowsVolumeAsWeight: Bool = false) -> FoodPortion? {
         guard food.brand.isEmpty, food.category != "가공식품" else { return nil }
         let isVolume = food.servingMilliliters > 0 && food.servingGrams == 0
