@@ -105,7 +105,7 @@
 1. 조리 음식 참고값(`PreparedFoodReference`, `preparedItem`)
 2. 술 용기 표(`DrinkReferences.json`, `drinkItem`)
 3. 포장제품 표의 제품 총중량(`PackagedFoodReferences.json`)
-4. 가공식품 DB의 제품 총중량(`package_amount`, 개·봉·팩·병·캔, `packageItem`)
+4. 가공식품 DB의 제품 총중량(`package_amount`, 개·봉·팩·병·캔, `packageItem`). 1개 총중량이 1,500g(mL)을 넘거나 1개 열량이 1,500kcal를 넘으면 업소용·대용량 포장으로 보고 총중량을 쓰지 않습니다. 대신 일반 음식과 같은 분량 흐름(8번 대표 분량표에서 입력 이름으로 찾은 분량 → 10번 AI 분량 추정 → 11번 "얼마나 드셨나요?" 선택지 질문)으로 가고, 영양값은 고른 제품의 100g(mL)당 값을 씁니다. 무게(g·mL)는 묻지 않습니다(`AIMealEntryService.usesPackageAmount`, `isOversizedPackage`, 2026-11-23, #37). 제품 확인 질문의 선택지 설명도 같은 기준이라, 넘는 제품은 총중량 대신 100g(mL) 기준 값을 보여줍니다.
 5. 사용자가 적은 g/mL(DB 기준 단위와 같을 때만)
 6. 소량·종지 반찬(`FoodPortion.smallSideGrams`)
 7. 사용자가 질문에 답한 분량(`portionOverride`)

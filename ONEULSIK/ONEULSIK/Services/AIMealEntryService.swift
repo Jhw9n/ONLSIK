@@ -416,7 +416,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
         if isReference {
             return "1개 \(number(food.baseAmount, digits: 1))g · \(number(food.nutrition.calories, digits: 0))kcal"
         }
-        if food.packageAmount > 0 {
+        if Self.usesPackageAmount(food) {
             let packageUnit = Self.packageUnits.contains(unit) ? unit : "개"
             let calories = food.nutrition.calories * food.packageAmount / food.baseAmount
             return "1\(packageUnit) \(number(food.packageAmount, digits: 1))\(food.amountUnit) · 약 \(number(calories, digits: 0))kcal"
@@ -446,7 +446,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
     /// 포장 단위 중량을 모르는 가공식품. 검증된 제공량이 DB에 없으므로 추정하지 않고 사용자에게 묻는다.
     private func requiresUnitAmount(_ selection: MealFoodSelection) -> Bool {
         selection.food.category == "가공식품" && !["g", "mL"].contains(selection.input.unit)
-            && selection.portionOverride == nil
+            && selection.portionOverride == nil && !isOversizedPackage(selection.food)
     }
 
     private func unitAmountQuestion(_ selection: MealFoodSelection, items: [MealEntryItem], remaining: [MealFoodInput], invalid: Bool = false) -> MealEntryAnalysis {
@@ -1069,11 +1069,12 @@ final class AIMealEntryService: MealEntryAnalyzing {
             guard item.isValid else { throw MealEntryError.invalidResult }
             return item
         }
-        if food.category == "가공식품", food.packageAmount > 0, Self.packageUnits.contains(input.unit),
+        if food.category == "가공식품", Self.usesPackageAmount(food), Self.packageUnits.contains(input.unit),
            selection.portionOverride == nil {
             return try packageItem(selection)
         }
-        guard food.category != "가공식품" || ["g", "mL"].contains(input.unit) || selection.portionOverride != nil else {
+        guard food.category != "가공식품" || isOversizedPackage(food) || ["g", "mL"].contains(input.unit)
+                || selection.portionOverride != nil else {
             throw MealEntryError.portionUnknown(input.name)
         }
         let basis: Double
@@ -1113,6 +1114,14 @@ final class AIMealEntryService: MealEntryAnalyzing {
             if input.unit != portion.unit { referencePortionUnit = portion.unit }
             if portion.isVolumeAsWeight { volumeNote = VolumeAsWeight.rule?.displayText }
             origin = .representative
+        } else if isOversizedPackage(food), let portion = oversizedPackagePortion(input, food: food),
+                  portion.accepts(input.unit) || input.unit == "인분" {
+            // 총중량을 쓰지 않는 대용량 포장: 같은 이름 음식의 대표 분량에 제품의 100g당 영양값을 쓴다.
+            basis = portion.grams
+            count = input.quantity
+            unit = input.unit
+            if input.unit != portion.unit { referencePortionUnit = portion.unit }
+            origin = .representative
         } else if input.brand.isEmpty, input.details.isEmpty,
                   let reference = referenceEntry(for: input.name),
                   let amount = reference.estimatedAmount(for: input.unit, food: food) {
@@ -1121,7 +1130,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
             unit = input.unit
             origin = .estimated
         } else {
-            guard food.category != "가공식품" else { throw MealEntryError.portionUnknown(input.name) }
+            guard food.category != "가공식품" || isOversizedPackage(food) else { throw MealEntryError.portionUnknown(input.name) }
             let estimate = try await interpreter.portion(for: input, food: food)
             try Task.checkCancellation()
             guard estimate.isPlausible(for: input.unit, foodName: input.name),
@@ -1162,9 +1171,14 @@ final class AIMealEntryService: MealEntryAnalyzing {
               !["g", "mL"].contains(input.unit) else { return input }
         if PreparedFoodReference.entries.contains(where: { $0.food.id == food.id }) { return input }
         if DrinkReferenceCatalog.entry(forFoodID: food.id) != nil { return input }
-        if isPackagedFood(food) {
+        if isPackagedFood(food), !isOversizedPackage(food) {
             input = input.withUnit("개")
             return input
+        }
+        if isOversizedPackage(food) {
+            // 대용량 포장은 일반 음식처럼: 대표 분량이 있으면 그 단위, 없으면 수량 질문(무게는 묻지 않음)
+            if let portion = oversizedPackagePortion(input, food: food) { return input.withUnit(portion.unit) }
+            throw MealEntryError.portionUnknown(input.name)
         }
         if let portion = FoodPortion.representative(for: food, allowsVolumeAsWeight: true) {
             return input.withUnit(portion.unit)
@@ -1190,7 +1204,8 @@ final class AIMealEntryService: MealEntryAnalyzing {
     private func selectionWithAssumedPackageUnit(_ selection: MealFoodSelection) -> MealFoodSelection {
         let input = selection.input
         guard input.omittedUnit || input.omittedQuantity, selection.portionOverride == nil,
-              !["g", "mL", "개"].contains(input.unit), isPackagedFood(selection.food) else { return selection }
+              !["g", "mL", "개"].contains(input.unit), isPackagedFood(selection.food),
+              !isOversizedPackage(selection.food) else { return selection }
         return MealFoodSelection(input: input.withUnit("개"), food: selection.food, isSimilar: selection.isSimilar,
             portionOverride: selection.portionOverride, portionUnit: selection.portionUnit,
             isProductConfirmed: selection.isProductConfirmed)
@@ -1198,6 +1213,32 @@ final class AIMealEntryService: MealEntryAnalyzing {
 
     /// 제품 총중량으로 계산하는 포장 단위. 인분은 총중량으로 보지 않는다.
     static let packageUnits: Set<String> = ["개", "봉", "팩", "병", "캔"]
+
+    /// 1개 총중량을 1회 먹은 양으로 쓰는 상한(2026-11-23, #37). 업소용·대용량 포장(예: 케이크 6,000g,
+    /// 분말 2,000g)의 총중량이 1인분으로 들어가 비현실적인 열량이 기록되지 않게, 이보다 크면 총중량을 쓰지 않고
+    /// 일반 음식과 같은 분량 흐름(대표 분량 → AI 분량 추정 → "얼마나 드셨나요?" 선택지)으로 보낸다.
+    /// 방문자에게 무게(g·mL)는 묻지 않는다. 영양값은 고른 제품의 100g(mL)당 값을 쓴다.
+    static let packageAmountLimit = 1500.0   // g 또는 mL
+    static let packageCalorieLimit = 1500.0  // kcal
+
+    /// 제품 총중량을 1개 분량으로 쓸 수 있는지(총중량이 있고 상한 이하)
+    static func usesPackageAmount(_ food: FoodCatalogItem) -> Bool {
+        guard food.packageAmount > 0, food.baseAmount > 0 else { return false }
+        let calories = food.nutrition.calories * food.packageAmount / food.baseAmount
+        return food.packageAmount <= packageAmountLimit && calories <= packageCalorieLimit
+    }
+
+    /// 총중량이 있지만 상한을 넘어 1개로 쓰지 않는 가공식품(포장제품 표 항목은 제외)
+    private func isOversizedPackage(_ food: FoodCatalogItem) -> Bool {
+        food.category == "가공식품" && food.packageAmount > 0 && !Self.usesPackageAmount(food)
+            && PackagedFoodCatalog.entry(id: food.id) == nil
+    }
+
+    /// 대용량 포장에 쓸 대표 분량: 입력 이름(같은 음식의 표기)으로 대표 분량표를 찾는다. g 기준 제품에만 쓴다.
+    private func oversizedPackagePortion(_ input: MealFoodInput, food: FoodCatalogItem) -> FoodPortion? {
+        guard food.amountUnit == "g" else { return nil }
+        return FoodPortion.tablePortion(forName: input.name)
+    }
 
     /// 원본 `식품중량`(제품 1개 총중량) × 먹은 개수
     private func packageItem(_ selection: MealFoodSelection) throws -> MealEntryItem {
