@@ -129,7 +129,7 @@
       "expect": { "kind": "general", "nameContains": ["김치"], "nameExcludes": ["찌개", "볶음밥"], "amount": { "units": ["g"], "min": 30, "max": 100 }, "kcal": { "min": 5, "max": 80 } }
     },
     {
-      "id": "M14", "input": "아아 한잔",
+      "id": "M14", "input": "아아 한잔", "note": "2026-11-23(#39)부터 분량은 AI 추정이 아니라 카페 음료 데이터(아메리카노 1잔 355)에서 나온다(사용자 승인, 양·열량 같음)",
       "llm": { "food": "아아", "portion": { "amount": 355 } },
       "expect": { "drink": true, "nameContains": ["아메리카노"], "units": ["잔"], "amount": { "units": ["mL", "g"], "min": 200, "max": 500 }, "kcal": { "min": 0, "max": 40 } }
     },
@@ -439,6 +439,46 @@
       "id": "M75", "input": "와인 한잔, 김치찌게 1인분", "note": "실기기 기록 재현(2026-11-23, #39): 한 줄을 모델이 김치찌개 하나로만 돌려줘 와인이 빠졌다. 쉼표로 나뉜 줄은 모델에 보내기 전에 앱이 나눠 각각 처리한다. 첫 음식 와인: 술 표 1잔 90mL, 농진청 적포도주 100g당 101kcal → 90.9kcal ±5%(86~96). 둘째 음식 김치찌개 1인분은 M70과 같음",
       "llm": { "foods": ["와인", "김치찌개"] },
       "expect": { "maxQuestions": 0, "items": ["와인", "김치찌개"], "units": ["잔"], "amount": { "units": ["mL"], "min": 89, "max": 91 }, "kcal": { "min": 86, "max": 96 } }
+    },
+    {
+      "id": "M76", "input": "치킨 반마리", "note": "#39 데이터: 치킨 → 닭튀김(D312-549000000-0001, 100g당 301kcal). 1마리 가식부 700g 내부 기준, 반마리 350g → 1,053.5kcal ±5%. 1,000kcal를 넘어 양 확인 질문을 거침",
+      "llm": { "food": "치킨" },
+      "expect": { "maxQuestions": 1, "units": ["마리"], "count": 0.5, "confirmsAmount": true, "amount": { "units": ["g"], "min": 349, "max": 351 }, "kcal": { "min": 1000, "max": 1107 } }
+    },
+    {
+      "id": "M77", "input": "치킨 한 마리", "note": "#39 데이터: 1마리 700g → 2,107kcal ±5%. 1,000kcal 초과라 양 확인 질문을 거침",
+      "llm": { "food": "치킨" },
+      "expect": { "maxQuestions": 1, "units": ["마리"], "count": 1, "confirmsAmount": true, "amount": { "units": ["g"], "min": 699, "max": 701 }, "kcal": { "min": 2001, "max": 2213 } }
+    },
+    {
+      "id": "M78", "input": "양념치킨 반마리", "note": "#39 데이터: 양념치킨 → 닭튀김 양념(D312-549160000-0001, 100g당 276kcal). 1마리 가식부 800g 내부 기준, 반마리 400g → 1,104kcal ±5%. 1,000kcal 초과라 양 확인 질문을 거침",
+      "llm": { "food": "양념치킨" },
+      "expect": { "maxQuestions": 1, "units": ["마리"], "count": 0.5, "confirmsAmount": true, "amount": { "units": ["g"], "min": 399, "max": 401 }, "kcal": { "min": 1048, "max": 1160 } }
+    },
+    {
+      "id": "M79", "input": "아메리카노 한 잔", "note": "#39 데이터: 카페 음료 1잔 355mL 내부 기준(DB g 항목이라 355g). 커피 아메리카노 100g당 4kcal → 14.2kcal",
+      "llm": { "food": "아메리카노" },
+      "expect": { "maxQuestions": 0, "units": ["잔"], "amount": { "units": ["g"], "min": 354, "max": 356 }, "kcal": { "min": 13, "max": 15.5 } }
+    },
+    {
+      "id": "M80", "input": "카페라떼 한 잔", "note": "#39 데이터: 1잔 355g, 커피 카페라떼(D320-748110000-0001) 100g당 57kcal → 202.4kcal ±5%",
+      "llm": { "food": "카페라떼" },
+      "expect": { "maxQuestions": 0, "units": ["잔"], "amount": { "units": ["g"], "min": 354, "max": 356 }, "kcal": { "min": 192, "max": 213 } }
+    },
+    {
+      "id": "M81", "input": "카라멜마키아또", "note": "#39 데이터(전시 1차 S1): 수량 없음 → 1잔으로 가정. 1잔 355g, 커피 카라멜마끼아토(D320-748100000-0001) 100g당 81kcal → 287.6kcal ±5%",
+      "llm": { "food": "카라멜마키아또" },
+      "expect": { "maxQuestions": 0, "units": ["잔"], "assumedQuantity": true, "amount": { "units": ["g"], "min": 354, "max": 356 }, "kcal": { "min": 273, "max": 302 } }
+    },
+    {
+      "id": "M82", "input": "삼각김밥 하나", "note": "#39 데이터: 삼각김밥 1개 110g 내부 기준, g 항목 삼각김밥 참치마요네즈(D301-019460000-0001, 100g당 172kcal) → 189.2kcal ±5%",
+      "llm": { "food": "삼각김밥" },
+      "expect": { "maxQuestions": 0, "units": ["개"], "amount": { "units": ["g"], "min": 109, "max": 111 }, "kcal": { "min": 180, "max": 199 } }
+    },
+    {
+      "id": "M83", "input": "흰우유 한 잔", "note": "#39 데이터: 흰우유 → 우유(RDA-M0090000009a, 100g당 67kcal). 1잔 200mL(식품교환표 우유군 1교환단위)를 200g으로 계산 → 134kcal ±5%",
+      "llm": { "food": "흰우유" },
+      "expect": { "maxQuestions": 0, "units": ["잔"], "amount": { "units": ["g"], "min": 199, "max": 201 }, "kcal": { "min": 127, "max": 141 } }
     }
   ]
 }

@@ -27,7 +27,7 @@ struct MealFoodInput: Codable {
             && Self.units.contains(unit) && brand.count <= 60 && details.count <= 200
     }
 
-    static let units: Set<String> = ["인분", "개", "줄", "공기", "그릇", "접시", "컵", "잔", "병", "캔", "조각", "봉", "팩", "숟가락", "큰술", "작은술", "국자", "종지", "소량", "g", "mL"]
+    static let units: Set<String> = ["인분", "개", "줄", "공기", "그릇", "접시", "컵", "잔", "병", "캔", "조각", "봉", "팩", "숟가락", "큰술", "작은술", "국자", "종지", "마리", "소량", "g", "mL"]
 }
 
 struct MealFoodSelection {
@@ -1317,17 +1317,18 @@ final class AIMealEntryService: MealEntryAnalyzing {
     static let packageUnits: Set<String> = ["개", "봉", "팩", "병", "캔"]
 
     /// 1개 총중량을 1회 먹은 양으로 쓰는 상한(2026-11-23, #37). 업소용·대용량 포장(예: 케이크 6,000g,
-    /// 분말 2,000g)의 총중량이 1인분으로 들어가 비현실적인 열량이 기록되지 않게, 이보다 크면 총중량을 쓰지 않고
+    /// 분말 2,000g)의 총중량이 1인분으로 들어가 비현실적인 열량이 기록되지 않게, 이 값 이상이면 총중량을 쓰지 않고
     /// 일반 음식과 같은 분량 흐름(대표 분량 → AI 분량 추정 → "얼마나 드셨나요?" 선택지)으로 보낸다.
+    /// 2026-11-23(#39): "넘으면"에서 "이상이면"으로 바꿔 1,500mL 아이스티처럼 상한과 같은 포장도 총중량을 쓰지 않는다.
     /// 방문자에게 무게(g·mL)는 묻지 않는다. 영양값은 고른 제품의 100g(mL)당 값을 쓴다.
     static let packageAmountLimit = 1500.0   // g 또는 mL
     static let packageCalorieLimit = 1500.0  // kcal
 
-    /// 제품 총중량을 1개 분량으로 쓸 수 있는지(총중량이 있고 상한 이하)
+    /// 제품 총중량을 1개 분량으로 쓸 수 있는지(총중량이 있고 상한 미만)
     static func usesPackageAmount(_ food: FoodCatalogItem) -> Bool {
         guard food.packageAmount > 0, food.baseAmount > 0 else { return false }
         let calories = food.nutrition.calories * food.packageAmount / food.baseAmount
-        return food.packageAmount <= packageAmountLimit && calories <= packageCalorieLimit
+        return food.packageAmount < packageAmountLimit && calories < packageCalorieLimit
     }
 
     /// 총중량이 있지만 상한을 넘어 1개로 쓰지 않는 가공식품(포장제품 표 항목은 제외)
