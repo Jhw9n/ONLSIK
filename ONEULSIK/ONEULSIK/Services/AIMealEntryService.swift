@@ -161,7 +161,17 @@ final class AIMealEntryService: MealEntryAnalyzing {
     }
 
     func analyze(_ text: String) async throws -> MealEntryAnalysis {
-        try await MealPerformance.measure("analyze") { try await analyzeMeal(text) }
+        MealDebugLog.log("원문: \(text)")
+        do {
+            let result = try await MealPerformance.measure("analyze") { try await analyzeMeal(text) }
+            #if DEBUG
+            MealDebugLog.log(MealDebugLog.describe(result))
+            #endif
+            return result
+        } catch {
+            MealDebugLog.log("오류: \(error)")
+            throw error
+        }
     }
 
     private func analyzeMeal(_ text: String) async throws -> MealEntryAnalysis {
@@ -244,7 +254,17 @@ final class AIMealEntryService: MealEntryAnalyzing {
     }
 
     func resolve(_ choice: MealEntryChoice) async throws -> MealEntryAnalysis {
-        try await MealPerformance.measure("clarify") { try await resolveChoice(choice) }
+        MealDebugLog.log("선택: \(choice.title)\(choice.continuationInput.map { " 입력 \($0.details)" } ?? "")")
+        do {
+            let result = try await MealPerformance.measure("clarify") { try await resolveChoice(choice) }
+            #if DEBUG
+            MealDebugLog.log(MealDebugLog.describe(result))
+            #endif
+            return result
+        } catch {
+            MealDebugLog.log("오류: \(error)")
+            throw error
+        }
     }
 
     private func resolveChoice(_ choice: MealEntryChoice) async throws -> MealEntryAnalysis {

@@ -89,7 +89,9 @@ struct AppleMealFoodInterpreter: MealFoodInterpreting {
                 )
             }()
             try Task.checkCancellation()
-            return response.content.terms.filter { !$0.isEmpty && $0.count <= 60 }
+            let terms = response.content.terms.filter { !$0.isEmpty && $0.count <= 60 }
+            MealDebugLog.log("모델 검색어(\(input.name)): \(terms.joined(separator: ", "))")
+            return terms
         } catch is CancellationError {
             throw CancellationError()
         } catch {
@@ -133,6 +135,7 @@ struct AppleMealFoodInterpreter: MealFoodInterpreting {
             guard let clarification = MealClarificationReason(rawValue: response.content.clarification) else {
                 throw MealEntryError.invalidResult
             }
+            MealDebugLog.log("모델 후보 선택(\(input.name)): \(response.content.candidateIndex)번, 부족한 정보 \(clarification.rawValue), 후보 \(candidates.prefix(8).map(\.recordedName).joined(separator: " / "))")
             return MealFoodAssessment(candidateIndex: response.content.candidateIndex, clarification: clarification)
         } catch is CancellationError {
             throw CancellationError()
@@ -170,6 +173,7 @@ struct AppleMealFoodInterpreter: MealFoodInterpreting {
             }()
             try Task.checkCancellation()
             let result = response.content
+            MealDebugLog.log("모델 영양 추정(\(input.name)): 가능 \(result.canEstimate), 기준 음식 \(result.referenceFood), 100\(result.amountUnit)당 \(result.calories)kcal 탄 \(result.carbohydrateGrams) 단 \(result.proteinGrams) 지 \(result.fatGrams), 재료 \(result.ingredients)")
             guard result.canEstimate, !result.referenceFood.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
             let reference = result.referenceFood.filter { $0.isLetter || $0.isNumber }.lowercased()
             let description = (input.name + " " + input.details).filter { $0.isLetter || $0.isNumber }.lowercased()
@@ -229,13 +233,15 @@ struct AppleMealFoodInterpreter: MealFoodInterpreting {
                 )
             }()
             try Task.checkCancellation()
-            return response.content.foods.map {
+            let foods = response.content.foods.map {
                 MealFoodInput(
                     name: $0.name.trimmingCharacters(in: .whitespacesAndNewlines),
                     sourceText: text, quantity: 1, unit: "인분",
                     brand: $0.brand.trimmingCharacters(in: .whitespacesAndNewlines)
                 )
             }
+            MealDebugLog.log("모델 음식 추출: \(foods.isEmpty ? "없음" : foods.map { "\($0.name)\($0.brand.isEmpty ? "" : "(브랜드 \($0.brand))")" }.joined(separator: ", ")) (수량·단위는 앱이 원문에서 다시 읽음)")
+            return foods
         } catch is CancellationError {
             throw CancellationError()
         } catch {
@@ -281,6 +287,7 @@ struct AppleMealFoodInterpreter: MealFoodInterpreting {
                     )
                 }()
                 try Task.checkCancellation()
+                MealDebugLog.log("모델 분량 추정(\(input.name) 1\(input.unit), 자료 \(food.recordedName)): 가능 \(response.content.canEstimate), \(response.content.amountPerUnit)\(food.amountUnit)")
                 guard response.content.canEstimate else { throw MealEntryError.portionUnknown(input.name) }
                 let estimate = MealPortionEstimate(amountPerUnit: response.content.amountPerUnit, amountUnit: food.amountUnit)
                 if estimate.isPlausible(for: input.unit, foodName: input.name) { return estimate }

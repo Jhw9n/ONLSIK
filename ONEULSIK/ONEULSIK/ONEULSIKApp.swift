@@ -36,6 +36,8 @@ struct ONEULSIKApp: App {
             fatalError("SwiftData ModelContainer 생성 실패: \(error)")
         }
 
+        MealDebugLog.logBuildInfo()
+
         if let appKey = AppConfiguration.kakaoNativeAppKey {
             KakaoSDK.initSDK(appKey: appKey)
         }
