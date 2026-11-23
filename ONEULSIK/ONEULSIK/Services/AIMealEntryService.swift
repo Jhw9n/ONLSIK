@@ -297,6 +297,9 @@ final class AIMealEntryService: MealEntryAnalyzing {
         if let corrected = choice.correctedText {
             return try await analyzeMeal(corrected)
         }
+        if let input = choice.estimateInput {
+            return try await estimatedChoice(input, items: choice.items, remaining: choice.remainingFoods)
+        }
         if let original = choice.portionInput,
            let answer = choice.continuationInput?.details {
             let defaultUnit = householdUnit(for: original, food: choice.selection?.food)
@@ -851,8 +854,40 @@ final class AIMealEntryService: MealEntryAnalyzing {
                 MealEntryChoice(id: food.id, title: food.recordedName, items: items,
                     selection: MealFoodSelection(input: input, food: food, isSimilar: true), remainingFoods: remaining,
                     subtitle: "유사 음식 기준 · 적어주신 양 유지")
-            }
+            } + [MealEntryChoice(id: UUID().uuidString, title: Self.estimateChoiceTitle, items: items,
+                    remainingFoods: remaining, subtitle: Self.estimateChoiceSubtitle, estimateInput: input)]
         ))
+    }
+
+    /// 비슷한 음식 질문의 마지막 선택지(2026-11-23, #39). 후보가 먹은 음식과 다를 때 DB 자료 대신 모델 영양 추정으로 기록한다.
+    static let estimateChoiceTitle = "목록에 없어요"
+    static let estimateChoiceSubtitle = "AI가 영양값을 추정해요"
+
+    /// "목록에 없어요"를 고른 음식을 모델 영양 추정으로 기록한다. 추정할 수 없거나 모델을 쓸 수 없으면
+    /// 기존 흐름(재료·조리법을 적어 달라는 질문)으로, 분량을 모르면 수량 질문으로 간다.
+    private func estimatedChoice(_ input: MealFoodInput, items: [MealEntryItem], remaining: [MealFoodInput]) async throws -> MealEntryAnalysis {
+        let item: MealEntryItem
+        do {
+            guard let estimate = try await interpreter.estimateNutrition(for: input) else {
+                return try clarification(for: input, question: "어떤 재료나 소스가 들어갔나요?", items: items, remaining: remaining)
+            }
+            try Task.checkCancellation()
+            guard try await hasGroundedReference(estimate, input: input) else {
+                return try clarification(for: input, question: "어떤 재료나 소스가 들어갔나요?", items: items, remaining: remaining)
+            }
+            item = try estimatedItem(input, estimate: estimate)
+        } catch let error as MealEntryError {
+            switch error {
+            case .portionUnknown:
+                guard !input.hasConfirmedPortion else { throw error }
+                return amountQuestion(input, items: items, remaining: remaining)
+            case .unavailable, .generationFailed:
+                return try clarification(for: input, question: "어떤 재료나 소스가 들어갔나요?", items: items, remaining: remaining)
+            default:
+                throw error
+            }
+        }
+        return try await resolve(remaining, items: items + [item])
     }
 
     /// 용기 단위 표(DrinkReferences.json)로 술·음료를 질문 없이 기록한다. 표로 계산할 수 없으면 nil을 돌려 일반 흐름을 따른다.

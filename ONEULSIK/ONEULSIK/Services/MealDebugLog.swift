@@ -3,14 +3,15 @@ import os
 
 /// 실기기에서만 생기는 AI 식사 입력 문제를 진단하려고 DEBUG 빌드에서만 콘솔에 남기는 기록(2026-11-23, #37).
 /// 모든 줄은 "[ONEULSIK-AI]"로 시작한다. Release 빌드에서는 아무것도 하지 않는다(#if DEBUG).
+/// os.Logger(debug 수준)로 남겨 Xcode 콘솔에 한 번만 나온다.
 /// Xcode 콘솔과 macOS 콘솔 앱(기기 선택 후 "ONEULSIK-AI" 검색)에서 볼 수 있다.
 nonisolated enum MealDebugLog {
     #if DEBUG
     private static let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "ONEULSIK", category: "ONEULSIK-AI")
 
+    /// os.Logger 하나로만 남긴다. print와 함께 쓰면 Xcode 콘솔에 같은 줄이 두 번 나온다(#39).
     static func log(_ message: @autoclosure () -> String) {
         let line = "[ONEULSIK-AI] " + message()
-        print(line)
         logger.debug("\(line, privacy: .public)")
     }
 

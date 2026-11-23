@@ -61,11 +61,12 @@ struct DisplayTextTests {
     func decodedDisplayText() {
         let texts = FoodReferenceCatalog.entries.compactMap(\.displayText) + FoodModifierCatalog.entries.map(\.displayText)
             + FoodModifierCatalog.entries.compactMap(\.rawDisplayText) + [VolumeAsWeight.rule?.displayText].compactMap { $0 }
+            + [AIMealEntryService.estimateChoiceTitle, AIMealEntryService.estimateChoiceSubtitle]
         let failures = texts.flatMap { text in
             Self.forbiddenParts(in: text).map { Failure(type: .displayText, message: "‘\(text)’에 ‘\($0)’") }
         }
         let missing = texts.isEmpty ? [Failure(type: .displayText, message: "읽은 화면 문구가 없음")] : []
-        report(suite: "화면 문구", id: "T02", input: "FoodReferenceCatalog, FoodModifierCatalog, VolumeAsWeight",
+        report(suite: "화면 문구", id: "T02", input: "FoodReferenceCatalog, FoodModifierCatalog, VolumeAsWeight, 비슷한 음식 질문 추정 선택지",
                expected: "날짜·결정·내부 용어 없음", actual: "문구 \(texts.count)개", failures: failures + missing)
     }
 
