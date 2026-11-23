@@ -129,7 +129,7 @@
       "expect": { "kind": "general", "nameContains": ["김치"], "nameExcludes": ["찌개", "볶음밥"], "amount": { "units": ["g"], "min": 30, "max": 100 }, "kcal": { "min": 5, "max": 80 } }
     },
     {
-      "id": "M14", "input": "아아 한잔",
+      "id": "M14", "input": "아아 한잔", "note": "2026-11-23(#39)부터 분량은 AI 추정이 아니라 카페 음료 데이터(아메리카노 1잔 355)에서 나온다(사용자 승인, 양·열량 같음)",
       "llm": { "food": "아아", "portion": { "amount": 355 } },
       "expect": { "drink": true, "nameContains": ["아메리카노"], "units": ["잔"], "amount": { "units": ["mL", "g"], "min": 200, "max": 500 }, "kcal": { "min": 0, "max": 40 } }
     },
@@ -159,24 +159,24 @@
       "expect": { "amount": { "units": ["g"], "min": 80, "max": 150 }, "kcal": { "min": 80, "max": 200 } }
     },
     {
-      "id": "M20", "input": "신라면 1개", "note": "포장 중량을 모를 때 g 질문 → 사용자가 포장의 120g 입력",
-      "llm": { "food": "신라면", "portion": { "amount": 120 } }, "answers": ["120g"],
-      "expect": { "amount": { "units": ["g"], "min": 100, "max": 140 }, "kcal": { "min": 400, "max": 600 } }
+      "id": "M20", "input": "신라면 1개", "note": "포장 중량을 모를 때 무게를 묻지 않고(#39) 제품 총중량(120g)으로 바로 계산. 예전 답변 입력(120g)은 쓰이지 않아 뺐다",
+      "llm": { "food": "신라면", "portion": { "amount": 120 } },
+      "expect": { "maxQuestions": 2, "amount": { "units": ["g"], "min": 100, "max": 140 }, "kcal": { "min": 400, "max": 600 } }
     },
     {
-      "id": "M21", "input": "햇반 1개", "note": "포장 중량을 모를 때 g 질문 → 210g 입력",
-      "llm": { "food": "햇반", "portion": { "amount": 210 } }, "answers": ["210g"],
-      "expect": { "amount": { "units": ["g"], "min": 180, "max": 230 }, "kcal": { "min": 250, "max": 380 } }
+      "id": "M21", "input": "햇반 1개", "note": "포장 중량을 모를 때 무게를 묻지 않고(#39) 제품 총중량(210g)으로 바로 계산. 예전 답변 입력(210g)은 쓰이지 않아 뺐다",
+      "llm": { "food": "햇반", "portion": { "amount": 210 } },
+      "expect": { "maxQuestions": 2, "amount": { "units": ["g"], "min": 180, "max": 230 }, "kcal": { "min": 250, "max": 380 } }
     },
     {
-      "id": "M22", "input": "바나나우유 1개", "note": "포장 중량을 모를 때 질문 → 240mL 입력(숫자만). 2026-11-17 해결: 원인은 검색 상위 10개가 정규화한 이름(10위 ‘바나나 우유’는 띄어쓰기만 다름)·우선순위·자료일이 같아 마지막 정렬 기준인 식품코드 순으로 분류 코드 1(과자류·빵류 또는 떡류/과자) P101-106000100-3529 ‘바나나우유’(명품디저트, 300g, 1개 1,209kcal)가 첫 선택지였던 것. 같은 이름 후보의 분류 코드 다수결 규칙으로 가공유(분류 128) 후보가 먼저 오고, 첫 선택지는 P119-204020400-0201(동원에프앤비, 1개 300mL, 약 225kcal). 가공유 안의 순서는 여전히 식품코드 순이라 통과가 이 순서에 의존함. 과자 분류 항목의 열량·총중량 값이 원본 오류인지는 확인하지 못함",
-      "llm": { "food": "바나나우유", "portion": { "amount": 240 } }, "answers": ["240"],
-      "expect": { "drink": true, "amount": { "units": ["mL", "g"], "min": 200, "max": 300 }, "kcal": { "min": 150, "max": 260 } }
+      "id": "M22", "input": "바나나우유 1개", "note": "포장 중량을 모를 때 무게를 묻지 않고(#39) 제품 총중량(300mL)으로 바로 계산. 예전 답변 입력(240)은 쓰이지 않아 뺐다. 2026-11-17 해결: 원인은 검색 상위 10개가 정규화한 이름(10위 ‘바나나 우유’는 띄어쓰기만 다름)·우선순위·자료일이 같아 마지막 정렬 기준인 식품코드 순으로 분류 코드 1(과자류·빵류 또는 떡류/과자) P101-106000100-3529 ‘바나나우유’(명품디저트, 300g, 1개 1,209kcal)가 첫 선택지였던 것. 같은 이름 후보의 분류 코드 다수결 규칙으로 가공유(분류 128) 후보가 먼저 오고, 첫 선택지는 P119-204020400-0201(동원에프앤비, 1개 300mL, 약 225kcal). 가공유 안의 순서는 여전히 식품코드 순이라 통과가 이 순서에 의존함. 과자 분류 항목의 열량·총중량 값이 원본 오류인지는 확인하지 못함",
+      "llm": { "food": "바나나우유", "portion": { "amount": 240 } },
+      "expect": { "maxQuestions": 2, "drink": true, "amount": { "units": ["mL", "g"], "min": 200, "max": 300 }, "kcal": { "min": 150, "max": 260 } }
     },
     {
-      "id": "M23", "input": "닭가슴살 1팩", "note": "포장 중량을 모를 때 g 질문 → 100g 입력",
-      "llm": { "food": "닭가슴살", "portion": { "amount": 100 } }, "answers": ["100g"],
-      "expect": { "amount": { "units": ["g"], "min": 80, "max": 150 }, "kcal": { "min": 80, "max": 200 } }
+      "id": "M23", "input": "닭가슴살 1팩", "note": "포장 중량을 모를 때 무게를 묻지 않고(#39) 제품 총중량(100g)으로 바로 계산. 예전 답변 입력(100g)은 쓰이지 않아 뺐다",
+      "llm": { "food": "닭가슴살", "portion": { "amount": 100 } },
+      "expect": { "maxQuestions": 2, "amount": { "units": ["g"], "min": 80, "max": 150 }, "kcal": { "min": 80, "max": 200 } }
     },
     {
       "id": "M24", "input": "삼겹살구이 2인분", "note": "한 줄 1,000kcal 초과 → 막지 않고 양 확인 질문 후 그대로 기록. 2026-11-15 기준 정정: 삼겹살구이 1인분 = 조리 후 130g(생고기 170g 대응)",
@@ -239,9 +239,9 @@
       "expect": { "confirmsAmount": true, "basis": "package", "amount": { "units": ["g"], "min": 950, "max": 1000 }, "kcal": { "min": 1100, "max": 1250 } }
     },
     {
-      "id": "M29", "input": "흑임자젤리 1개", "note": "식품중량이 빈 제품 → 1개 중량(g) 질문 폴백",
-      "llm": { "food": "흑임자젤리" }, "answers": ["50g"],
-      "expect": { "maxQuestions": 2, "amount": { "units": ["g"], "min": 45, "max": 55 }, "kcal": { "min": 200, "max": 250 } }
+      "id": "M29", "input": "흑임자젤리 1개", "note": "식품중량이 빈 제품 → 무게를 묻지 않고(#39) AI가 1개 분량(50g)을 추정 → 수량 선택(1개)",
+      "llm": { "food": "흑임자젤리", "portion": { "amount": 50 } },
+      "expect": { "maxQuestions": 2, "asksUnitEstimate": true, "amount": { "units": ["g"], "min": 45, "max": 55 }, "kcal": { "min": 200, "max": 250 } }
     },
     {
       "id": "M37", "input": "공기밥 하나", "note": "단위 없는 개수(하나). 기존 M11 ‘밥 한공기’와 같은 결과. ‘공기밥’의 ‘공기’를 단위로 읽지 않아야 함. 실기기 실패 원인(모델 응답)을 몰라 모델 없이 앱이 직접 읽는지 확인(llm 비움)",
@@ -344,9 +344,9 @@
       "expect": { "confirmsAmount": true, "assumedQuantity": true, "basis": "package", "amount": { "units": ["g"], "min": 950, "max": 1000 }, "kcal": { "min": 1100, "max": 1250 } }
     },
     {
-      "id": "M57", "input": "흑임자젤리", "note": "수량 없는 가공식품(결정 A)인데 총중량 정보 없음 → M29처럼 1개 중량 질문. answers는 M29와 같음",
-      "llm": { "food": "흑임자젤리" }, "answers": ["50g"],
-      "expect": { "maxQuestions": 2, "asksUnitWeight": true, "amount": { "units": ["g"], "min": 45, "max": 55 }, "kcal": { "min": 200, "max": 250 } }
+      "id": "M57", "input": "흑임자젤리", "note": "수량 없는 가공식품(결정 A)인데 총중량 정보 없음 → M29처럼 AI 1개 분량 추정 후 수량 선택(#39, 무게 질문 없음)",
+      "llm": { "food": "흑임자젤리", "portion": { "amount": 50 } },
+      "expect": { "maxQuestions": 2, "asksUnitEstimate": true, "amount": { "units": ["g"], "min": 45, "max": 55 }, "kcal": { "min": 200, "max": 250 } }
     },
     {
       "id": "M58", "input": "우동 1그릇", "note": "국물·면 mL 항목(2026-11-17 결정 B, VolumeAsWeight.json): DB 우동은 mL 기준만 있음. 대표 분량표 우동 1그릇 700g → 700mL, 국물 안내",
@@ -412,6 +412,73 @@
       "id": "M70", "input": "김치찌게 1인분", "note": "표기 변형 찌게 → 찌개(2026-11-23, #37): 김치찌개 1인분(M12)과 같은 결과. 참고표 김치찌개(D306-266000000-0001, 100g당 61kcal), 대표 분량표 1인분 400g. 열량 기대: 61 × 4 = 244kcal ±5% → 232~256",
       "llm": { "food": "김치찌게" },
       "expect": { "maxQuestions": 0, "kind": "general", "nameContains": ["김치찌개"], "units": ["인분"], "count": 1, "amount": { "units": ["g"], "min": 390, "max": 410 }, "kcal": { "min": 232, "max": 256 } }
+    },
+    {
+      "id": "M71", "input": "신라면", "note": "실기기 기록 재현(2026-11-23, #39): 모델 검색어 '라면, 라면 국물'로 일반 '라면'(D103)이 비슷한 음식으로 골라지던 경로. 이름이 정확히 같은 일반 음식이 없고 같은 이름 가공식품이 있으면 검색어 단계보다 먼저 제품 확인으로 간다. 기대값은 M55와 같음(제품 총중량 120g, 100g당 약 417kcal)",
+      "llm": { "food": "신라면", "searchTerms": ["라면", "라면 국물"] },
+      "expect": { "maxQuestions": 1, "assumedQuantity": true, "basis": "package", "units": ["개"], "count": 1, "amount": { "units": ["g"], "min": 115, "max": 125 }, "kcal": { "min": 480, "max": 520 } }
+    },
+    {
+      "id": "M72", "input": "텐동 1인분", "note": "실기기 기록 재현(2026-11-23, #39, 실기기 입력은 수량 없는 '텐동'): 모델 검색어 '떡볶이, 오징어'로 비슷한 음식 질문 선택지가 떡볶이 하나뿐이던 경로. 질문 끝에 '목록에 없어요'가 있고 고르면 DB 자료 대신 모델 영양 추정으로 간다. 모델 추정 기준 음식이 입력에 없으면 기존처럼 재료 질문(답: 새우튀김, 밥)을 거쳐 '새우튀김' 기준 AI 추정으로 기록된다. 수량 없는 입력은 기존 규칙대로 AI 추정 뒤 수량 질문으로 가므로 기록까지 보려고 1인분을 적음. 분량·열량은 가짜 해석기 추정값이라 기대값에 넣지 않음",
+      "llm": { "food": "텐동", "searchTerms": ["떡볶이", "오징어"], "estimate": { "referenceFood": "새우튀김", "amount": 350, "amountUnit": "g", "calories": 180, "carbohydrate": 25, "protein": 7, "fat": 6, "ingredients": "밥, 새우튀김, 채소튀김, 소스" } },
+      "choose": "목록에 없어요",
+      "answers": ["새우튀김, 밥"],
+      "expect": { "maxQuestions": 3, "kind": "general", "nameContains": ["텐동"], "nameExcludes": ["떡볶이"], "basis": "aiEstimated" }
+    },
+    {
+      "id": "M73", "input": "멸균유 200g", "note": "후보 순서(2026-11-23, #39): 실기기 '흰우유'에서 모델 검색어 '우유, 흰 우유'로 모은 후보 중 이름이 같은 원재료 '우유'가 6번째였고 모델이 1번 '우유 딸기'를 골랐다. 원인은 후보 정렬이 분류 '음식'을 원재료보다 앞에 둔 것. 이름이 입력이나 검색어와 정확히 같은 일반 음식을 맨 앞에 둔다. DB에 없는 이름(멸균유)으로 같은 검색어 경로를 재현. 농진청 우유 100g당 67kcal × 2 = 134kcal ±5% → 127~141",
+      "llm": { "food": "멸균유", "searchTerms": ["우유", "흰 우유"] },
+      "expect": { "maxQuestions": 1, "nameContains": ["우유"], "nameExcludes": ["딸기", "달걀찜", "시리얼", "빙수"], "amount": { "units": ["g"], "min": 199, "max": 201 }, "kcal": { "min": 127, "max": 141 } }
+    },
+    {
+      "id": "M74", "input": "흰우유 200g", "note": "흰우유 → 우유 별칭(FoodReferences.json, 2026-11-23, #39). 실기기처럼 모델 검색어 '우유, 흰 우유'를 주어도 참고표로 바로 농진청 우유(100g당 67kcal)에 연결. 67 × 2 = 134kcal ±5% → 127~141",
+      "llm": { "food": "흰우유", "searchTerms": ["우유", "흰 우유"] },
+      "expect": { "maxQuestions": 0, "nameContains": ["우유"], "nameExcludes": ["딸기", "달걀찜", "시리얼", "빙수"], "amount": { "units": ["g"], "min": 199, "max": 201 }, "kcal": { "min": 127, "max": 141 } }
+    },
+    {
+      "id": "M75", "input": "와인 한잔, 김치찌게 1인분", "note": "실기기 기록 재현(2026-11-23, #39): 한 줄을 모델이 김치찌개 하나로만 돌려줘 와인이 빠졌다. 쉼표로 나뉜 줄은 모델에 보내기 전에 앱이 나눠 각각 처리한다. 첫 음식 와인: 술 표 1잔 90mL, 농진청 적포도주 100g당 101kcal → 90.9kcal ±5%(86~96). 둘째 음식 김치찌개 1인분은 M70과 같음",
+      "llm": { "foods": ["와인", "김치찌개"] },
+      "expect": { "maxQuestions": 0, "items": ["와인", "김치찌개"], "units": ["잔"], "amount": { "units": ["mL"], "min": 89, "max": 91 }, "kcal": { "min": 86, "max": 96 } }
+    },
+    {
+      "id": "M76", "input": "치킨 반마리", "note": "#39 데이터: 치킨 → 닭튀김(D312-549000000-0001, 100g당 301kcal). 1마리 가식부 700g 내부 기준, 반마리 350g → 1,053.5kcal ±5%. 1,000kcal를 넘어 양 확인 질문을 거침",
+      "llm": { "food": "치킨" },
+      "expect": { "maxQuestions": 1, "units": ["마리"], "count": 0.5, "confirmsAmount": true, "amount": { "units": ["g"], "min": 349, "max": 351 }, "kcal": { "min": 1000, "max": 1107 } }
+    },
+    {
+      "id": "M77", "input": "치킨 한 마리", "note": "#39 데이터: 1마리 700g → 2,107kcal ±5%. 1,000kcal 초과라 양 확인 질문을 거침",
+      "llm": { "food": "치킨" },
+      "expect": { "maxQuestions": 1, "units": ["마리"], "count": 1, "confirmsAmount": true, "amount": { "units": ["g"], "min": 699, "max": 701 }, "kcal": { "min": 2001, "max": 2213 } }
+    },
+    {
+      "id": "M78", "input": "양념치킨 반마리", "note": "#39 데이터: 양념치킨 → 닭튀김 양념(D312-549160000-0001, 100g당 276kcal). 1마리 가식부 800g 내부 기준, 반마리 400g → 1,104kcal ±5%. 1,000kcal 초과라 양 확인 질문을 거침",
+      "llm": { "food": "양념치킨" },
+      "expect": { "maxQuestions": 1, "units": ["마리"], "count": 0.5, "confirmsAmount": true, "amount": { "units": ["g"], "min": 399, "max": 401 }, "kcal": { "min": 1048, "max": 1160 } }
+    },
+    {
+      "id": "M79", "input": "아메리카노 한 잔", "note": "#39 데이터: 카페 음료 1잔 355mL 내부 기준(DB g 항목이라 355g). 커피 아메리카노 100g당 4kcal → 14.2kcal",
+      "llm": { "food": "아메리카노" },
+      "expect": { "maxQuestions": 0, "units": ["잔"], "amount": { "units": ["g"], "min": 354, "max": 356 }, "kcal": { "min": 13, "max": 15.5 } }
+    },
+    {
+      "id": "M80", "input": "카페라떼 한 잔", "note": "#39 데이터: 1잔 355g, 커피 카페라떼(D320-748110000-0001) 100g당 57kcal → 202.4kcal ±5%",
+      "llm": { "food": "카페라떼" },
+      "expect": { "maxQuestions": 0, "units": ["잔"], "amount": { "units": ["g"], "min": 354, "max": 356 }, "kcal": { "min": 192, "max": 213 } }
+    },
+    {
+      "id": "M81", "input": "카라멜마키아또", "note": "#39 데이터(전시 1차 S1): 수량 없음 → 1잔으로 가정. 1잔 355g, 커피 카라멜마끼아토(D320-748100000-0001) 100g당 81kcal → 287.6kcal ±5%",
+      "llm": { "food": "카라멜마키아또" },
+      "expect": { "maxQuestions": 0, "units": ["잔"], "assumedQuantity": true, "amount": { "units": ["g"], "min": 354, "max": 356 }, "kcal": { "min": 273, "max": 302 } }
+    },
+    {
+      "id": "M82", "input": "삼각김밥 하나", "note": "#39 데이터: 삼각김밥 1개 110g 내부 기준, g 항목 삼각김밥 참치마요네즈(D301-019460000-0001, 100g당 172kcal) → 189.2kcal ±5%",
+      "llm": { "food": "삼각김밥" },
+      "expect": { "maxQuestions": 0, "units": ["개"], "amount": { "units": ["g"], "min": 109, "max": 111 }, "kcal": { "min": 180, "max": 199 } }
+    },
+    {
+      "id": "M83", "input": "흰우유 한 잔", "note": "#39 데이터: 흰우유 → 우유(RDA-M0090000009a, 100g당 67kcal). 1잔 200mL(식품교환표 우유군 1교환단위)를 200g으로 계산 → 134kcal ±5%",
+      "llm": { "food": "흰우유" },
+      "expect": { "maxQuestions": 0, "units": ["잔"], "amount": { "units": ["g"], "min": 199, "max": 201 }, "kcal": { "min": 127, "max": 141 } }
     }
   ]
 }

@@ -169,12 +169,27 @@ struct MealEntryOutcomeTests {
         }
 
         let expect = testCase.expect
+        // 방문자에게 무게(g·mL)를 묻지 않는다(#39).
+        if let weight = questionLog.first(where: { $0.contains("중량을 알려주세요") }) {
+            failures.append(Failure(type: .question, message: "무게 질문: \(weight)"))
+        }
         if let max = expect.maxQuestions, questionLog.count > max {
             failures.append(Failure(type: .question, message: "질문 \(questionLog.count)회 (허용 \(max)회): \(questionLog.first ?? "")"))
         }
 
         var actual = items.isEmpty ? "기록 없음" : ""
-        if items.count > 1 {
+        if let expected = expect.items {
+            if items.count != expected.count {
+                failures.append(Failure(type: .error, message: "음식 \(items.count)개로 기록됨 (기대 \(expected.count)개)"))
+            }
+            for (item, name) in zip(items, expected) {
+                let databaseName = (try? await FoodCatalogService().food(id: item.food.id))?.name
+                let names = [item.food.name, databaseName].compactMap { $0 }.map(FoodReferenceCatalog.normalized)
+                if !names.contains(where: { $0.contains(FoodReferenceCatalog.normalized(name)) }) {
+                    failures.append(Failure(type: .name, message: "‘\(item.food.name)’에 \(name) 없음"))
+                }
+            }
+        } else if items.count > 1 {
             failures.append(Failure(type: .error, message: "음식 \(items.count)개로 기록됨"))
         }
         if let item = items.first {
@@ -189,6 +204,7 @@ struct MealEntryOutcomeTests {
             actual = "\(shownName) · \(item.amountDescription) · \(amount.short)\(food.amountUnit) · \(kcal.short)kcal · \(isGeneral ? "일반" : "가공")"
                 + (item.portionBasis.label.map { " · \($0)" } ?? "") + (item.volumeNote.map { " · \($0)" } ?? "")
                 + (item.quantityNote.map { " · \($0)" } ?? "")
+                + items.dropFirst().map { " ＋ \($0.food.name) · \($0.amountDescription) · \($0.nutrition.calories.short)kcal" }.joined()
 
             // 2026-11-15 결정: 1,000kcal를 넘는 줄은 막지 않고 "이 양이 맞나요?" 확인을 거쳐야 한다.
             let confirmedAmount = questionLog.contains { $0.hasPrefix(Self.amountConfirmationTitle) }
@@ -204,8 +220,9 @@ struct MealEntryOutcomeTests {
             if let volume = expect.volumeAsWeight, (item.volumeNote != nil) != volume {
                 failures.append(Failure(type: .amount, message: volume ? "국물 mL 안내가 없음" : "국물 mL 안내가 붙음: \(item.volumeNote ?? "")"))
             }
-            if expect.asksUnitWeight == true, !questionLog.contains(where: { $0.contains("의 중량을 알려주세요") }) {
-                failures.append(Failure(type: .question, message: "1개 중량 질문이 없음"))
+            if expect.asksUnitEstimate == true,
+               !questionLog.contains(where: { $0.contains("얼마나 드셨나요") && $0.contains("(약 ") }) {
+                failures.append(Failure(type: .question, message: "AI 1단위 추정 수량 질문이 없음"))
             }
             if let assumed = expect.assumedQuantity, (item.quantityNote != nil) != assumed {
                 failures.append(Failure(type: .amount, message: assumed ? "기본값 안내가 없음" : "기본값 안내가 붙음: \(item.quantityNote ?? "")"))

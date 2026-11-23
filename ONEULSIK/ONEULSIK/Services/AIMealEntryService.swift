@@ -27,7 +27,7 @@ struct MealFoodInput: Codable {
             && Self.units.contains(unit) && brand.count <= 60 && details.count <= 200
     }
 
-    static let units: Set<String> = ["인분", "개", "줄", "공기", "그릇", "접시", "컵", "잔", "병", "캔", "조각", "봉", "팩", "숟가락", "큰술", "작은술", "국자", "종지", "소량", "g", "mL"]
+    static let units: Set<String> = ["인분", "개", "줄", "공기", "그릇", "접시", "컵", "잔", "병", "캔", "조각", "봉", "팩", "숟가락", "큰술", "작은술", "국자", "종지", "마리", "소량", "g", "mL"]
 }
 
 struct MealFoodSelection {
@@ -195,6 +195,30 @@ final class AIMealEntryService: MealEntryAnalyzing {
                 inputPlaceholder: "예: 고등어구이, 밥 한 공기, 미소된장국"
             ))
         }
+        // 쉼표로 나뉜 한 줄은 모델에 보내기 전에 앱이 나눠 각각 처리한다(2026-11-23, #39). 실기기에서
+        // "와인 한잔, 김치찌게 1인분"을 모델이 김치찌개 하나로만 돌려줘 와인이 빠졌다. 이름만 쉼표로 늘어놓은 줄은
+        // 지금처럼 catalogFoodList가 먼저 처리한다. "와·랑·하고"로 이어진 줄은 모델에 맡긴다.
+        let pieces = Self.commaSeparatedPieces(text)
+        if pieces.count >= 2, try await catalogFoodList(in: text) == nil {
+            guard pieces.count <= 8 else { throw MealEntryError.inputTooLong }
+            var inputs: [MealFoodInput] = []
+            for piece in pieces {
+                inputs += try await foodInputs(in: piece)
+            }
+            guard inputs.count <= 8 else { throw MealEntryError.inputTooLong }
+            return try await resolve(inputs, items: [])
+        }
+        return try await resolve(try await foodInputs(in: text), items: [])
+    }
+
+    /// 쉼표로 나눈 조각. 숫자 사이의 쉼표(1,000g)는 나누지 않는다. 빈 조각은 버린다.
+    static func commaSeparatedPieces(_ text: String) -> [String] {
+        let marked = text.replacingOccurrences(of: #"(?<!\d),|,(?!\d)"#, with: "\u{1F}", options: .regularExpression)
+        return marked.split(separator: "\u{1F}").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+    }
+
+    /// 한 줄(또는 쉼표로 나눈 한 조각)에서 음식 입력을 뽑아 원문에 맞춰 검증한다.
+    private func foodInputs(in text: String) async throws -> [MealFoodInput] {
         let generated: [MealFoodInput]
         if let singleFood = MealInputGrounding.singlePreparedReference(in: text) {
             generated = singleFood
@@ -217,7 +241,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
                   input.brand.isEmpty || normalized(input.sourceText).contains(normalized(input.brand))
             else { throw MealEntryError.invalidResult }
         }
-        return try await resolve(inputs, items: [])
+        return inputs
     }
 
     private func catalogFoodList(in text: String) async throws -> [MealFoodInput]? {
@@ -283,19 +307,11 @@ final class AIMealEntryService: MealEntryAnalyzing {
             return try await resolveSelection(MealFoodSelection(input: input, food: selection.food,
                 isProductConfirmed: selection.isProductConfirmed), items: choice.items, remaining: choice.remainingFoods)
         }
-        if choice.requiresUnitAmount, let selection = choice.selection,
-           let answer = choice.continuationInput?.details {
-            let unit = selection.food.amountUnit
-            guard let amount = MealInputGrounding.portionAnswer(answer, defaultUnit: unit), amount.unit == unit else {
-                return unitAmountQuestion(selection, items: choice.items, remaining: choice.remainingFoods, invalid: true)
-            }
-            var weighed = selection
-            weighed.portionOverride = MealPortionEstimate(amountPerUnit: amount.quantity, amountUnit: unit)
-            weighed.portionUnit = selection.input.unit
-            return try await resolveSelection(weighed, items: choice.items, remaining: choice.remainingFoods)
-        }
         if let corrected = choice.correctedText {
             return try await analyzeMeal(corrected)
+        }
+        if let input = choice.estimateInput {
+            return try await estimatedChoice(input, items: choice.items, remaining: choice.remainingFoods)
         }
         if let original = choice.portionInput,
            let answer = choice.continuationInput?.details {
@@ -384,7 +400,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
                 return packageCountQuestion(selection, items: items, remaining: remaining)
             }
             if requiresUnitAmount(selection) {
-                return unitAmountQuestion(selection, items: items, remaining: remaining)
+                return try await estimatedUnitQuestion(selection, items: items, remaining: remaining)
             }
             if selection.input.unit == "국자" {
                 if let question = try await recoveredPortionQuestion(selection, items: items, remaining: remaining) {
@@ -463,25 +479,47 @@ final class AIMealEntryService: MealEntryAnalyzing {
         ))
     }
 
-    /// 포장 단위 중량을 모르는 가공식품. 검증된 제공량이 DB에 없으므로 추정하지 않고 사용자에게 묻는다.
+    /// 포장 단위 중량을 모르는 가공식품. 검증된 제공량이 DB에 없다.
     private func requiresUnitAmount(_ selection: MealFoodSelection) -> Bool {
         selection.food.category == "가공식품" && !["g", "mL"].contains(selection.input.unit)
             && selection.portionOverride == nil && !isOversizedPackage(selection.food)
     }
 
-    private func unitAmountQuestion(_ selection: MealFoodSelection, items: [MealEntryItem], remaining: [MealFoodInput], invalid: Bool = false) -> MealEntryAnalysis {
+    /// 방문자에게 무게(g·mL)를 묻지 않는다(#39). 모델이 1단위 분량을 추정하고, 그 기준으로 먹은 수량을 고르게 한다.
+    /// 추정이 안 되거나 그럴듯하지 않으면 분량을 알 수 없다고 알린다.
+    private func estimatedUnitQuestion(_ selection: MealFoodSelection, items: [MealEntryItem], remaining: [MealFoodInput]) async throws -> MealEntryAnalysis {
         let unit = selection.input.unit == "소량" ? "개" : selection.input.unit
-        let amountUnit = selection.food.amountUnit
-        var continuation = selection.input
-        continuation.details = ""
+        let single = MealFoodInput(name: selection.input.name, sourceText: selection.input.sourceText,
+            quantity: 1, unit: unit, brand: selection.input.brand, details: selection.input.details)
+        let estimate: MealPortionEstimate
+        do {
+            estimate = try await interpreter.portion(for: single, food: selection.food)
+        } catch MealEntryError.portionUnknown {
+            MealDebugLog.log("1\(unit) 분량 추정 실패: \(selection.food.id) \(selection.food.name)")
+            throw MealEntryError.portionUnknown(selection.input.name)
+        }
+        try Task.checkCancellation()
+        guard estimate.amountUnit == selection.food.amountUnit,
+              estimate.isPlausible(for: unit, foodName: selection.input.name) else {
+            MealDebugLog.log("1\(unit) 분량 추정값 사용 안 함: \(estimate.amountPerUnit)\(estimate.amountUnit), 자료 \(selection.food.amountUnit)")
+            throw MealEntryError.portionUnknown(selection.input.name)
+        }
+        let entered = selection.input.quantity
+        let quantities = [entered, entered * 0.5, entered * 1.5]
+        func text(_ value: Double) -> String { value.formatted(.number.precision(.fractionLength(0...1))) }
         return .question(MealEntryQuestion(
-            title: "‘\(selection.input.name)’ 1\(unit)의 중량을 알려주세요",
-            explanation: invalid ? "숫자와 \(amountUnit) 단위로 적어주세요. 숫자만 적으면 \(amountUnit) 기준이에요."
-                : "이 제품은 1\(unit) 중량 정보가 없어요. 포장에 적힌 내용량을 알려주시면 먹은 수량(\(selection.input.quantity.formatted(.number.precision(.fractionLength(0...1))))\(unit))만큼 계산해요.",
-            choices: [],
-            clarification: MealEntryChoice(id: UUID().uuidString, title: "확인", items: items, selection: selection,
-                remainingFoods: remaining, continuationInput: continuation, requiresUnitAmount: true),
-            inputPlaceholder: "예: 120\(amountUnit)"
+            title: "‘\(selection.input.name)’을 얼마나 드셨나요?",
+            explanation: "제품 1\(unit) 중량 정보가 없어 AI가 1\(unit)을 약 \(text(estimate.amountPerUnit))\(estimate.amountUnit)으로 추정했어요. 먹은 수량을 골라주세요.",
+            choices: quantities.map { quantity in
+                let input = MealFoodInput(name: selection.input.name, sourceText: selection.input.sourceText,
+                    quantity: quantity, unit: unit, brand: selection.input.brand, details: selection.input.details,
+                    isSideDish: selection.input.isSideDish, hasConfirmedPortion: true)
+                let chosen = MealFoodSelection(input: input, food: selection.food, isSimilar: selection.isSimilar,
+                    portionOverride: estimate, portionUnit: unit, isProductConfirmed: selection.isProductConfirmed)
+                return MealEntryChoice(id: UUID().uuidString, title: "\(text(quantity))\(unit)",
+                    items: items, selection: chosen, remainingFoods: remaining,
+                    subtitle: "약 \(text(estimate.amountPerUnit * quantity))\(estimate.amountUnit)")
+            }
         ))
     }
 
@@ -734,6 +772,13 @@ final class AIMealEntryService: MealEntryAnalyzing {
                     return similarFoodQuestion(options, input: input, items: items, remaining: remaining)
                 }
             }
+            // 검색에서 일반 음식 후보가 하나도 없고 같은 이름 가공식품이 있으면, 모델 검색어로 비슷한 음식을 찾기 전에
+            // 제품 확인으로 간다(2026-11-23, #39). 실기기에서 "신라면"이 검색어 "라면"을 거쳐 일반 "라면"으로 기록되던 문제.
+            // 일반 음식 후보가 있으면(예: 만두 → 만두 군만두) 지금처럼 그 후보를 먼저 본다.
+            // 브랜드 없는 입력의 productMatches는 이름이 같은 제품만 남는다(#37 G1).
+            if !prefersProducts, input.brand.isEmpty, exact.isEmpty, compatible.isEmpty, !productMatches.isEmpty {
+                return productQuestion(productMatches, input: input, items: items, remaining: remaining)
+            }
             var selected: FoodCatalogItem?
             var missingInformation = MealClarificationReason.none
             for attempt in 0..<2 {
@@ -757,7 +802,12 @@ final class AIMealEntryService: MealEntryAnalyzing {
                     }
                     let additions = expanded.filter { food in !compatible.contains { $0.id == food.id } }
                     guard !additions.isEmpty else { break }
-                    candidates = Array(additions.prefix(6)) + Array(compatible.prefix(2))
+                    // 이름이 입력 음식이나 모델 검색어와 정확히 같은 일반 음식을 맨 앞에(2026-11-23, #39). 후보 정렬은
+                    // 분류 "음식"을 원재료보다 앞에 두어, 검색어 "우유"의 원재료 "우유"가 "우유 딸기"·"달걀찜 우유" 뒤로 밀렸다.
+                    let exactNames = Set([normalized(input.name)] + terms.prefix(2).map { normalized($0) })
+                    let prioritized = additions.filter { exactNames.contains(normalized($0.name)) }
+                        + additions.filter { !exactNames.contains(normalized($0.name)) }
+                    candidates = Array(prioritized.prefix(6)) + Array(compatible.prefix(2))
                     compatible = expanded
                 }
                 guard !candidates.isEmpty else { continue }
@@ -844,8 +894,40 @@ final class AIMealEntryService: MealEntryAnalyzing {
                 MealEntryChoice(id: food.id, title: food.recordedName, items: items,
                     selection: MealFoodSelection(input: input, food: food, isSimilar: true), remainingFoods: remaining,
                     subtitle: "유사 음식 기준 · 적어주신 양 유지")
-            }
+            } + [MealEntryChoice(id: UUID().uuidString, title: Self.estimateChoiceTitle, items: items,
+                    remainingFoods: remaining, subtitle: Self.estimateChoiceSubtitle, estimateInput: input)]
         ))
+    }
+
+    /// 비슷한 음식 질문의 마지막 선택지(2026-11-23, #39). 후보가 먹은 음식과 다를 때 DB 자료 대신 모델 영양 추정으로 기록한다.
+    static let estimateChoiceTitle = "목록에 없어요"
+    static let estimateChoiceSubtitle = "AI가 영양값을 추정해요"
+
+    /// "목록에 없어요"를 고른 음식을 모델 영양 추정으로 기록한다. 추정할 수 없거나 모델을 쓸 수 없으면
+    /// 기존 흐름(재료·조리법을 적어 달라는 질문)으로, 분량을 모르면 수량 질문으로 간다.
+    private func estimatedChoice(_ input: MealFoodInput, items: [MealEntryItem], remaining: [MealFoodInput]) async throws -> MealEntryAnalysis {
+        let item: MealEntryItem
+        do {
+            guard let estimate = try await interpreter.estimateNutrition(for: input) else {
+                return try clarification(for: input, question: "어떤 재료나 소스가 들어갔나요?", items: items, remaining: remaining)
+            }
+            try Task.checkCancellation()
+            guard try await hasGroundedReference(estimate, input: input) else {
+                return try clarification(for: input, question: "어떤 재료나 소스가 들어갔나요?", items: items, remaining: remaining)
+            }
+            item = try estimatedItem(input, estimate: estimate)
+        } catch let error as MealEntryError {
+            switch error {
+            case .portionUnknown:
+                guard !input.hasConfirmedPortion else { throw error }
+                return amountQuestion(input, items: items, remaining: remaining)
+            case .unavailable, .generationFailed:
+                return try clarification(for: input, question: "어떤 재료나 소스가 들어갔나요?", items: items, remaining: remaining)
+            default:
+                throw error
+            }
+        }
+        return try await resolve(remaining, items: items + [item])
     }
 
     /// 용기 단위 표(DrinkReferences.json)로 술·음료를 질문 없이 기록한다. 표로 계산할 수 없으면 nil을 돌려 일반 흐름을 따른다.
@@ -1235,17 +1317,18 @@ final class AIMealEntryService: MealEntryAnalyzing {
     static let packageUnits: Set<String> = ["개", "봉", "팩", "병", "캔"]
 
     /// 1개 총중량을 1회 먹은 양으로 쓰는 상한(2026-11-23, #37). 업소용·대용량 포장(예: 케이크 6,000g,
-    /// 분말 2,000g)의 총중량이 1인분으로 들어가 비현실적인 열량이 기록되지 않게, 이보다 크면 총중량을 쓰지 않고
+    /// 분말 2,000g)의 총중량이 1인분으로 들어가 비현실적인 열량이 기록되지 않게, 이 값 이상이면 총중량을 쓰지 않고
     /// 일반 음식과 같은 분량 흐름(대표 분량 → AI 분량 추정 → "얼마나 드셨나요?" 선택지)으로 보낸다.
+    /// 2026-11-23(#39): "넘으면"에서 "이상이면"으로 바꿔 1,500mL 아이스티처럼 상한과 같은 포장도 총중량을 쓰지 않는다.
     /// 방문자에게 무게(g·mL)는 묻지 않는다. 영양값은 고른 제품의 100g(mL)당 값을 쓴다.
     static let packageAmountLimit = 1500.0   // g 또는 mL
     static let packageCalorieLimit = 1500.0  // kcal
 
-    /// 제품 총중량을 1개 분량으로 쓸 수 있는지(총중량이 있고 상한 이하)
+    /// 제품 총중량을 1개 분량으로 쓸 수 있는지(총중량이 있고 상한 미만)
     static func usesPackageAmount(_ food: FoodCatalogItem) -> Bool {
         guard food.packageAmount > 0, food.baseAmount > 0 else { return false }
         let calories = food.nutrition.calories * food.packageAmount / food.baseAmount
-        return food.packageAmount <= packageAmountLimit && calories <= packageCalorieLimit
+        return food.packageAmount < packageAmountLimit && calories < packageCalorieLimit
     }
 
     /// 총중량이 있지만 상한을 넘어 1개로 쓰지 않는 가공식품(포장제품 표 항목은 제외)
