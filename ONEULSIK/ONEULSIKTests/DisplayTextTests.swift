@@ -159,6 +159,8 @@ struct InputUnitDisplayTests {
 
 /// MealRecord.nutritionSource로 저장되는 출처 문자열(MealRecordStore가 item.food.source를 그대로 저장)에
 /// 날짜·"결정"·"대표값:" 같은 내부 용어가 없는지 검사한다.
+/// 다른 이름의 DB 자료로 기록된 결과(nutritionBasis가 similarFood)는 `{출처} · {DB 이름} 영양값 기준` 형식이어야 하고
+/// (술은 뒤에 용기 기준이 붙음), 식사 케이스 결과에는 "유사 음식"이 없어야 한다(2026-11-20 결정, #33).
 @MainActor
 @Suite("저장 출처")
 struct StoredSourceTests {
@@ -189,14 +191,29 @@ struct StoredSourceTests {
     @Test("식사 케이스와 참고값 항목의 저장 출처")
     func storedSources() async {
         var sources: [(String, String)] = []
+        var failures: [Failure] = []
+        var similar = 0
         for testCase in RegressionCases.shared.meals {
+            let label = "\(testCase.id) \(testCase.input)"
             for item in await Self.items(for: testCase) {
-                sources.append(("\(testCase.id) \(testCase.input)", item.food.source))
+                sources.append((label, item.food.source))
+                if item.food.source.contains("유사 음식") {
+                    failures.append(Failure(type: .displayText, message: "\(label): ‘\(item.food.source)’에 ‘유사 음식’"))
+                }
+                guard item.nutritionBasis == .similarFood else { continue }
+                similar += 1
+                guard let food = try? await FoodCatalogService().food(id: item.food.id) else {
+                    failures.append(Failure(type: .displayText, message: "\(label): 영양값 자료 \(item.food.id)를 찾지 못함"))
+                    continue
+                }
+                let expected = "\(food.source) · \(food.recordedName) 영양값 기준"
+                if item.food.source != expected, !item.food.source.hasPrefix(expected + " · ") {
+                    failures.append(Failure(type: .displayText, message: "\(label): ‘\(item.food.source)’ (기대 형식 ‘\(expected)’)"))
+                }
             }
         }
         sources += PreparedFoodReference.entries.map { ("참고값 \($0.food.name)", $0.food.source) }
         sources += PackagedFoodCatalog.entries.map { ("포장제품 \($0.name)", $0.food.source) }
-        var failures: [Failure] = []
         for (label, source) in sources {
             if source.trimmingCharacters(in: .whitespaces).isEmpty {
                 failures.append(Failure(type: .displayText, message: "\(label): 출처가 비어 있음"))
@@ -207,7 +224,7 @@ struct StoredSourceTests {
         }
         let drinks = sources.filter { ["M01", "M05", "M06"].contains(String($0.0.prefix(3))) }.map(\.1)
         report(suite: "저장 출처", id: "R01", input: "식사 케이스 \(RegressionCases.shared.meals.count)개 + 참고값·포장제품",
-               expected: "저장 출처에 날짜·결정·대표값:·내부 용어 없음",
-               actual: "출처 \(sources.count)개 검사. 예: \(drinks.first ?? "-")", failures: failures)
+               expected: "저장 출처에 날짜·결정·대표값:·내부 용어와 ‘유사 음식’ 없음, 다른 이름 자료는 ‘출처 · DB 이름 영양값 기준’ 형식",
+               actual: "출처 \(sources.count)개 검사(다른 이름 자료 \(similar)개). 예: \(drinks.first ?? "-")", failures: failures)
     }
 }

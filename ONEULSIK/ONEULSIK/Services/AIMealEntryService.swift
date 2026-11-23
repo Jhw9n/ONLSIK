@@ -1132,7 +1132,9 @@ final class AIMealEntryService: MealEntryAnalyzing {
             nutrition: food.nutrition(for: basis / food.baseAmount),
             servingMilliliters: food.amountUnit == "mL" ? basis : 0,
             brand: selection.isSimilar ? "" : food.brand,
-            source: selection.isSimilar ? "유사 음식: \(food.recordedName) · \(food.source)" : food.source,
+            // 다른 이름의 DB 자료를 쓰면 어느 자료의 영양값인지 남긴다(술 기록과 같은 형식, 2026-11-20 결정).
+            // 같은 음식인지 비슷한 음식인지 판단은 기록하지 않는다. 내부 값 nutritionBasis는 그대로 similarFood다.
+            source: selection.isSimilar ? "\(food.source) · \(food.recordedName) 영양값 기준" : food.source,
             sourceDate: food.sourceDate, category: food.category
         )
         adjusted.referencePortionUnit = referencePortionUnit
