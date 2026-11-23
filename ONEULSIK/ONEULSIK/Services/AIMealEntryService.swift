@@ -195,6 +195,30 @@ final class AIMealEntryService: MealEntryAnalyzing {
                 inputPlaceholder: "예: 고등어구이, 밥 한 공기, 미소된장국"
             ))
         }
+        // 쉼표로 나뉜 한 줄은 모델에 보내기 전에 앱이 나눠 각각 처리한다(2026-11-23, #39). 실기기에서
+        // "와인 한잔, 김치찌게 1인분"을 모델이 김치찌개 하나로만 돌려줘 와인이 빠졌다. 이름만 쉼표로 늘어놓은 줄은
+        // 지금처럼 catalogFoodList가 먼저 처리한다. "와·랑·하고"로 이어진 줄은 모델에 맡긴다.
+        let pieces = Self.commaSeparatedPieces(text)
+        if pieces.count >= 2, try await catalogFoodList(in: text) == nil {
+            guard pieces.count <= 8 else { throw MealEntryError.inputTooLong }
+            var inputs: [MealFoodInput] = []
+            for piece in pieces {
+                inputs += try await foodInputs(in: piece)
+            }
+            guard inputs.count <= 8 else { throw MealEntryError.inputTooLong }
+            return try await resolve(inputs, items: [])
+        }
+        return try await resolve(try await foodInputs(in: text), items: [])
+    }
+
+    /// 쉼표로 나눈 조각. 숫자 사이의 쉼표(1,000g)는 나누지 않는다. 빈 조각은 버린다.
+    static func commaSeparatedPieces(_ text: String) -> [String] {
+        let marked = text.replacingOccurrences(of: #"(?<!\d),|,(?!\d)"#, with: "\u{1F}", options: .regularExpression)
+        return marked.split(separator: "\u{1F}").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+    }
+
+    /// 한 줄(또는 쉼표로 나눈 한 조각)에서 음식 입력을 뽑아 원문에 맞춰 검증한다.
+    private func foodInputs(in text: String) async throws -> [MealFoodInput] {
         let generated: [MealFoodInput]
         if let singleFood = MealInputGrounding.singlePreparedReference(in: text) {
             generated = singleFood
@@ -217,7 +241,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
                   input.brand.isEmpty || normalized(input.sourceText).contains(normalized(input.brand))
             else { throw MealEntryError.invalidResult }
         }
-        return try await resolve(inputs, items: [])
+        return inputs
     }
 
     private func catalogFoodList(in text: String) async throws -> [MealFoodInput]? {
