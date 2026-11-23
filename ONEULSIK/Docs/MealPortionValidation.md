@@ -124,7 +124,7 @@
 
 - 데이터 파일(`FoodReferences.json`, `FoodModifiers.json`, `DrinkReferences.json`)에서 화면에 보이는 문구는 `displayText`, 결정 날짜·출처 메모 같은 내부 근거는 `basisNote`에 둡니다. 앱은 `displayText`만 화면에 씁니다.
 - `DisplayTextTests`가 데이터 파일의 모든 `displayText`와 실제 확인 질문 문구(제목·안내·선택지)에 날짜 형식, "결정", "내부 기준" 같은 내부 용어가 있으면 실패시킵니다.
-- 기록에 저장되는 출처(`MealRecord.nutritionSource`)도 사용자에게 보여도 되는 문구만 씁니다. 술은 `DB 출처 · 대표 항목 영양값 기준 · 1병 360mL 기준`, 모델 추정은 `AI 영양 추정 · 재료`이며, 용기 용량의 내부 근거(`DrinkReferences.json`의 `source`)와 "대표값:" 같은 내부 표현은 저장하지 않습니다. 스키마는 바꾸지 않았고 이미 저장된 기록의 문자열은 그대로입니다. `StoredSourceTests`가 모든 식사 케이스와 참고값·포장제품 항목의 저장 출처를 검사합니다.
+- 기록에 저장되는 출처(`MealRecord.nutritionSource`)도 사용자에게 보여도 되는 문구만 씁니다. 술은 `DB 출처 · 대표 항목 영양값 기준 · 1병 360mL 기준`, 모델 추정은 `AI 영양 추정 · 재료`, 다른 이름의 DB 자료로 기록한 음식은 `DB 출처 · DB 이름 영양값 기준`(2026-11-20부터, 이전에는 `유사 음식: DB 이름 · DB 출처`)이며, 용기 용량의 내부 근거(`DrinkReferences.json`의 `source`)와 "대표값:" 같은 내부 표현은 저장하지 않습니다. 스키마는 바꾸지 않았고 이미 저장된 기록의 문자열은 그대로입니다. `StoredSourceTests`가 모든 식사 케이스와 참고값·포장제품 항목의 저장 출처를 검사합니다.
 
 ### 11월 17일 대표 분량 첫 단어 규칙의 한계
 
