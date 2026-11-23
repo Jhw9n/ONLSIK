@@ -424,6 +424,16 @@
       "choose": "목록에 없어요",
       "answers": ["새우튀김, 밥"],
       "expect": { "maxQuestions": 3, "kind": "general", "nameContains": ["텐동"], "nameExcludes": ["떡볶이"], "basis": "aiEstimated" }
+    },
+    {
+      "id": "M73", "input": "멸균유 200g", "note": "후보 순서(2026-11-23, #39): 실기기 '흰우유'에서 모델 검색어 '우유, 흰 우유'로 모은 후보 중 이름이 같은 원재료 '우유'가 6번째였고 모델이 1번 '우유 딸기'를 골랐다. 원인은 후보 정렬이 분류 '음식'을 원재료보다 앞에 둔 것. 이름이 입력이나 검색어와 정확히 같은 일반 음식을 맨 앞에 둔다. DB에 없는 이름(멸균유)으로 같은 검색어 경로를 재현. 농진청 우유 100g당 67kcal × 2 = 134kcal ±5% → 127~141",
+      "llm": { "food": "멸균유", "searchTerms": ["우유", "흰 우유"] },
+      "expect": { "maxQuestions": 1, "nameContains": ["우유"], "nameExcludes": ["딸기", "달걀찜", "시리얼", "빙수"], "amount": { "units": ["g"], "min": 199, "max": 201 }, "kcal": { "min": 127, "max": 141 } }
+    },
+    {
+      "id": "M74", "input": "흰우유 200g", "note": "흰우유 → 우유 별칭(FoodReferences.json, 2026-11-23, #39). 실기기처럼 모델 검색어 '우유, 흰 우유'를 주어도 참고표로 바로 농진청 우유(100g당 67kcal)에 연결. 67 × 2 = 134kcal ±5% → 127~141",
+      "llm": { "food": "흰우유", "searchTerms": ["우유", "흰 우유"] },
+      "expect": { "maxQuestions": 0, "nameContains": ["우유"], "nameExcludes": ["딸기", "달걀찜", "시리얼", "빙수"], "amount": { "units": ["g"], "min": 199, "max": 201 }, "kcal": { "min": 127, "max": 141 } }
     }
   ]
 }

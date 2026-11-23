@@ -767,7 +767,12 @@ final class AIMealEntryService: MealEntryAnalyzing {
                     }
                     let additions = expanded.filter { food in !compatible.contains { $0.id == food.id } }
                     guard !additions.isEmpty else { break }
-                    candidates = Array(additions.prefix(6)) + Array(compatible.prefix(2))
+                    // 이름이 입력 음식이나 모델 검색어와 정확히 같은 일반 음식을 맨 앞에(2026-11-23, #39). 후보 정렬은
+                    // 분류 "음식"을 원재료보다 앞에 두어, 검색어 "우유"의 원재료 "우유"가 "우유 딸기"·"달걀찜 우유" 뒤로 밀렸다.
+                    let exactNames = Set([normalized(input.name)] + terms.prefix(2).map { normalized($0) })
+                    let prioritized = additions.filter { exactNames.contains(normalized($0.name)) }
+                        + additions.filter { !exactNames.contains(normalized($0.name)) }
+                    candidates = Array(prioritized.prefix(6)) + Array(compatible.prefix(2))
                     compatible = expanded
                 }
                 guard !candidates.isEmpty else { continue }
