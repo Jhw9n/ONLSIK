@@ -169,6 +169,10 @@ struct MealEntryOutcomeTests {
         }
 
         let expect = testCase.expect
+        // 방문자에게 무게(g·mL)를 묻지 않는다(#39).
+        if let weight = questionLog.first(where: { $0.contains("중량을 알려주세요") }) {
+            failures.append(Failure(type: .question, message: "무게 질문: \(weight)"))
+        }
         if let max = expect.maxQuestions, questionLog.count > max {
             failures.append(Failure(type: .question, message: "질문 \(questionLog.count)회 (허용 \(max)회): \(questionLog.first ?? "")"))
         }
@@ -216,8 +220,9 @@ struct MealEntryOutcomeTests {
             if let volume = expect.volumeAsWeight, (item.volumeNote != nil) != volume {
                 failures.append(Failure(type: .amount, message: volume ? "국물 mL 안내가 없음" : "국물 mL 안내가 붙음: \(item.volumeNote ?? "")"))
             }
-            if expect.asksUnitWeight == true, !questionLog.contains(where: { $0.contains("의 중량을 알려주세요") }) {
-                failures.append(Failure(type: .question, message: "1개 중량 질문이 없음"))
+            if expect.asksUnitEstimate == true,
+               !questionLog.contains(where: { $0.contains("얼마나 드셨나요") && $0.contains("(약 ") }) {
+                failures.append(Failure(type: .question, message: "AI 1단위 추정 수량 질문이 없음"))
             }
             if let assumed = expect.assumedQuantity, (item.quantityNote != nil) != assumed {
                 failures.append(Failure(type: .amount, message: assumed ? "기본값 안내가 없음" : "기본값 안내가 붙음: \(item.quantityNote ?? "")"))

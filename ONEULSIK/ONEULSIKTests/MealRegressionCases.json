@@ -159,24 +159,24 @@
       "expect": { "amount": { "units": ["g"], "min": 80, "max": 150 }, "kcal": { "min": 80, "max": 200 } }
     },
     {
-      "id": "M20", "input": "신라면 1개", "note": "포장 중량을 모를 때 g 질문 → 사용자가 포장의 120g 입력",
-      "llm": { "food": "신라면", "portion": { "amount": 120 } }, "answers": ["120g"],
-      "expect": { "amount": { "units": ["g"], "min": 100, "max": 140 }, "kcal": { "min": 400, "max": 600 } }
+      "id": "M20", "input": "신라면 1개", "note": "포장 중량을 모를 때 무게를 묻지 않고(#39) 제품 총중량(120g)으로 바로 계산. 예전 답변 입력(120g)은 쓰이지 않아 뺐다",
+      "llm": { "food": "신라면", "portion": { "amount": 120 } },
+      "expect": { "maxQuestions": 2, "amount": { "units": ["g"], "min": 100, "max": 140 }, "kcal": { "min": 400, "max": 600 } }
     },
     {
-      "id": "M21", "input": "햇반 1개", "note": "포장 중량을 모를 때 g 질문 → 210g 입력",
-      "llm": { "food": "햇반", "portion": { "amount": 210 } }, "answers": ["210g"],
-      "expect": { "amount": { "units": ["g"], "min": 180, "max": 230 }, "kcal": { "min": 250, "max": 380 } }
+      "id": "M21", "input": "햇반 1개", "note": "포장 중량을 모를 때 무게를 묻지 않고(#39) 제품 총중량(210g)으로 바로 계산. 예전 답변 입력(210g)은 쓰이지 않아 뺐다",
+      "llm": { "food": "햇반", "portion": { "amount": 210 } },
+      "expect": { "maxQuestions": 2, "amount": { "units": ["g"], "min": 180, "max": 230 }, "kcal": { "min": 250, "max": 380 } }
     },
     {
-      "id": "M22", "input": "바나나우유 1개", "note": "포장 중량을 모를 때 질문 → 240mL 입력(숫자만). 2026-11-17 해결: 원인은 검색 상위 10개가 정규화한 이름(10위 ‘바나나 우유’는 띄어쓰기만 다름)·우선순위·자료일이 같아 마지막 정렬 기준인 식품코드 순으로 분류 코드 1(과자류·빵류 또는 떡류/과자) P101-106000100-3529 ‘바나나우유’(명품디저트, 300g, 1개 1,209kcal)가 첫 선택지였던 것. 같은 이름 후보의 분류 코드 다수결 규칙으로 가공유(분류 128) 후보가 먼저 오고, 첫 선택지는 P119-204020400-0201(동원에프앤비, 1개 300mL, 약 225kcal). 가공유 안의 순서는 여전히 식품코드 순이라 통과가 이 순서에 의존함. 과자 분류 항목의 열량·총중량 값이 원본 오류인지는 확인하지 못함",
-      "llm": { "food": "바나나우유", "portion": { "amount": 240 } }, "answers": ["240"],
-      "expect": { "drink": true, "amount": { "units": ["mL", "g"], "min": 200, "max": 300 }, "kcal": { "min": 150, "max": 260 } }
+      "id": "M22", "input": "바나나우유 1개", "note": "포장 중량을 모를 때 무게를 묻지 않고(#39) 제품 총중량(300mL)으로 바로 계산. 예전 답변 입력(240)은 쓰이지 않아 뺐다. 2026-11-17 해결: 원인은 검색 상위 10개가 정규화한 이름(10위 ‘바나나 우유’는 띄어쓰기만 다름)·우선순위·자료일이 같아 마지막 정렬 기준인 식품코드 순으로 분류 코드 1(과자류·빵류 또는 떡류/과자) P101-106000100-3529 ‘바나나우유’(명품디저트, 300g, 1개 1,209kcal)가 첫 선택지였던 것. 같은 이름 후보의 분류 코드 다수결 규칙으로 가공유(분류 128) 후보가 먼저 오고, 첫 선택지는 P119-204020400-0201(동원에프앤비, 1개 300mL, 약 225kcal). 가공유 안의 순서는 여전히 식품코드 순이라 통과가 이 순서에 의존함. 과자 분류 항목의 열량·총중량 값이 원본 오류인지는 확인하지 못함",
+      "llm": { "food": "바나나우유", "portion": { "amount": 240 } },
+      "expect": { "maxQuestions": 2, "drink": true, "amount": { "units": ["mL", "g"], "min": 200, "max": 300 }, "kcal": { "min": 150, "max": 260 } }
     },
     {
-      "id": "M23", "input": "닭가슴살 1팩", "note": "포장 중량을 모를 때 g 질문 → 100g 입력",
-      "llm": { "food": "닭가슴살", "portion": { "amount": 100 } }, "answers": ["100g"],
-      "expect": { "amount": { "units": ["g"], "min": 80, "max": 150 }, "kcal": { "min": 80, "max": 200 } }
+      "id": "M23", "input": "닭가슴살 1팩", "note": "포장 중량을 모를 때 무게를 묻지 않고(#39) 제품 총중량(100g)으로 바로 계산. 예전 답변 입력(100g)은 쓰이지 않아 뺐다",
+      "llm": { "food": "닭가슴살", "portion": { "amount": 100 } },
+      "expect": { "maxQuestions": 2, "amount": { "units": ["g"], "min": 80, "max": 150 }, "kcal": { "min": 80, "max": 200 } }
     },
     {
       "id": "M24", "input": "삼겹살구이 2인분", "note": "한 줄 1,000kcal 초과 → 막지 않고 양 확인 질문 후 그대로 기록. 2026-11-15 기준 정정: 삼겹살구이 1인분 = 조리 후 130g(생고기 170g 대응)",
@@ -239,9 +239,9 @@
       "expect": { "confirmsAmount": true, "basis": "package", "amount": { "units": ["g"], "min": 950, "max": 1000 }, "kcal": { "min": 1100, "max": 1250 } }
     },
     {
-      "id": "M29", "input": "흑임자젤리 1개", "note": "식품중량이 빈 제품 → 1개 중량(g) 질문 폴백",
-      "llm": { "food": "흑임자젤리" }, "answers": ["50g"],
-      "expect": { "maxQuestions": 2, "amount": { "units": ["g"], "min": 45, "max": 55 }, "kcal": { "min": 200, "max": 250 } }
+      "id": "M29", "input": "흑임자젤리 1개", "note": "식품중량이 빈 제품 → 무게를 묻지 않고(#39) AI가 1개 분량(50g)을 추정 → 수량 선택(1개)",
+      "llm": { "food": "흑임자젤리", "portion": { "amount": 50 } },
+      "expect": { "maxQuestions": 2, "asksUnitEstimate": true, "amount": { "units": ["g"], "min": 45, "max": 55 }, "kcal": { "min": 200, "max": 250 } }
     },
     {
       "id": "M37", "input": "공기밥 하나", "note": "단위 없는 개수(하나). 기존 M11 ‘밥 한공기’와 같은 결과. ‘공기밥’의 ‘공기’를 단위로 읽지 않아야 함. 실기기 실패 원인(모델 응답)을 몰라 모델 없이 앱이 직접 읽는지 확인(llm 비움)",
@@ -344,9 +344,9 @@
       "expect": { "confirmsAmount": true, "assumedQuantity": true, "basis": "package", "amount": { "units": ["g"], "min": 950, "max": 1000 }, "kcal": { "min": 1100, "max": 1250 } }
     },
     {
-      "id": "M57", "input": "흑임자젤리", "note": "수량 없는 가공식품(결정 A)인데 총중량 정보 없음 → M29처럼 1개 중량 질문. answers는 M29와 같음",
-      "llm": { "food": "흑임자젤리" }, "answers": ["50g"],
-      "expect": { "maxQuestions": 2, "asksUnitWeight": true, "amount": { "units": ["g"], "min": 45, "max": 55 }, "kcal": { "min": 200, "max": 250 } }
+      "id": "M57", "input": "흑임자젤리", "note": "수량 없는 가공식품(결정 A)인데 총중량 정보 없음 → M29처럼 AI 1개 분량 추정 후 수량 선택(#39, 무게 질문 없음)",
+      "llm": { "food": "흑임자젤리", "portion": { "amount": 50 } },
+      "expect": { "maxQuestions": 2, "asksUnitEstimate": true, "amount": { "units": ["g"], "min": 45, "max": 55 }, "kcal": { "min": 200, "max": 250 } }
     },
     {
       "id": "M58", "input": "우동 1그릇", "note": "국물·면 mL 항목(2026-11-17 결정 B, VolumeAsWeight.json): DB 우동은 mL 기준만 있음. 대표 분량표 우동 1그릇 700g → 700mL, 국물 안내",

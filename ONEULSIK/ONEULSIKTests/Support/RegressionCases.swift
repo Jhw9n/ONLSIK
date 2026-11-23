@@ -119,8 +119,8 @@ struct MealCase: Decodable, CustomTestStringConvertible {
         var asksAmount: Bool?
         /// 수량을 적지 않아 기본값(대표 분량 1단위)으로 가정했고, 카드에 그 안내가 붙어야 함(false면 붙으면 안 됨)
         var assumedQuantity: Bool?
-        /// 포장제품 1개 중량 질문("… 1개의 중량을 알려주세요")을 거쳐야 함
-        var asksUnitWeight: Bool?
+        /// 포장 중량을 모르는 제품에서 AI가 1단위 분량을 추정하고 수량을 고르는 질문을 거쳐야 함(#39, 무게 질문 대신)
+        var asksUnitEstimate: Bool?
         /// mL 국물·면 항목에 대표 분량을 같은 숫자의 mL로 계산했다는 안내가 붙어야 함(false면 붙으면 안 됨)
         var volumeAsWeight: Bool?
         /// 여러 음식으로 기록돼야 할 때 순서대로 각 음식 이름(또는 DB 이름)에 들어갈 글자(#39). 없으면 음식 1개여야 함
@@ -153,7 +153,7 @@ struct MealCase: Decodable, CustomTestStringConvertible {
         if expect.basis == "package" { parts.append("제품 총중량 기준") }
         if expect.asksAmount == true { parts.append("수량 질문") }
         if expect.assumedQuantity == true { parts.append("기본값 안내") }
-        if expect.asksUnitWeight == true { parts.append("1개 중량 질문") }
+        if expect.asksUnitEstimate == true { parts.append("AI 1단위 추정 수량 질문") }
         if expect.volumeAsWeight == true { parts.append("국물 mL 안내") }
         if expect.volumeAsWeight == false { parts.append("국물 mL 안내 없음") }
         if let items = expect.items { parts.append("음식 \(items.count)개(\(items.joined(separator: ", ")))") }

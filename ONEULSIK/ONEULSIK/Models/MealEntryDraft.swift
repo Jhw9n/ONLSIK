@@ -152,7 +152,6 @@ struct MealEntryChoice: Identifiable {
     var portionInput: MealFoodInput? = nil
     var correctedText: String? = nil
     var requiresPackageCount = false
-    var requiresUnitAmount = false
     var subtitle: String? = nil
     /// "목록에 없어요"를 고르면 DB 자료 대신 모델 영양 추정으로 기록할 음식(#39)
     var estimateInput: MealFoodInput? = nil
