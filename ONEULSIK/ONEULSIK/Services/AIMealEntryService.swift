@@ -937,9 +937,15 @@ final class AIMealEntryService: MealEntryAnalyzing {
         let name = searchName(foodName(of: input))
         let query = normalized(name)
         guard !query.isEmpty else { return [] }
-        return usableCandidates(from: results, input: input).filter {
+        let products = usableCandidates(from: results, input: input).filter {
             $0.category == "가공식품" && normalized($0.name).contains(query)
-        }.groupedByMajorityCategory(sameNameAs: name)
+        }
+        // 브랜드 없는 입력은 이름이 같은 제품만 후보로 둔다(2026-11-23, #37). 이름을 포함만 하는 제품
+        // (예: 와인 → 와인 숙성 명란, 텐동 → 텐동소스)은 다른 음식이라 뺀다. 제품을 가리키는 입력(봉·팩·컵라면 등)은
+        // 이름이 같은 제품이 없을 때만 지금처럼 포함 일치를 쓴다. 브랜드 입력과 검색 화면은 그대로다.
+        guard input.brand.isEmpty else { return products.groupedByMajorityCategory(sameNameAs: name) }
+        let exact = products.filter { normalized($0.name) == query }
+        return (exact.isEmpty && prefersProducts(input) ? products : exact).groupedByMajorityCategory(sameNameAs: name)
     }
 
     /// 입력 이름에서 브랜드를 뗀 음식 이름
