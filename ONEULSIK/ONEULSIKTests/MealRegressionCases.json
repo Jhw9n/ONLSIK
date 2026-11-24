@@ -617,6 +617,11 @@
       "expect": { "maxQuestions": 0, "exactNames": ["포케"], "basis": "aiEstimated", "sourceContains": "AI 영양 추정", "sourceExcludes": ["fish", "rice"] }
     },
     {
+      "id": "M111", "input": "연어덮밥", "note": "실기기 기록 재현(2026-11-24, #41 2차 B·C·F): 검색어 '연어덮밥, 연어밥' → 영양 추정(기준 음식 연어, 100g당 350kcal) → 분량 450g → 수량 질문 → 다시 모델 전체 호출 → 양 확인(1,575kcal). 지금: 수량 질문 없이 1그릇이 아닌 1인분 가정, '덮밥'으로 끝나는 DB 일반 음식(브랜드 없는 음식, 같은 이름·단위는 하나) 13개 100당 열량 중간값 101kcal의 1.5배인 151.5kcal로 상한 → 450g 681.8kcal(이전 1,575kcal). 탄단지(45·14·13)는 가정값",
+      "llm": { "food": "연어덮밥", "searchTerms": ["연어덮밥", "연어밥"], "estimate": { "referenceFood": "연어", "amount": 450, "amountUnit": "g", "calories": 350, "carbohydrate": 45, "protein": 14, "fat": 13, "ingredients": "밥, 연어, 소스" } },
+      "expect": { "maxQuestions": 0, "questionsExclude": ["얼마나 드셨나요", "열량이 높게"], "exactNames": ["연어덮밥"], "basis": "aiEstimated", "assumedQuantity": true, "kcal": { "min": 675, "max": 690 } }
+    },
+    {
       "id": "M114", "input": "딸기라떼", "note": "실기기(2026-11-24, #41 2차 B): 수량 없는 입력에 수량 질문이 나왔다. 지금은 1개로 가정하고 안내. 제품·분량은 M88과 같음(가짜 해석기 300g)",
       "llm": { "food": "딸기라떼", "portion": { "amount": 300 } },
       "expect": { "maxQuestions": 0, "questionsExclude": ["얼마나 드셨나요", "이 제품을 드셨나요"], "assumedQuantity": true, "count": 1, "amount": { "units": ["g"], "min": 299, "max": 301 } }

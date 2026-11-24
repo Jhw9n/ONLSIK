@@ -1185,7 +1185,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
         if try await !hasGroundedReference(estimate, input: input) {
             MealDebugLog.log("영양 추정 기준 음식 '\(estimate.referenceFood)'이 입력에 없음 → 입력 이름 '\(input.name)'으로 AI 추정 기록")
         }
-        let capped = Self.reconciledEstimate(estimate, name: input.name)
+        let capped = try await cappedEstimate(Self.reconciledEstimate(estimate, name: input.name), input: input)
         let item: MealEntryItem
         do {
             item = try estimatedItem(input, estimate: capped)
@@ -1214,6 +1214,36 @@ final class AIMealEntryService: MealEntryAnalyzing {
         guard adjusted.isValid else { return estimate }
         MealDebugLog.log("AI 영양 추정 탄단지 보정: \(name) 100\(estimate.amountUnit)당 \(amountText(value.calories))kcal는 그대로, 탄단지 열량 \(amountText(macroEnergy))kcal → 같은 비율(\(ratio.formatted(.number.precision(.fractionLength(2)))))로 맞춤")
         return adjusted
+    }
+
+    /// AI 영양 추정값 상한(2026-11-24, #41 2차 C 사용자 결정). 100g(mL)당 열량이 "같은 분류" DB 일반 음식 100당 열량 중간값의
+    /// 1.5배를 넘으면 1.5배로 낮추고 탄·단·지를 같은 비율로 낮춘다. 같은 분류는 입력 이름(공백 제거)의 끝 두 글자로 이름이 끝나는
+    /// 브랜드 없는 "음식" 분류 자료(#41 J와 같은 기준)이고, 3개 이상일 때만 정한다. 이 비교에서만 g과 mL를 1:1로 묶는다.
+    /// 분량 근거(AI 추정)는 그대로 둔다. 음식 이름은 코드에 넣지 않는다.
+    static let estimateCapRatio = 1.5
+
+    private func cappedEstimate(_ estimate: MealNutritionEstimate, input: MealFoodInput) async throws -> MealNutritionEstimate {
+        let name = normalized(input.name)
+        guard name.count >= 2 else { return estimate }
+        let suffix = String(name.suffix(2))
+        let results = try await catalog.search(query: suffix)
+        try Task.checkCancellation()
+        var seen = Set<String>()
+        let values = results.filter { food in
+            food.brand.isEmpty && food.category == "음식" && FoodCatalogQuality.isUsable(food) && food.baseAmount > 0
+                && normalized(food.name).hasSuffix(suffix) && seen.insert(food.id).inserted
+        }.map { $0.nutrition.calories / $0.baseAmount * 100 }.sorted()
+        guard values.count >= 3 else { return estimate }
+        let middle = values.count / 2
+        let median = values.count % 2 == 1 ? values[middle] : (values[middle - 1] + values[middle]) / 2
+        let cap = median * Self.estimateCapRatio
+        let calories = estimate.nutritionPer100.calories
+        guard calories > cap, calories > 0 else { return estimate }
+        MealDebugLog.log("AI 영양 추정 상한: \(input.name) 100\(estimate.amountUnit)당 \(Self.amountText(calories))kcal → \(Self.amountText(cap))kcal"
+            + " (분류어 '\(suffix)', DB 일반 음식 \(values.count)개 중간값 \(Self.amountText(median))kcal의 \(Self.amountText(Self.estimateCapRatio))배)")
+        return MealNutritionEstimate(referenceFood: estimate.referenceFood, amountPerUnit: estimate.amountPerUnit,
+            amountUnit: estimate.amountUnit, nutritionPer100: estimate.nutritionPer100 * (cap / calories),
+            ingredients: estimate.ingredients, portionEstimated: estimate.portionEstimated)
     }
 
     /// 수량 질문에 답한 뒤 앞의 영양 추정을 다시 쓴다(#41 2차 F). 새 단위의 1단위 분량만 모델에 묻는다(실제 해석기와 같은 방식).
