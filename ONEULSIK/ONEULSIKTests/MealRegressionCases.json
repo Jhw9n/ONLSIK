@@ -645,6 +645,31 @@
       "id": "M116", "input": "텐동 2인분", "note": "#41 2차 B·F: 영양 추정은 됐는데 분량 추정이 실패(portion 단계 실패)하면 이전에는 수량 질문을 내고 답한 뒤 모델 전체를 다시 불렀다. 지금은 묻지 않고 영양 기준량 100g을 1인분으로 계산(원문 2인분 → 200g)하고 안내",
       "llm": { "food": "텐동", "fail": ["portion"], "estimate": { "referenceFood": "김밥", "amount": 300, "amountUnit": "g", "calories": 220, "carbohydrate": 30, "protein": 5, "fat": 9, "ingredients": "밥, 튀김, 소스" } },
       "expect": { "maxQuestions": 0, "exactNames": ["텐동"], "units": ["인분"], "count": 2, "assumedQuantity": true, "amount": { "units": ["g"], "min": 199, "max": 201 }, "kcal": { "min": 435, "max": 445 } }
+    },
+    {
+      "id": "M117", "input": "라면", "note": "#41 2차 H: DB 라면(D103-148000000-0001)은 국물 포함 100g당 82kcal인데 실기기 모델이 1인분을 150g(면 무게 수준)으로 추정해 123kcal. 참고표 내부 기준 1인분 550g(자료집에 라면 항목 없음)이 AI 분량 추정보다 먼저 쓰여야 함. 가짜 해석기 분량 150g을 줘도 550g. 수량이 없어 1인분 가정 안내",
+      "llm": { "food": "라면", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "exactNames": ["라면"], "units": ["인분"], "count": 1, "assumedQuantity": true, "amount": { "units": ["g"], "min": 549, "max": 551 }, "kcal": { "min": 445, "max": 457 } }
+    },
+    {
+      "id": "M118", "input": "라면 1인분", "note": "#41 2차 H: 참고표 내부 기준 1인분 550g, 가짜 해석기 분량 150g은 쓰지 않음",
+      "llm": { "food": "라면", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "exactNames": ["라면"], "units": ["인분"], "count": 1, "assumedQuantity": false, "amount": { "units": ["g"], "min": 549, "max": 551 }, "kcal": { "min": 445, "max": 457 } }
+    },
+    {
+      "id": "M119", "input": "라면 2개", "note": "#41 2차 H: 참고표 내부 기준 1개 550g × 2",
+      "llm": { "food": "라면", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "units": ["개"], "count": 2, "amount": { "units": ["g"], "min": 1099, "max": 1101 }, "kcal": { "min": 890, "max": 915 }, "confirmsAmount": false }
+    },
+    {
+      "id": "M120", "input": "라면 한 그릇", "note": "#41 2차 H: 참고표 내부 기준 1그릇 550g",
+      "llm": { "food": "라면", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "units": ["그릇"], "count": 1, "amount": { "units": ["g"], "min": 549, "max": 551 }, "kcal": { "min": 445, "max": 457 } }
+    },
+    {
+      "id": "M121", "input": "신라면", "note": "#41 2차 H: 라면 대표 분량을 넣은 뒤에도 제품 이름은 대표 분량이 아니라 제품 포장량(제품 총중량 기준)으로 기록",
+      "llm": { "food": "신라면", "searchTerms": ["신라면", "라면"] },
+      "expect": { "maxQuestions": 1, "questionsExclude": ["비슷한 음식", "얼마나 드셨나요"], "basis": "package", "kind": "processed" }
     }
   ]
 }
