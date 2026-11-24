@@ -3,7 +3,9 @@ import os
 
 /// 실기기에서만 생기는 AI 식사 입력 문제를 진단하려고 DEBUG 빌드에서만 콘솔에 남기는 기록(2026-11-23, #37).
 /// 모든 줄은 "[ONEULSIK-AI]"로 시작한다. Release 빌드에서는 아무것도 하지 않는다(#if DEBUG).
-/// os.Logger(debug 수준)로 남겨 Xcode 콘솔에 한 번만 나온다.
+/// os.Logger 하나로 남겨 Xcode 콘솔에 한 번만 나온다. 수준은 notice다(2026-11-24, #41 2차 G): debug 수준은 기기 로그 저장소에
+/// 남지 않고 실시간으로 연결된 동안에만 보인다. 실기기에서 양 확인 선택 뒤 "선택:"·"기록:" 줄이 빠졌는데, 같은 흐름을 화면 경로
+/// (MealEntryViewModel)로 도는 테스트 D04에서는 두 줄이 한 번씩 남아 코드 경로 차이는 찾지 못했다. 저장되는 수준으로 올려 확인한다.
 /// 남기는 줄(#41): 원문, 모델 단계 결과, 모든 질문(제목·선택지), 모든 선택("선택: …", 양 확인 질문 포함),
 /// 모든 최종 기록("기록: …"), 모든 오류("오류: {단계} {원인}", 화면에서 생긴 시간 초과·결과 검증 오류 포함).
 /// Xcode 콘솔과 macOS 콘솔 앱(기기 선택 후 "ONEULSIK-AI" 검색)에서 볼 수 있다.
@@ -14,7 +16,7 @@ nonisolated enum MealDebugLog {
     /// os.Logger 하나로만 남긴다. print와 함께 쓰면 Xcode 콘솔에 같은 줄이 두 번 나온다(#39).
     static func log(_ message: @autoclosure () -> String) {
         let line = "[ONEULSIK-AI] " + message()
-        logger.debug("\(line, privacy: .public)")
+        logger.notice("\(line, privacy: .public)")
         capture?.append(line)
     }
 

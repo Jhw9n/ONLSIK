@@ -381,3 +381,45 @@ struct DebugLogTests {
                actual: lines.joined(separator: " / "), failures: failures)
     }
 }
+
+/// 화면 경로의 DEBUG 기록(2026-11-24, #41 2차 G). 실기기에서 치킨 양 확인 질문을 고른 뒤 "선택:"·"기록:" 줄이 남지 않았다.
+/// DebugLogTests는 서비스의 resolve를 바로 부르므로, 여기서는 화면과 같이 MealEntryViewModel(submit → select)을 거친다.
+@MainActor
+@Suite("DEBUG 기록(화면 경로)")
+struct ViewModelDebugLogTests {
+    private func settle(_ model: MealEntryViewModel) async throws {
+        for _ in 0..<600 {
+            if case .analyzing = model.phase { try await Task.sleep(for: .milliseconds(20)) } else { return }
+        }
+    }
+
+    @Test func confirmationChoice() async throws {
+        let capture = MealDebugLog.Capture()
+        var phaseAfterChoice = "질문 없음"
+        try await MealDebugLog.$capture.withValue(capture) {
+            let llm = MealCase.LLM(food: "치킨", brand: nil, portion: nil, pick: nil, estimate: nil)
+            let service = AIMealEntryService(interpreter: FakeMealFoodInterpreter(script: llm), catalog: FoodCatalogService())
+            let model = MealEntryViewModel(mealType: .lunch, analyzer: service)
+            model.updateText("치킨 반마리")
+            model.submit()
+            try await settle(model)
+            guard case .question(let question) = model.phase, let first = question.choices.first else { return }
+            model.select(first)
+            try await settle(model)
+            switch model.phase {
+            case .ready: phaseAfterChoice = "기록 \(model.items.count)개"
+            case .failed(let message): phaseAfterChoice = "오류 \(message)"
+            default: phaseAfterChoice = "\(model.phase)"
+            }
+        }
+        let lines = capture.lines.map { $0.replacingOccurrences(of: "[ONEULSIK-AI] ", with: "") }
+        var failures: [Failure] = []
+        for prefix in ["질문: 열량이 높게 계산됐어요", "선택: 맞아요, 그대로 기록", "기록: "] {
+            let count = lines.filter { $0.hasPrefix(prefix) }.count
+            if count != 1 { failures.append(Failure(type: .error, message: "‘\(prefix)’ 줄 \(count)회(기대 1회)")) }
+        }
+        if phaseAfterChoice != "기록 1개" { failures.append(Failure(type: .error, message: "선택 뒤 화면 상태 \(phaseAfterChoice)")) }
+        report(suite: "DEBUG 기록", id: "D04", input: "치킨 반마리(화면 경로)",
+               expected: "질문 → 선택 → 기록 줄이 한 번씩, 화면 기록 1개", actual: lines.joined(separator: " / "), failures: failures)
+    }
+}
