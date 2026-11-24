@@ -8,7 +8,7 @@ nonisolated struct DishServing: Sendable {
     let unit: String
 
     /// 이 표의 값을 대표 분량으로 쓰는 단위(1인분과 1그릇을 같은 양으로 본다).
-    /// 개는 넣지 않는다: 만두·송편처럼 개수로 세는 음식은 1인분이 여러 개라 "냉동만두 5개"가 5인분(1,100g)이 됐다(M15, #43).
+    /// 개는 넣지 않는다: 개수로 세는 음식은 1인분이 여러 개라 "5개"가 5인분(1,100g)으로 계산됐다(회귀 케이스 M15, #43).
     static let units: Set<String> = ["인분", "그릇"]
 
     private struct File: Decodable {
