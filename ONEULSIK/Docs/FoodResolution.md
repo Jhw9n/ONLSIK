@@ -42,6 +42,7 @@
 2. 제품을 원하는 입력인지 정합니다(`prefersProducts`: 브랜드, 봉·팩, 컵라면 등).
 3. `PreparedFoodReference.entry`: 조리 음식 참고값이 있으면 바로 선택합니다.
 4. `DrinkReferenceCatalog.entry`: 술 표(`DrinkReferences.json`) 이름이면 `resolveDrink`로 처리합니다.
+   - **업체 제품 참고표(2026-11-24 결정, #43)**: 참고표 항목에 `allowsBrandedProduct: true`가 있고, 입력에 업체명·추가 설명이 없고 제품을 원하는 입력이 아니면 `resolveBrandedReference`가 지정된 제품 레코드로 바로 기록합니다. 제품 질문·비슷한 음식 질문·같은 이름 제품의 가운데 제품 규칙(#41 E)을 거치지 않습니다. 분량은 g·mL(제품 기준 단위와 같을 때)는 적은 양, 그 밖에는 `estimatedPortions`의 그 단위 값(수량 없으면 1인분, 근거 `estimated`)이고, 참고표에 없는 단위는 수량 질문입니다. 카드 이름은 입력 이름, 저장 출처는 `{출처} · {업체명} {제품명} 영양값 기준`(가운데 제품 규칙과 같은 형식, 영양 근거 `database`)입니다. 이 필드가 없거나 false인 항목은 지금처럼 업체 제품에 매칭되지 않습니다(`FoodReference.matches`). 검색 화면의 대표 항목 순서(`FoodCatalogService.preferredID`)에는 쓰지 않습니다.
 5. 포장제품 표(`PackagedFoodReferences.json`) 후보는 제품을 원하는 입력일 때 질문합니다.
 6. "반찬"처럼 무엇인지 모르는 이름이면 모델 영양 추정으로 기록합니다(#41 전에는 "어떤 반찬을 드셨나요?" 질문).
 7. **참고표 referenceID**: 이름이 참고표 항목이고 추가 설명이 없으면 `catalog.food(id:)`로 그 자료를 바로 가져옵니다.

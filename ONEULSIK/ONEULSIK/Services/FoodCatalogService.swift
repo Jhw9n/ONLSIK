@@ -114,9 +114,11 @@ private actor FoodCatalogDatabase {
         }
     }
 
-    /// 데이터 파일(FoodReferences.json, DrinkReferences.json)이 지정한 대표 일반 항목
+    /// 데이터 파일(FoodReferences.json, DrinkReferences.json)이 지정한 대표 일반 항목.
+    /// 업체 제품을 가리키는 참고표 항목(allowsBrandedProduct, #43)은 일반 항목이 아니라 검색 화면 순서에 쓰지 않는다.
     private func preferredID(for query: String) -> String? {
-        FoodReferenceCatalog.entry(for: query)?.referenceID ?? DrinkReferenceCatalog.entry(for: query)?.generalReferenceID
+        FoodReferenceCatalog.entry(for: query).flatMap { $0.allowsBranded ? nil : $0.referenceID }
+            ?? DrinkReferenceCatalog.entry(for: query)?.generalReferenceID
             ?? guideAlias(for: query)?.foodID
     }
 

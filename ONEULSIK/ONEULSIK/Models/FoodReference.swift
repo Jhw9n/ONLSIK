@@ -15,13 +15,19 @@ nonisolated struct FoodReference: Decodable, Sendable {
     let displayText: String?
     /// 내부 근거(결정 날짜, 출처 메모). 화면에 보여주지 않는다.
     let basisNote: String?
+    /// 업체 제품(brand가 있는 레코드)을 기준 자료로 가리킬 수 있는지(선택, 기본 false, 2026-11-24 #43).
+    /// true인 항목만 brand 있는 레코드를 referenceID로 쓸 수 있고, 이름·별칭이 맞는 업체명 없는 입력은 제품·비슷한 음식 질문 없이
+    /// 그 제품의 영양값과 estimatedPortions 분량으로 기록한다(AIMealEntryService.resolveBrandedReference). 분류는 category로 적는다.
+    let allowsBrandedProduct: Bool?
+
+    var allowsBranded: Bool { allowsBrandedProduct == true }
 
     var names: [String] { [name] + aliases }
 
     func matches(_ food: FoodCatalogItem) -> Bool {
         food.id == referenceID && food.name == referenceName && food.amountUnit == amountUnit
             && food.source == source && food.sourceDate == sourceDate
-            && food.brand.isEmpty && food.category == (category ?? "음식")
+            && (food.brand.isEmpty || allowsBranded) && food.category == (category ?? "음식")
     }
 
     func estimatedAmount(for unit: String, food: FoodCatalogItem) -> Double? {

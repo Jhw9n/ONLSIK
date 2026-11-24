@@ -32,7 +32,11 @@ def main():
             for field, column in [("referenceName", "name"), ("amountUnit", "basis_unit"), ("source", "source"), ("sourceDate", "source_date")]:
                 if entry[field] != row[column]:
                     raise ValueError(f"Changed reference {entry['name']}: {field}")
-            if row["brand"] or row["category"] != entry.get("category", "음식"):
+            # allowsBrandedProduct(기본 false, #43)가 true인 항목만 업체 제품(brand 있는 레코드)을 가리킬 수 있다(앱의 FoodReference.matches와 같은 규칙).
+            allows_branded = entry.get("allowsBrandedProduct", False)
+            if not isinstance(allows_branded, bool):
+                raise ValueError(f"Invalid allowsBrandedProduct: {entry['name']}")
+            if (row["brand"] and not allows_branded) or row["category"] != entry.get("category", "음식"):
                 raise ValueError(f"Not a general food of the declared category: {entry['name']}")
             if any(not math.isfinite(row[column]) or row[column] < 0 for column in ("calories", "carbohydrates", "protein", "fat")):
                 raise ValueError(f"Invalid nutrition: {entry['name']}")
