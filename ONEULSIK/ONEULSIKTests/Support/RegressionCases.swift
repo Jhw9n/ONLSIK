@@ -115,7 +115,7 @@ struct MealCase: Decodable, CustomTestStringConvertible {
         var count: Double?
         var amount: AmountRange?
         var kcal: ValueRange?
-        /// 1,000kcal 초과로 "이 양이 맞나요?" 확인 질문이 나와야 함
+        /// 1,000kcal 초과로 "열량이 높게 계산됐어요" 확인 질문이 나와야 함(#41 전 문구: 이 양이 맞나요?)
         var confirmsAmount: Bool?
         /// 분량 근거(MealPortionBasis rawValue). 예: "package" = 제품 총중량 기준
         var basis: String?

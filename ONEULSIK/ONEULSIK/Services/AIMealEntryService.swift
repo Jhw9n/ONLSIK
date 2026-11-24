@@ -165,8 +165,17 @@ final class AIMealEntryService: MealEntryAnalyzing {
         self.catalog = catalog ?? FoodCatalogService()
     }
 
+    /// DEBUG 기록의 오류 줄에 남길 단계(#41 작업 K). 모델 호출과 DB 검색·기록 계산 직전에 바꾼다.
+    private var stage = "시작"
+
+    private func model(_ stage: String) -> any MealFoodInterpreting {
+        self.stage = stage
+        return interpreter
+    }
+
     func analyze(_ text: String) async throws -> MealEntryAnalysis {
         MealDebugLog.log("원문: \(text)")
+        stage = "원문 해석"
         do {
             let result = try await MealPerformance.measure("analyze") { try await analyzeMeal(text) }
             #if DEBUG
@@ -174,7 +183,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
             #endif
             return result
         } catch {
-            MealDebugLog.log("오류: \(error)")
+            MealDebugLog.log("오류: \(stage) \(error)")
             throw error
         }
     }
@@ -257,7 +266,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
         } else {
             usesModel = true
             do {
-                generated = try await interpreter.foods(in: MealFoodNames.extractionText(text))
+                generated = try await model("음식 추출").foods(in: MealFoodNames.extractionText(text))
             } catch MealEntryError.generationFailed {
                 // 음식 추출 단계가 실패하면 원문을 음식 하나로 보고 DB 검색부터 계속한다(#41, 작업 G).
                 MealDebugLog.log("오류 대신 계속: 음식 추출 단계 generationFailed → 원문을 음식 하나로 처리: \(text)")
@@ -355,7 +364,8 @@ final class AIMealEntryService: MealEntryAnalyzing {
     }
 
     func resolve(_ choice: MealEntryChoice) async throws -> MealEntryAnalysis {
-        MealDebugLog.log("선택: \(choice.title)\(choice.continuationInput.map { " 입력 \($0.details)" } ?? "")")
+        MealDebugLog.log("선택: \(choice.title)\(choice.subtitle.map { " (\($0))" } ?? "")\(choice.continuationInput.map { $0.details.isEmpty ? "" : " 입력 \($0.details)" } ?? "")")
+        stage = "선택 처리"
         do {
             let result = try await MealPerformance.measure("clarify") { try await resolveChoice(choice) }
             #if DEBUG
@@ -363,7 +373,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
             #endif
             return result
         } catch {
-            MealDebugLog.log("오류: \(error)")
+            MealDebugLog.log("오류: \(stage) \(error)")
             throw error
         }
     }
@@ -418,7 +428,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
                 return try await analyzeMeal(input.details)
             }
             if isUnspecified(input.name) {
-                let generated = try await interpreter.foods(in: MealFoodNames.extractionText(input.details))
+                let generated = try await model("음식 추출").foods(in: MealFoodNames.extractionText(input.details))
                 try Task.checkCancellation()
                 let foods = try MealInputGrounding.ground(generated, in: input.details)
                 guard foods.allSatisfy({ $0.isValid && !isUnspecified($0.name)
@@ -467,6 +477,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
         }
         var item: MealEntryItem
         do {
+            stage = "기록 계산"
             item = try await makeItem(selection)
             if selection.input.omittedQuantity, item.portionBasis != .entered {
                 item.quantityNote = MealEntryItem.assumedQuantityNote(unit: item.food.servingUnit)
@@ -611,7 +622,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
             quantity: 1, unit: unit, brand: selection.input.brand, details: selection.input.details)
         let estimate: MealPortionEstimate
         do {
-            estimate = try await interpreter.portion(for: single, food: selection.food)
+            estimate = try await model("분량 추정").portion(for: single, food: selection.food)
         } catch let error as MealEntryError {
             guard case .portionUnknown = error else {
                 MealDebugLog.log("오류 대신 대체 분량: 분량 추정 단계 \(error)")
@@ -761,7 +772,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
             let serving = MealFoodInput(name: selection.input.name, sourceText: selection.input.sourceText,
                 quantity: 1, unit: "인분", brand: selection.input.brand, details: selection.input.details)
             do {
-                estimate = try await interpreter.portion(for: serving, food: selection.food)
+                estimate = try await model("분량 추정").portion(for: serving, food: selection.food)
             } catch MealEntryError.portionUnknown { return nil } catch MealEntryError.generationFailed { return nil }
             try Task.checkCancellation()
             guard estimate.amountUnit == selection.food.amountUnit,
@@ -843,7 +854,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
                 return packagedQuestion(products, input: input, items: items, remaining: remaining)
             }
             if isUnspecified(input.name) {
-                return try await estimatedWithoutQuestion(input, estimate: try await interpreter.estimateNutrition(for: input),
+                return try await estimatedWithoutQuestion(input, estimate: try await model("영양 추정").estimateNutrition(for: input),
                     reason: "무엇인지 정해지지 않은 반찬", items: items, remaining: remaining)
             }
             if !prefersProducts, input.details.isEmpty,
@@ -872,6 +883,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
             let foodName = input.brand.isEmpty ? input.name : input.name.replacingOccurrences(of: input.brand, with: "")
             let query = searchName(foodName)
             guard !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw MealEntryError.invalidResult }
+            stage = "DB 검색"
             let results = try await catalog.search(query: [input.brand, query].filter { !$0.isEmpty }.joined(separator: " "))
             try Task.checkCancellation()
             var productMatches = productCandidates(from: results, input: input)
@@ -973,7 +985,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
                 if attempt == 1 {
                     let terms: [String]
                     do {
-                        terms = try await interpreter.searchTerms(for: input)
+                        terms = try await model("검색어").searchTerms(for: input)
                     } catch MealEntryError.generationFailed {
                         // 검색어 단계가 실패하면 검색어 없이 계속한다(#41, 작업 G).
                         MealDebugLog.log("오류 대신 계속: 검색어 단계 generationFailed → 검색어 없음: \(input.name)")
@@ -1016,7 +1028,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
                 guard !candidates.isEmpty else { continue }
                 let assessment: MealFoodAssessment
                 do {
-                    assessment = try await interpreter.assess(input, candidates: candidates)
+                    assessment = try await model("후보 선택").assess(input, candidates: candidates)
                 } catch MealEntryError.generationFailed {
                     // 후보 선택 단계가 실패하면 첫 후보(같은 이름이 앞에 정렬됨)로 계속한다. 이름이 다르면 비슷한 음식 질문을 거친다(#41, 작업 G).
                     MealDebugLog.log("오류 대신 계속: 후보 선택 단계 generationFailed → 첫 후보 \(candidates[0].name)")
@@ -1055,7 +1067,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
                 MealDebugLog.log("후보 선택에서 정보 부족(\(missingInformation)) → 질문 없이 영양 추정: \(input.name)")
             }
             do {
-                let estimate = try await interpreter.estimateNutrition(for: input)
+                let estimate = try await model("영양 추정").estimateNutrition(for: input)
                 try Task.checkCancellation()
                 return try await estimatedWithoutQuestion(input, estimate: estimate, reason: "DB 후보 없음", items: items, remaining: remaining)
             } catch MealEntryError.portionUnknown {
@@ -1078,8 +1090,9 @@ final class AIMealEntryService: MealEntryAnalyzing {
         for index in large { halved[index].scale = items[index].scale * 0.5 }
         let lines = large.map { "‘\(items[$0].food.name)’ \(items[$0].amountDescription) 약 \(kcal(items[$0].nutrition.calories))kcal" }
         return .question(MealEntryQuestion(
-            title: "이 양이 맞나요?",
-            explanation: lines.joined(separator: ", ") + "로 계산됐어요. 맞으면 그대로 기록하고, 아니면 절반으로 기록한 뒤 기록 화면에서 조절할 수 있어요",
+            // 2026-11-24(#41): 양이 아니라 열량이 높아서 확인한다는 뜻이 드러나게 문구만 바꿨다. 기준(1,000kcal)과 선택지는 그대로다.
+            title: "열량이 높게 계산됐어요",
+            explanation: lines.joined(separator: ", ") + "로, 한 번에 1,000kcal가 넘어요. 먹은 양이 맞으면 그대로 기록하고, 아니면 절반으로 기록한 뒤 기록 화면에서 조절할 수 있어요",
             choices: [
                 // selection 없는 선택지는 resolve(_ choice:)에서 담긴 목록 그대로 완료된다.
                 MealEntryChoice(id: UUID().uuidString, title: "맞아요, 그대로 기록", items: items,
@@ -1126,7 +1139,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
     private func estimatedChoice(_ input: MealFoodInput, items: [MealEntryItem], remaining: [MealFoodInput]) async throws -> MealEntryAnalysis {
         let estimate: MealNutritionEstimate?
         do {
-            estimate = try await interpreter.estimateNutrition(for: input)
+            estimate = try await model("영양 추정").estimateNutrition(for: input)
         } catch MealEntryError.portionUnknown {
             guard !input.hasConfirmedPortion else { throw MealEntryError.portionUnknown(input.name) }
             return amountQuestion(input, items: items, remaining: remaining)
@@ -1451,7 +1464,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
             guard food.category != "가공식품" || isOversizedPackage(food) else { throw MealEntryError.portionUnknown(input.name) }
             let estimate: MealPortionEstimate
             do {
-                estimate = try await interpreter.portion(for: input, food: food)
+                estimate = try await model("분량 추정").portion(for: input, food: food)
             } catch MealEntryError.generationFailed {
                 // 분량 추정 단계 실패는 분량 모름과 같게 다뤄 대체 분량 흐름으로 보낸다(#41, 작업 G·H).
                 MealDebugLog.log("분량 추정 단계 generationFailed → 분량 모름으로 처리: \(input.name)")

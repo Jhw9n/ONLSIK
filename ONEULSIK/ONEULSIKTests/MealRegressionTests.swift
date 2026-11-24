@@ -121,7 +121,7 @@ struct PlausibilityTests {
 struct MealEntryOutcomeTests {
     private static let maxQuestionRounds = 4
     private static let lineCalorieLimit = 1000.0
-    private static let amountConfirmationTitle = "이 양이 맞나요?"
+    private static let amountConfirmationTitle = "열량이 높게 계산됐어요"
 
     @Test(arguments: RegressionCases.shared.meals)
     func meal(_ testCase: MealCase) async {
@@ -236,7 +236,7 @@ struct MealEntryOutcomeTests {
                 + (item.quantityNote.map { " · \($0)" } ?? "")
                 + items.dropFirst().map { " ＋ \($0.food.name) · \($0.amountDescription) · \($0.nutrition.calories.short)kcal" }.joined()
 
-            // 2026-11-15 결정: 1,000kcal를 넘는 줄은 막지 않고 "이 양이 맞나요?" 확인을 거쳐야 한다.
+            // 2026-11-15 결정: 1,000kcal를 넘는 줄은 막지 않고 "열량이 높게 계산됐어요"(2026-11-24 #41 전에는 "이 양이 맞나요?") 확인을 거쳐야 한다.
             let confirmedAmount = questionLog.contains { $0.hasPrefix(Self.amountConfirmationTitle) }
             for other in items where other.nutrition.calories > Self.lineCalorieLimit && !confirmedAmount {
                 failures.append(Failure(type: .limit, message: "한 줄 \(other.nutrition.calories.short)kcal인데 양 확인 질문 없음 (1,000kcal 초과 시 확인 필요)"))
@@ -318,5 +318,64 @@ func report(suite: String, id: String, input: String, expected: String, actual: 
     ))
     for failure in failures {
         Issue.record("[\(failure.type.rawValue)] \(id) \(input): \(failure.message)")
+    }
+}
+
+/// DEBUG 기록 점검(2026-11-24, #41 작업 K). 실기기 기록에서 치킨 양 확인 질문 뒤의 선택과 기록이 빠졌고, 오류는 단계 없이
+/// "오류: invalidResult"만 남았다. 질문의 선택("선택: …"), 최종 기록("기록: …"), 오류("오류: {단계} {원인}")가 한 번씩 남는지 본다.
+@MainActor
+@Suite("DEBUG 기록")
+struct DebugLogTests {
+    struct Scenario: Sendable, CustomTestStringConvertible {
+        let id: String
+        let input: String
+        let llm: MealCase.LLM
+        let expected: [String]
+        var testDescription: String { "\(id) \(input)" }
+    }
+
+    static let scenarios = [
+        Scenario(id: "D01", input: "치킨 반마리", llm: MealCase.LLM(food: "치킨", brand: nil, portion: nil, pick: nil, estimate: nil),
+                 expected: ["원문: 치킨 반마리", "질문: 열량이 높게 계산됐어요", "선택: 맞아요, 그대로 기록", "기록: "]),
+        Scenario(id: "D02", input: "텐동 1인분",
+                 llm: MealCase.LLM(food: "텐동", brand: nil, portion: nil, pick: nil, estimate: nil, fail: ["estimate"]),
+                 expected: ["원문: 텐동 1인분", "오류: 영양 추정 generationFailed"]),
+        Scenario(id: "D03", input: "흑임자젤리", llm: MealCase.LLM(food: "흑임자젤리", brand: nil, portion: nil, pick: nil, estimate: nil),
+                 expected: ["원문: 흑임자젤리", "질문: 이 제품을 드셨나요?", "선택: 흑임자젤리", "질문: ‘흑임자젤리’을 얼마나 드셨나요?",
+                            "선택: 1인분", "기록: "]),
+    ]
+
+    @Test(arguments: scenarios)
+    func lines(_ scenario: Scenario) async {
+        let capture = MealDebugLog.Capture()
+        await MealDebugLog.$capture.withValue(capture) {
+            let service = AIMealEntryService(interpreter: FakeMealFoodInterpreter(script: scenario.llm), catalog: FoodCatalogService())
+            do {
+                var analysis = try await service.analyze(scenario.input)
+                for _ in 0..<4 {
+                    guard case .question(let question) = analysis, let first = question.choices.first else { break }
+                    analysis = try await service.resolve(first)
+                }
+            } catch {}
+        }
+        let lines = capture.lines.map { $0.replacingOccurrences(of: "[ONEULSIK-AI] ", with: "") }
+        var failures: [Failure] = []
+        // 기대한 줄이 이 순서로 한 번씩(같은 줄 두 번 없음) 나와야 한다.
+        var cursor = lines.startIndex
+        for prefix in scenario.expected {
+            guard let index = lines[cursor...].firstIndex(where: { $0.hasPrefix(prefix) }) else {
+                failures.append(Failure(type: .error, message: "‘\(prefix)’ 줄이 없음(또는 순서가 다름)"))
+                continue
+            }
+            cursor = lines.index(after: index)
+        }
+        for prefix in ["선택: ", "기록: ", "오류: "] {
+            let matched = lines.filter { $0.hasPrefix(prefix) }
+            if Set(matched).count != matched.count {
+                failures.append(Failure(type: .error, message: "같은 ‘\(prefix)’ 줄이 두 번 남음"))
+            }
+        }
+        report(suite: "DEBUG 기록", id: scenario.id, input: scenario.input, expected: scenario.expected.joined(separator: " → "),
+               actual: lines.joined(separator: " / "), failures: failures)
     }
 }
