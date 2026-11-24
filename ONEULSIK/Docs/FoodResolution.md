@@ -21,11 +21,18 @@
 2. `MealInputGrounding.setMenuName`: 정식·세트면 구성 질문
 3. `MealInputGrounding.singlePreparedReference`: 조리 음식 참고값(`PreparedFoodReference`) 단독 입력
 4. `MealInputGrounding.singleFoodWithAmount` + `isKnownSingleFood`: 음식 하나 + 양. 참고표·술 표 이름이거나 검색에서 이름(수식어를 뗀 이름 포함)이 정확히 맞을 때만
+   - `knownDataName`(2026-11-24, #41): 양이 없어도 입력 전체가 참고표·술 표 이름·별칭과 정확히 같으면 모델 없이 처리합니다(예: `카라멜마끼아또`).
 5. `catalogFoodList`: 쉼표로 나눈 2~8개 이름이 모두 참고표·포장제품 표 이름이거나 검색에서 정확히 맞을 때
 6. `MealFoodNames.singleRelatedRamen`
 7. 그 밖에는 모델(`MealFoodInterpreting.foods`)
 
 그다음 `MealInputGrounding.ground`가 양·단위를 원문에서 다시 읽습니다. 이름 끝에 붙은 양 표현은 떼고, 단위 없는 개수(하나/둘…)도 여기서 읽습니다.
+
+모델을 쓴 경우의 보완(2026-11-24, #41):
+- 정식·세트(`setMenuName`)는 구성을 묻지 않고 이름 하나의 음식으로 처리합니다.
+- 쉼표로 나뉜 줄은 조각마다 위 순서를 따릅니다(#39).
+- 모델이 뽑은 이름 중 원문에 없는 것은 버립니다. 그대로 없지만 일부가 있으면(연속 2자 이상, 이름 글자 수의 절반 이상) 가장 많이 겹치는 원문 단어로 맞춥니다. 모두 버려지거나 음식 추출 단계가 실패하면 원문을 음식 하나로 봅니다(`wholeTextFood`).
+- 모델이 빠뜨린 음식 보충(`supplementedInputs`): 원문 단어 끝의 조사·어미(`MealTextParticles.json`)를 뗀 단어가 참고표·술 표 이름·별칭이나 DB 일반 음식(브랜드 없는 "음식" 분류) 이름과 정확히 맞고, 이미 뽑힌 음식의 원문 범위와 겹치지 않으면 더합니다.
 
 ### 1-2. 이름 하나를 DB 자료로(AI 식사 입력, `resolve(_:items:)`)
 
@@ -36,7 +43,7 @@
 3. `PreparedFoodReference.entry`: 조리 음식 참고값이 있으면 바로 선택합니다.
 4. `DrinkReferenceCatalog.entry`: 술 표(`DrinkReferences.json`) 이름이면 `resolveDrink`로 처리합니다.
 5. 포장제품 표(`PackagedFoodReferences.json`) 후보는 제품을 원하는 입력일 때 질문합니다.
-6. "반찬"처럼 무엇인지 모르는 이름이면 질문합니다.
+6. "반찬"처럼 무엇인지 모르는 이름이면 모델 영양 추정으로 기록합니다(#41 전에는 "어떤 반찬을 드셨나요?" 질문).
 7. **참고표 referenceID**: 이름이 참고표 항목이고 추가 설명이 없으면 `catalog.food(id:)`로 그 자료를 바로 가져옵니다.
    - `FoodReference.matches`가 이름·단위·출처·기준일까지 맞아야 합니다.
    - mL 자료면 `preferredReferenceFood` → `gramFood`로 같은 요리의 g 자료를 먼저 찾습니다.
@@ -56,8 +63,13 @@
     - 라멘 관련 질문, 스파게티 소스 질문
     - 볶음·조림 재료가 같은 비슷한 음식 질문(`FoodReferenceCatalog.similarDishQuery`)
 12. **모델 선택**: `interpreter.assess`가 후보 최대 8개 중에서 고릅니다. 못 고르면 `searchTerms`로 한 번 더 찾습니다.
-    - 고른 자료의 이름이 입력과 다르면 "비슷한 음식 기준으로 기록할까요?" 질문을 합니다(`similarFoodQuestion`).
-13. 그래도 없으면 포장제품 후보 질문, 정보 부족 질문, 모델 영양 추정(`estimateNutrition`, 근거 DB 항목 확인) 순으로 처리하고, 그것도 안 되면 질문합니다.
+    - 같은 이름 일반 음식이 없고 검색어로 찾은 후보 중 입력 이름과 겹치는 것이 하나도 없으면(`namesOverlap`: 연속 두 글자, 또는 후보 주 이름과 짧은 쪽 글자의 절반 이상) 비슷한 음식 질문 없이 13번 영양 추정으로 갑니다(#41).
+    - 고른 자료의 이름이 입력과 다르면 "비슷한 음식 기준으로 기록할까요?" 질문을 합니다(`similarFoodQuestion`). 마지막 선택지 "목록에 없어요"는 영양 추정으로 갑니다(#39).
+    - 검색어·후보 선택 단계가 실패하면 검색어 없이, 첫 후보로 계속합니다(#41).
+13. 그래도 없으면 포장제품 후보 질문, 모델 영양 추정(`estimateNutrition`) 순으로 처리합니다.
+    - 2026-11-24(#41)부터 선택지 0개 질문(재료·소스, 정보 부족, 반찬, 구성, 제품명)을 내지 않습니다. 추정 기준 음식이 입력에 없어도 입력 이름으로 AI 추정 기록하고, 추정값이 없으면 오류로 끝납니다.
+
+**제품 확인 질문**(`productQuestion`, #41): 입력에 업체명·브랜드가 없고 이름이 같은 가공식품 후보가 2개 이상이면 묻지 않고 가운데 제품을 씁니다(`medianSameNameProduct`). 많은 단위(g·mL) 묶음을 100당 kcal로 정렬해 가운데, 짝수면 가운데 둘 중 낮은 쪽. 저장 출처는 `{출처} · {업체명} {제품명} 영양값 기준`. 후보가 하나뿐이거나 포장제품 표 항목이면 지금처럼 묻습니다. 일반 음식 후보를 먼저 보는 위 순서는 바꾸지 않습니다.
 
 ### 1-3. 검색(`FoodCatalogService.search`, 두 경로 공통)
 
@@ -111,8 +123,11 @@
 7. 사용자가 질문에 답한 분량(`portionOverride`)
 8. 대표 분량표(`FoodPortion.representative`, 국물·면 mL 포함)
 9. 참고표 `estimatedPortions`
-10. AI 분량 추정(`interpreter.portion`, `isPlausible` 범위 검사)
-11. 그래도 안 되면 수량·중량 질문(`resolveSelection`의 `portionUnknown` 처리)
+10. AI 분량 추정(`interpreter.portion`, `isPlausible` 범위 검사). 1단위(개·잔·병·인분 등) 추정이 1,500 이상이면 추정 실패로 봅니다(#41).
+11. 그래도 안 되면 `resolveSelection`의 `portionUnknown` 처리(무게는 묻지 않음, #39·#41)
+    - 포장 중량 없는 가공식품: AI 1단위 추정 → 원문에 수량이 있으면 그 수량으로 바로 기록, 없으면 수량(1·0.5·1.5) 선택 질문(`unitPortionChoice`).
+    - 원문 수량이 없는 일반 음식: 수량 질문(`amountQuestion`).
+    - 추정 실패, 또는 원문 수량이 있거나 이미 수량을 고른 뒤의 실패: `portionFallback` 순서로 기록합니다. 제품 포장량(상한 미만) → 대표 분량(g 자료, 국물·면 mL 자료, 같은 이름의 대표 분량표) → 1인분 선택 질문(DB 영양 기준량 100g·100mL를 1인분으로 계산한다고 알림). 각 값은 분량 검사를 통과할 때만 씁니다.
 
 `resolveSelection`은 `makeItem` 전에 `suggestedPortion`(라멘의 우동 1그릇 참고, 너겟 1개)을 질문으로 먼저 보여줄 수 있습니다.
 
