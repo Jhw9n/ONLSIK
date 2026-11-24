@@ -725,6 +725,51 @@
       "id": "M132", "input": "된찌", "note": "#43 3차 A: 된장찌개 별칭도 참고표 1인분 400g",
       "llm": { "food": "된찌", "portion": { "amount": 450 } },
       "expect": { "maxQuestions": 0, "foodID": "D106-275000000-0001", "basis": "estimated", "count": 1, "amount": { "units": ["g"], "min": 399, "max": 401 } }
+    },
+    {
+      "id": "M133", "input": "냉동만두 5개", "note": "#43 3차 C: 실기기 모델이 1개 150g으로 추정해 750g 약 1,755kcal(열량 확인 질문). 참고표 만두 1개 30g(내부 기준)이 쓰여야 함",
+      "llm": { "food": "냉동만두", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 1, "questionsExclude": ["열량이 높게"], "foodID": "D103-150030000-0001", "units": ["개"], "count": 5, "amount": { "units": ["g"], "min": 149, "max": 151 }, "kcal": { "min": 345, "max": 357 } }
+    },
+    {
+      "id": "M134", "input": "물만두 10개", "note": "#43 3차 C: 1개 30g(내부 기준), g 기준 '만두 물만두'",
+      "llm": { "food": "물만두", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "foodID": "D103-150190000-0001", "units": ["개"], "count": 10, "amount": { "units": ["g"], "min": 299, "max": 301 }, "kcal": { "min": 579, "max": 591 } }
+    },
+    {
+      "id": "M135", "input": "만두 5개", "note": "#43 3차 C: 1개 30g",
+      "llm": { "food": "만두", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "foodID": "D103-150030000-0001", "units": ["개"], "count": 5, "amount": { "units": ["g"], "min": 149, "max": 151 } }
+    },
+    {
+      "id": "M136", "input": "군만두 6개", "note": "#43 3차 C: 1개 30g. 이전에는 mL 항목 군만두(D403)로 갔다",
+      "llm": { "food": "군만두", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "foodID": "D103-150030000-0001", "units": ["개"], "count": 6, "amount": { "units": ["g"], "min": 179, "max": 181 } }
+    },
+    {
+      "id": "M137", "input": "고기만두 3개", "note": "#43 3차 C: 1개 30g, g 기준 '만두 고기만두'",
+      "llm": { "food": "고기만두", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "foodID": "D103-150010000-0001", "units": ["개"], "count": 3, "amount": { "units": ["g"], "min": 89, "max": 91 } }
+    },
+    {
+      "id": "M138", "input": "김치만두 3개", "note": "#43 3차 C: 1개 30g, g 기준 '만두 김치만두'",
+      "llm": { "food": "김치만두", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "foodID": "D103-150060000-0001", "units": ["개"], "count": 3, "amount": { "units": ["g"], "min": 89, "max": 91 } }
+    },
+    {
+      "id": "M139", "input": "군만두 1인분", "note": "#43 3차 C: 인분은 대표 분량표 군만두 1인분 250g 그대로",
+      "llm": { "food": "군만두", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "basis": "representative", "units": ["인분"], "count": 1, "amount": { "units": ["g"], "min": 249, "max": 251 } }
+    },
+    {
+      "id": "M140", "input": "고기만두", "note": "#43 3차 C: 수량 없는 입력이 1개 30g으로 가정되지 않아야 함(인분 220g, 이 항목의 음식 DB 1인분 중량)",
+      "llm": { "food": "고기만두", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "foodID": "D103-150010000-0001", "units": ["인분"], "count": 1, "assumedQuantity": true, "amount": { "units": ["g"], "min": 219, "max": 221 } }
+    },
+    {
+      "id": "M141", "input": "만두", "note": "#43 3차 C: 수량 없는 만두는 1개 30g이 아니라 대표 분량표 군만두 1인분 250g('만두 군만두' 자료)",
+      "llm": { "food": "만두", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "foodID": "D103-150030000-0001", "basis": "representative", "units": ["인분"], "count": 1, "assumedQuantity": true, "amount": { "units": ["g"], "min": 249, "max": 251 } }
     }
   ]
 }
