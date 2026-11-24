@@ -7,6 +7,7 @@ import Foundation
 /// - assess: llm.pick과 이름이 맞는 후보, 없으면 첫 후보를 고른다.
 /// - estimateNutrition: llm.estimate가 있을 때만 추정값을 돌려준다.
 /// - searchTerms: llm.searchTerms(실기기 모델 검색어 재현, 없으면 빈 목록). foods: llm.foods가 있으면 원문에 든 이름만.
+/// - fail: llm.fail에 적은 단계(foods, searchTerms, assess, portion, estimate)는 generationFailed를 던진다(#41).
 /// - rawFoods: llm.rawFoods가 있으면 원문과 상관없이 그대로(#41, 원문에 없는 이름을 섞어 돌려주는 모델 재현).
 @MainActor
 final class FakeMealFoodInterpreter: MealFoodInterpreting {
@@ -17,8 +18,13 @@ final class FakeMealFoodInterpreter: MealFoodInterpreting {
         self.script = script
     }
 
+    private func failIfScripted(_ stage: String) throws {
+        if script?.fail?.contains(stage) == true { throw MealEntryError.generationFailed }
+    }
+
     func foods(in text: String) async throws -> [MealFoodInput] {
         calls.append("foods")
+        try failIfScripted("foods")
         if let foods = script?.rawFoods {
             return foods.map { MealFoodInput(name: $0, sourceText: text, quantity: 1, unit: "인분", brand: "") }
         }
@@ -33,12 +39,14 @@ final class FakeMealFoodInterpreter: MealFoodInterpreting {
 
     func portion(for input: MealFoodInput, food: FoodCatalogItem) async throws -> MealPortionEstimate {
         calls.append("portion")
+        try failIfScripted("portion")
         guard let portion = script?.portion else { throw MealEntryError.portionUnknown(input.name) }
         return MealPortionEstimate(amountPerUnit: portion.amount, amountUnit: portion.unit ?? food.amountUnit)
     }
 
     func assess(_ input: MealFoodInput, candidates: [FoodCatalogItem]) async throws -> MealFoodAssessment {
         calls.append("assess")
+        try failIfScripted("assess")
         guard !candidates.isEmpty else { return MealFoodAssessment(candidateIndex: 0, clarification: .none) }
         if let pick = script?.pick {
             let index = candidates.firstIndex { $0.name.contains(pick) }.map { $0 + 1 } ?? 0
@@ -49,11 +57,13 @@ final class FakeMealFoodInterpreter: MealFoodInterpreting {
 
     func searchTerms(for input: MealFoodInput) async throws -> [String] {
         calls.append("searchTerms")
+        try failIfScripted("searchTerms")
         return script?.searchTerms ?? []
     }
 
     func estimateNutrition(for input: MealFoodInput) async throws -> MealNutritionEstimate? {
         calls.append("estimate")
+        try failIfScripted("estimate")
         guard let estimate = script?.estimate else { return nil }
         return MealNutritionEstimate(
             referenceFood: estimate.referenceFood,

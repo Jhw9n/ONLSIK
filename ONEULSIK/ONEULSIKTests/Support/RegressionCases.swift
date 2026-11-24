@@ -101,6 +101,8 @@ struct MealCase: Decodable, CustomTestStringConvertible {
         var foods: [String]? = nil
         /// 원문과 상관없이 그대로 돌려줄 음식 이름(#41, 실기기 모델이 지시문 예시 이름을 섞어 돌려준 경우 재현)
         var rawFoods: [String]? = nil
+        /// 실패시킬 모델 단계(foods, searchTerms, assess, portion, estimate). 그 단계에서 generationFailed를 던진다(#41, 작업 G)
+        var fail: [String]? = nil
     }
     struct AmountRange: Decodable { let units: [String]; let min: Double; let max: Double }
     struct Expect: Decodable {
@@ -121,6 +123,8 @@ struct MealCase: Decodable, CustomTestStringConvertible {
         var asksAmount: Bool?
         /// 수량을 적지 않아 기본값(대표 분량 1단위)으로 가정했고, 카드에 그 안내가 붙어야 함(false면 붙으면 안 됨)
         var assumedQuantity: Bool?
+        /// 모든 경로가 실패해 이 글자가 든 오류 화면으로 끝나야 함(#41, 작업 G)
+        var errorContains: String?
         /// 기록에 저장되는 출처(nutritionSource)에 들어가야 할 글자(#41)
         var sourceContains: String?
         /// 기록에 쓰인 DB 항목 ID(#41, 같은 이름 제품의 가운데 제품 확인)
@@ -162,6 +166,7 @@ struct MealCase: Decodable, CustomTestStringConvertible {
         if expect.asksAmount == true { parts.append("수량 질문") }
         if expect.assumedQuantity == true { parts.append("기본값 안내") }
         if expect.asksUnitEstimate == true { parts.append("AI 1단위 추정 수량 질문") }
+        if let error = expect.errorContains { parts.append("오류 화면(‘\(error)’)") }
         if let source = expect.sourceContains { parts.append("출처에 ‘\(source)’") }
         if let id = expect.foodID { parts.append("자료 \(id)") }
         if let excluded = expect.questionsExclude { parts.append("질문에 없음(\(excluded.joined(separator: ", ")))") }

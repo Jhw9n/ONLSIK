@@ -129,6 +129,7 @@ struct MealEntryOutcomeTests {
         var failures: [Failure] = []
         var questionLog: [String] = []
         var shownText: [String] = []
+        var caughtError: String?
         var items: [MealEntryItem] = []
         let answers = testCase.answers ?? []
         var answerIndex = 0
@@ -171,7 +172,10 @@ struct MealEntryOutcomeTests {
                 }
             }
         } catch {
-            failures.append(Failure(type: .error, message: "\(error.localizedDescription)"))
+            caughtError = error.localizedDescription
+            if testCase.expect.errorContains == nil {
+                failures.append(Failure(type: .error, message: "\(error.localizedDescription)"))
+            }
         }
 
         let expect = testCase.expect
@@ -185,6 +189,19 @@ struct MealEntryOutcomeTests {
         }
         if let max = expect.maxQuestions, questionLog.count > max {
             failures.append(Failure(type: .question, message: "질문 \(questionLog.count)회 (허용 \(max)회): \(questionLog.first ?? "")"))
+        }
+
+        // 모든 경로가 실패해 오류 화면이 나와야 하는 케이스(#41, 작업 G 표)
+        if let expectedError = expect.errorContains {
+            if let caughtError, !caughtError.contains(expectedError) {
+                failures.append(Failure(type: .error, message: "오류 ‘\(caughtError)’ (기대 ‘\(expectedError)’)"))
+            } else if caughtError == nil {
+                failures.append(Failure(type: .error, message: "오류 화면 ‘\(expectedError)’이 나와야 하는데 오류 없음"))
+            }
+            report(suite: "식사", id: testCase.id, input: testCase.input, expected: testCase.expectedSummary,
+                   actual: caughtError.map { "오류: \($0)" } ?? "오류 없음", questions: questionLog.count, questionLog: questionLog,
+                   failures: failures)
+            return
         }
 
         var actual = items.isEmpty ? "기록 없음" : ""
