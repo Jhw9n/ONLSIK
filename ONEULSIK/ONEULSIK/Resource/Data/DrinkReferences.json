@@ -110,6 +110,20 @@
         { "unit": "병", "milliliters": 300, "source": "내부 기준: 시판 청하 병 300mL (2026-11-23 결정)" },
         { "unit": "잔", "milliliters": 50, "source": "https://www.cancer.go.kr/lay1/S1T231C233/contents.do" }
       ]
+    },
+    {
+      "name": "에너지드링크",
+      "aliases": ["에너지 드링크"],
+      "matchesSuffix": false,
+      "productNames": [],
+      "referenceID": "P109-401040100-1455",
+      "referenceName": "에너지드링크",
+      "defaultUnit": "캔",
+      "basisNote": "에너지드링크 1캔(2026-11-24 결정, #43). 영양값은 지금처럼 이름이 정확히 같은 제품 3개(100mL당 4·66·210kcal) 중 가운데인 ECONUTI '에너지드링크'(100mL당 66kcal, 포장량 없음)를 쓴다. 이 제품에 포장량이 없어 모델 분량 추정(500mL, 330kcal)으로 기록되던 것을 시판 캔 250mL로 고정한다.",
+      "containers": [
+        { "unit": "캔", "milliliters": 250, "source": "내부 기준: 시판 에너지드링크 캔 250mL (2026-11-24 결정)" },
+        { "unit": "개", "milliliters": 250, "source": "내부 기준: 시판 에너지드링크 캔 250mL (2026-11-24 결정)" }
+      ]
     }
   ]
 }

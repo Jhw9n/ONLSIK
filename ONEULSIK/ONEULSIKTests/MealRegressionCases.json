@@ -710,6 +710,11 @@
       "id": "M129", "input": "순대국밥", "note": "#43: 실기기 '국밥 순대국밥' 비슷한 음식 기준 450g 338kcal. 선택된 레코드(D101-004310000-0001)의 원본 식품중량 900g을 씀",
       "llm": { "food": "순대국밥", "portion": { "amount": 450 } },
       "expect": { "maxQuestions": 0, "foodID": "D101-004310000-0001", "basis": "representative", "dishServing": true, "count": 1, "amount": { "units": ["g"], "min": 899, "max": 901 }, "kcal": { "min": 660, "max": 690 } }
+    },
+    {
+      "id": "M130", "input": "에너지드링크", "note": "#43 D: 실기기 가운데 제품(P109-401040100-1455, 100mL당 66kcal, 포장량 없음)에 모델 분량 500mL 330kcal. 지금은 술·음료 표의 1캔 250mL(내부 기준), 영양값은 같은 제품",
+      "llm": { "food": "에너지드링크", "portion": { "amount": 500, "unit": "mL" } },
+      "expect": { "maxQuestions": 0, "foodID": "P109-401040100-1455", "units": ["캔"], "count": 1, "assumedQuantity": true, "amount": { "units": ["mL"], "min": 249, "max": 251 }, "kcal": { "min": 163, "max": 167 } }
     }
   ]
 }
