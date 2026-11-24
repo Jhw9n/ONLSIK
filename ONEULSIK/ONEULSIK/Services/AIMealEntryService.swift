@@ -723,14 +723,16 @@ final class AIMealEntryService: MealEntryAnalyzing {
     }
 
     /// DB 자료는 있는데 분량 추정이 실패했을 때의 대체 흐름(#41, 작업 H). 오류 대신 아래 순서로 기록한다. 무게는 묻지 않는다.
-    /// 1. 제품 포장량(총중량이 있고 상한 미만) 2. 대표 분량(같은 음식 또는 같은 이름의 대표 분량표)
+    /// 1. 제품 포장량(총중량·총열량이 상한 미만, usesPackageAmount) 2. 대표 분량(같은 음식 또는 같은 이름의 대표 분량표)
     /// 3. 1인분 선택 질문: 분량 정보가 없어 DB 영양 기준량(100g 또는 100mL)을 1인분으로 계산한다고 알리고 0.5·1·1.5인분을 고르게 한다.
     private func portionFallback(_ selection: MealFoodSelection, items: [MealEntryItem], remaining: [MealFoodInput]) async throws -> MealEntryAnalysis {
         let food = selection.food
         let unit = selection.input.unit == "소량" ? "개" : selection.input.unit
         let name = selection.input.name
         // 각 대체 분량은 makeItem의 분량 검사(isPlausible)를 통과할 때만 쓴다. 통과하지 못하는 값을 쓰면 같은 대체 흐름이 되풀이된다.
-        if food.packageAmount > 0, food.packageAmount < Self.packageAmountLimit, !["g", "mL"].contains(unit),
+        // 포장 총중량 규칙(usesPackageAmount: 총중량·총열량 상한 미만)을 넘는 대용량 포장은 1단위로 쓰지 않는다(#41 2차).
+        // 300개 점검에서 수량 없는 "초코케이크"가 700g 2,450kcal 제품 1개로 기록됐다.
+        if Self.usesPackageAmount(food), !["g", "mL"].contains(unit),
            MealPortionEstimate(amountPerUnit: food.packageAmount, amountUnit: food.amountUnit).isPlausible(for: unit, foodName: name) {
             let estimate = MealPortionEstimate(amountPerUnit: food.packageAmount, amountUnit: food.amountUnit)
             MealDebugLog.log("대체 분량: 제품 포장량 \(Self.amountText(food.packageAmount))\(food.amountUnit)를 1\(unit)으로")
