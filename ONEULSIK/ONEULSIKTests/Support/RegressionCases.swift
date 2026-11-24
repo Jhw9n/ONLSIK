@@ -139,6 +139,8 @@ struct MealCase: Decodable, CustomTestStringConvertible {
         var asksUnitEstimate: Bool?
         /// mL 국물·면 항목에 대표 분량을 같은 숫자의 mL로 계산했다는 안내가 붙어야 함(false면 붙으면 안 됨)
         var volumeAsWeight: Bool?
+        /// 식약처 음식 DB 1인분 중량(DishServings.json)을 대표 분량으로 썼다는 안내가 붙어야 함(false면 붙으면 안 됨, #43)
+        var dishServing: Bool?
         /// 여러 음식으로 기록돼야 할 때 순서대로 각 음식 이름(또는 DB 이름)에 들어갈 글자(#39). 없으면 음식 1개여야 함
         var items: [String]?
     }
@@ -178,6 +180,8 @@ struct MealCase: Decodable, CustomTestStringConvertible {
         if let excluded = expect.questionsExclude { parts.append("질문에 없음(\(excluded.joined(separator: ", ")))") }
         if expect.volumeAsWeight == true { parts.append("국물 mL 안내") }
         if expect.volumeAsWeight == false { parts.append("국물 mL 안내 없음") }
+        if expect.dishServing == true { parts.append("음식 DB 1인분 중량 안내") }
+        if expect.dishServing == false { parts.append("음식 DB 1인분 중량 안내 없음") }
         if let items = expect.items { parts.append("음식 \(items.count)개(\(items.joined(separator: ", ")))") }
         return parts.joined(separator: ", ")
     }

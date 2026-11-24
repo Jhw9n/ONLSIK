@@ -123,14 +123,15 @@
 1. 조리 음식 참고값(`PreparedFoodReference`, `preparedItem`)
 2. 술 용기 표(`DrinkReferences.json`, `drinkItem`). 대표 DB 항목이 100g 기준(농진청 와인·청주 등)이면 1mL=1g으로 본다(`DrinkReference.matches`, 2026-11-23, #37).
 3. 포장제품 표의 제품 총중량(`PackagedFoodReferences.json`)
-4. 가공식품 DB의 제품 총중량(`package_amount`, 개·봉·팩·병·캔, `packageItem`). 1개 총중량이 1,500g(mL)을 넘거나 1개 열량이 1,500kcal를 넘으면 업소용·대용량 포장으로 보고 총중량을 쓰지 않습니다. 대신 일반 음식과 같은 분량 흐름(8번 대표 분량표에서 입력 이름으로 찾은 분량 → 10번 AI 분량 추정 → 11번 "얼마나 드셨나요?" 선택지 질문)으로 가고, 영양값은 고른 제품의 100g(mL)당 값을 씁니다. 무게(g·mL)는 묻지 않습니다(`AIMealEntryService.usesPackageAmount`, `isOversizedPackage`, 2026-11-23, #37). 제품 확인 질문의 선택지 설명도 같은 기준이라, 넘는 제품은 총중량 대신 100g(mL) 기준 값을 보여줍니다.
+4. 가공식품 DB의 제품 총중량(`package_amount`, 개·봉·팩·병·캔, `packageItem`). 1개 총중량이 1,500g(mL)을 넘거나 1개 열량이 1,500kcal를 넘으면 업소용·대용량 포장으로 보고 총중량을 쓰지 않습니다. 대신 일반 음식과 같은 분량 흐름(8번 대표 분량표에서 입력 이름으로 찾은 분량 → 11번 AI 분량 추정 → 12번 "얼마나 드셨나요?" 선택지 질문)으로 가고, 영양값은 고른 제품의 100g(mL)당 값을 씁니다. 무게(g·mL)는 묻지 않습니다(`AIMealEntryService.usesPackageAmount`, `isOversizedPackage`, 2026-11-23, #37). 제품 확인 질문의 선택지 설명도 같은 기준이라, 넘는 제품은 총중량 대신 100g(mL) 기준 값을 보여줍니다.
 5. 사용자가 적은 g/mL(DB 기준 단위와 같을 때만)
 6. 소량·종지 반찬(`FoodPortion.smallSideGrams`)
 7. 사용자가 질문에 답한 분량(`portionOverride`)
 8. 대표 분량표(`FoodPortion.representative`, 국물·면 mL 포함)
 9. 참고표 `estimatedPortions`
-10. AI 분량 추정(`interpreter.portion`, `isPlausible` 범위 검사). 1단위(개·잔·병·인분 등) 추정이 1,500 이상이면 추정 실패로 봅니다(#41).
-11. 그래도 안 되면 `resolveSelection`의 `portionUnknown` 처리(무게는 묻지 않음, #39·#41)
+10. 식약처 음식 DB 1인분 중량(`DishServing`, `Resource/Data/DishServings.json`, 2026-11-24 결정, #43). 선택된 일반 음식 레코드(가공식품 제외)의 원본 `식품중량`을 1인분·1그릇으로 씁니다. 개는 쓰지 않습니다(만두처럼 1인분이 여러 개인 음식에서 `냉동만두 5개`가 1,100g이 됨, M15). 분량 근거는 대표 분량(`representative`)이고 카드에 "식약처 음식 DB 1인분 중량 기준"을 붙입니다(기록에는 저장하지 않음). 비슷한 음식 기준 기록(예: `순대국밥` → `국밥 순대국밥`)도 선택된 레코드의 값을 씁니다. 1인분 상한(`isPlausible`, 인분 1,000 미만·덮밥 등 200 이상)을 넘는 값(여러 인분 포장·피자 한 판 등)은 쓰지 않고 다음 단계로 갑니다. 생성 스크립트 `Scripts/build_dish_servings.py`는 `숫자+g/ml` 형태이고 DB 기준 단위와 같은 값만 담고, 영양 기준량과 같은 100은 1인분이 아닌 값이 많아(쌀밥·팟타이·마라탕 등) 뺍니다. 대표 분량표·참고표 값과 20% 넘게 다른 음식은 `DishServingTests`(L04) 보고서에 남깁니다(고치지 않음).
+11. AI 분량 추정(`interpreter.portion`, `isPlausible` 범위 검사). 1단위(개·잔·병·인분 등) 추정이 1,500 이상이면 추정 실패로 봅니다(#41).
+12. 그래도 안 되면 `resolveSelection`의 `portionUnknown` 처리(무게는 묻지 않음, #39·#41)
     - 포장 중량 없는 가공식품: AI 1단위 추정 → 원문 수량으로, 수량이 없으면 1단위로 가정해 바로 기록(`unitPortionChoice`, #41 2차 B부터 수량 질문 없음).
     - 그 밖의 실패: `portionFallback` 순서로 기록합니다. 제품 포장량(`usesPackageAmount`: 총중량·총열량 상한 미만, #41 2차) → 대표 분량(g 자료, 국물·면 mL 자료, 같은 이름의 대표 분량표) → DB 영양 기준량(100g·100mL)을 1인분으로. 마지막 단계는 원문 수량이 없으면 묻지 않고 1인분으로 기록하고 안내하며(#41 2차 B), 원문 수량이 있으면 1인분 선택 질문입니다. 각 대체 분량은 분량 검사를 통과할 때만 씁니다.
     - 수량 질문이 남는 경우(술 표 음료에 개·인분 수량을 적음, 영양 추정의 분량 검사 실패 등) 영양 추정 경로는 답한 뒤 앞의 영양 추정을 다시 쓰고 분량만 다시 묻습니다(#41 2차 F).

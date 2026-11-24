@@ -1596,6 +1596,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
         let origin: MealPortionBasis
         var referencePortionUnit = ""
         var volumeNote: String?
+        var portionNote: String?
 
         if input.unit == "g" || input.unit == "mL" {
             guard input.unit == food.amountUnit else { throw MealEntryError.portionUnknown(input.name) }
@@ -1642,6 +1643,15 @@ final class AIMealEntryService: MealEntryAnalyzing {
             count = input.quantity
             unit = input.unit
             origin = .estimated
+        } else if DishServing.units.contains(input.unit), let serving = DishServing.serving(for: food),
+                  MealPortionEstimate(amountPerUnit: serving.amount, amountUnit: serving.unit).isPlausible(for: input.unit, foodName: input.name) {
+            // 대표 분량이 없는 일반 음식은 모델 분량 추정 전에 식약처 음식 DB의 1인분 중량을 1인분·1그릇으로 쓴다(#43, 개는 제외).
+            // 1인분 상한(1,000g 미만 등)을 넘는 여러 인분 포장 값은 쓰지 않고 모델 분량 추정으로 넘긴다.
+            basis = serving.amount
+            count = input.quantity
+            unit = input.unit
+            origin = .representative
+            portionNote = DishServing.displayText
         } else {
             guard food.category != "가공식품" || isOversizedPackage(food) else { throw MealEntryError.portionUnknown(input.name) }
             let estimate: MealPortionEstimate
@@ -1675,6 +1685,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
         adjusted.referencePortionUnit = referencePortionUnit
         var item = MealEntryItem(food: adjusted, servingCount: count, portionBasis: origin, nutritionBasis: selection.isSimilar ? .similarFood : .database)
         item.volumeNote = volumeNote
+        item.portionNote = portionNote
         guard item.isValid else { throw MealEntryError.invalidResult }
         return item
     }

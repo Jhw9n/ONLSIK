@@ -299,9 +299,9 @@
       "expect": { "maxQuestions": 0, "assumedQuantity": true, "kind": "general", "nameContains": ["밥"], "units": ["공기"], "count": 1, "amount": { "units": ["g"], "min": 205, "max": 215 } }
     },
     {
-      "id": "M48", "input": "제육볶음", "note": "수량 없음 + 대표 분량 없음 → LLM 1인분 분량(portion 200g)으로 기록. 2026-11-24(#41 2차 B 사용자 결정)부터 수량이 없으면 묻지 않고 1단위로 가정해 기록하고 안내를 붙인다. 이전 기대: 수량 질문(asksAmount), 기본값 안내 없음",
+      "id": "M48", "input": "제육볶음", "note": "수량 없음 + 대표 분량 없음 → LLM 1인분 분량(portion 200g)으로 기록. 2026-11-24(#41 2차 B 사용자 결정)부터 수량이 없으면 묻지 않고 1단위로 가정해 기록하고 안내를 붙인다. 이전 기대: 수량 질문(asksAmount), 기본값 안내 없음. 2026-11-24(#43)부터 선택된 레코드(돼지고기볶음(제육볶음))의 식약처 음식 DB 1인분 중량 250g을 대표 분량으로 씀. 이전 기대: 분량 근거 aiEstimated(가짜 해석기 200g)",
       "llm": { "food": "제육볶음", "portion": { "amount": 200 } }, "choose": "1인분",
-      "expect": { "maxQuestions": 0, "questionsExclude": ["얼마나 드셨나요"], "assumedQuantity": true, "basis": "aiEstimated", "units": ["인분"], "count": 1 }
+      "expect": { "maxQuestions": 0, "questionsExclude": ["얼마나 드셨나요"], "assumedQuantity": true, "basis": "representative", "dishServing": true, "units": ["인분"], "count": 1 }
     },
     {
       "id": "M49", "input": "된장찌개 절반", "note": "실기기(2026-11-16): 모델이 이름에 ‘절반’을 붙여 돌려줘 ‘된장찌개 절반’과 가까운 음식 질문이 나오고 절반이 사라짐. 모델 응답 재현",
@@ -675,6 +675,41 @@
       "id": "M122", "input": "초코케이크", "note": "#41 2차 300개 점검: 수량 없는 입력을 1단위로 가정한 뒤 AI 분량 추정이 실패하면(가짜 해석기) 대체 분량의 제품 포장량 단계가 총열량 상한을 보지 않아 700g 2,450kcal 제품 1개로 기록됐다. 지금은 포장 총중량 규칙(총중량 1,500g·총열량 1,500kcal 미만)을 넘는 포장은 1단위로 쓰지 않음",
       "llm": { "food": "초코케이크" },
       "expect": { "maxQuestions": 1, "questionsExclude": ["얼마나 드셨나요", "열량이 높게"], "kcal": { "min": 1, "max": 1000 } }
+    },
+    {
+      "id": "M123", "input": "칼국수", "note": "#43: 실기기(fe1afd1) 모델 분량 추정 250g 193kcal. 지금은 식약처 음식 DB 원본 식품중량 700g(D103-174000000-0001)을 1인분 대표 분량으로 씀. 가짜 해석기 분량 250g은 쓰이지 않아야 함",
+      "llm": { "food": "칼국수", "portion": { "amount": 250 } },
+      "expect": { "maxQuestions": 0, "foodID": "D103-174000000-0001", "basis": "representative", "dishServing": true, "count": 1, "amount": { "units": ["g"], "min": 699, "max": 701 }, "kcal": { "min": 530, "max": 548 } }
+    },
+    {
+      "id": "M124", "input": "쌀국수", "note": "#43: 실기기 모델 분량 350g 186kcal. 원본 식품중량 600g(D303-162000000-0001)",
+      "llm": { "food": "쌀국수", "portion": { "amount": 350 } },
+      "expect": { "maxQuestions": 0, "foodID": "D303-162000000-0001", "basis": "representative", "dishServing": true, "count": 1, "amount": { "units": ["g"], "min": 599, "max": 601 }, "kcal": { "min": 312, "max": 324 } }
+    },
+    {
+      "id": "M125", "input": "육개장", "note": "#43: 실기기 모델 분량 450g 135kcal. 원본 식품중량 440g(D105-245000000-0001)",
+      "llm": { "food": "육개장", "portion": { "amount": 200 } },
+      "expect": { "maxQuestions": 0, "foodID": "D105-245000000-0001", "basis": "representative", "dishServing": true, "count": 1, "amount": { "units": ["g"], "min": 439, "max": 441 }, "kcal": { "min": 129, "max": 135 } }
+    },
+    {
+      "id": "M126", "input": "된장찌개", "note": "#43: 실기기 모델 분량 450g 207kcal. 원본 식품중량 200g(D106-275000000-0001)이라 지금보다 작아짐",
+      "llm": { "food": "된장찌개", "portion": { "amount": 450 } },
+      "expect": { "maxQuestions": 0, "foodID": "D106-275000000-0001", "basis": "representative", "dishServing": true, "count": 1, "amount": { "units": ["g"], "min": 199, "max": 201 }, "kcal": { "min": 90, "max": 94 } }
+    },
+    {
+      "id": "M127", "input": "미역국", "note": "#43: 실기기 모델 분량 400g 48kcal. 원본 식품중량도 400g(D105-223000000-0001). 가짜 해석기에는 250g을 줘서 원본 값이 쓰이는지 확인",
+      "llm": { "food": "미역국", "portion": { "amount": 250 } },
+      "expect": { "maxQuestions": 0, "foodID": "D105-223000000-0001", "basis": "representative", "dishServing": true, "count": 1, "amount": { "units": ["g"], "min": 399, "max": 401 }, "kcal": { "min": 46, "max": 50 } }
+    },
+    {
+      "id": "M128", "input": "마라탕", "note": "#43: 원본 식품중량이 영양 기준량과 같은 100g(D306-278000000-0002)이라 1인분 정보가 아닌 값으로 보고 데이터 파일에서 뺐다. 지금처럼 모델 분량 추정(가짜 해석기 500g, 실기기 500g 330kcal)을 씀",
+      "llm": { "food": "마라탕", "portion": { "amount": 500 } },
+      "expect": { "maxQuestions": 0, "foodID": "D306-278000000-0002", "basis": "aiEstimated", "dishServing": false, "count": 1, "amount": { "units": ["g"], "min": 499, "max": 501 } }
+    },
+    {
+      "id": "M129", "input": "순대국밥", "note": "#43: 실기기 '국밥 순대국밥' 비슷한 음식 기준 450g 338kcal. 선택된 레코드(D101-004310000-0001)의 원본 식품중량 900g을 씀",
+      "llm": { "food": "순대국밥", "portion": { "amount": 450 } },
+      "expect": { "maxQuestions": 0, "foodID": "D101-004310000-0001", "basis": "representative", "dishServing": true, "count": 1, "amount": { "units": ["g"], "min": 899, "max": 901 }, "kcal": { "min": 660, "max": 690 } }
     }
   ]
 }

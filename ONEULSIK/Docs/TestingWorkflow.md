@@ -14,6 +14,8 @@ Git 이슈·브랜치·커밋·PR 규칙은 `Docs/GitWorkflow.md`를 따른다.
 | 메뉴 커버리지 점검 | `Scripts/check_menu_coverage.py`, `Docs/MenuCoverage.txt` |
 | 대표 분량 연결 점검 | `ONEULSIKTests/PortionLinkTests.swift`(앱이 고르는 항목에 대표 분량이 붙는지) |
 | 대표 분량 음식 전체 점검(L03) | `ONEULSIKTests/PortionAuditTests.swift`, 기준선 `ONEULSIKTests/PortionAuditBaseline.json`(규칙: `Docs/FoodResolution.md`) |
+| 음식 DB 1인분 중량 점검(L04) | `ONEULSIKTests/DishServingTests.swift`(보고만 함: 대표 분량표·참고표와 20% 넘게 다른 음식, 1인분 상한으로 안 쓰는 값) |
+| 음식 DB 1인분 중량 데이터 | `ONEULSIK/Resource/Data/DishServings.json`(생성: `Scripts/build_dish_servings.py <식약처 음식 DB xlsx>`, `--check`로 다시 만든 결과와 같은지 확인) |
 | 음식 데이터 파일 | `ONEULSIK/Resource/Data/*.json` |
 | 음식 DB | `ONEULSIK/Resource/Data/FoodCatalog.sqlite` |
 

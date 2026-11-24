@@ -36,6 +36,8 @@ struct MealEntryItem: Identifiable {
     var quantityNote: String?
     /// mL 기준 국물·면 항목에 g 대표 분량을 같은 숫자의 mL로 계산했을 때의 안내(VolumeAsWeight.json displayText). 기록에는 저장하지 않는다.
     var volumeNote: String?
+    /// 대표 분량의 출처 안내(예: DishServings.json displayText "식약처 음식 DB 1인분 중량 기준", #43). 기록에는 저장하지 않는다.
+    var portionNote: String?
 
     init(id: UUID = UUID(), food: FoodCatalogItem, servingCount: Double, portionBasis: MealPortionBasis = .recorded, nutritionBasis: MealNutritionBasis = .database) {
         self.id = id
@@ -60,7 +62,7 @@ struct MealEntryItem: Identifiable {
             && food.referencePortionUnit != food.servingUnit ? "대표 분량 1\(food.referencePortionUnit) 기준" : nil
         // 기본값 안내는 처음 가정한 수량 그대로일 때만 보여준다(± 버튼으로 바꾸면 숨김).
         let note = abs(scale - 1) < 0.000_001 ? quantityNote : nil
-        return [amount, reference, portionBasis.label, volumeNote, note].compactMap { $0 }.joined(separator: " · ")
+        return [amount, reference, portionNote, portionBasis.label, volumeNote, note].compactMap { $0 }.joined(separator: " · ")
     }
 
     /// 수량을 적지 않아 1단위로 가정했을 때의 화면 문구. 예: "수량이 없어서 1인분으로 가정했어요"

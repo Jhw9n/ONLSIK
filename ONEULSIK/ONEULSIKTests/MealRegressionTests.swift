@@ -250,6 +250,9 @@ struct MealEntryOutcomeTests {
             if let volume = expect.volumeAsWeight, (item.volumeNote != nil) != volume {
                 failures.append(Failure(type: .amount, message: volume ? "국물 mL 안내가 없음" : "국물 mL 안내가 붙음: \(item.volumeNote ?? "")"))
             }
+            if let dish = expect.dishServing, (item.portionNote != nil && item.portionNote == DishServing.displayText) != dish {
+                failures.append(Failure(type: .amount, message: dish ? "음식 DB 1인분 중량 안내가 없음" : "음식 DB 1인분 중량 안내가 붙음: \(item.portionNote ?? "")"))
+            }
             if let source = expect.sourceContains, !item.food.source.contains(source) {
                 failures.append(Failure(type: .name, message: "출처 ‘\(item.food.source)’에 ‘\(source)’ 없음"))
             }
