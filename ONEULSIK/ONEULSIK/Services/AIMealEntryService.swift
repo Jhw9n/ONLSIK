@@ -396,7 +396,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
             return packagedQuestion([product], input: selection.input, items: items, remaining: remaining)
         }
         if selection.food.category == "가공식품", !selection.isProductConfirmed {
-            return productQuestion([selection.food], input: selection.input, items: items, remaining: remaining)
+            return try await productQuestion([selection.food], input: selection.input, items: items, remaining: remaining)
         }
         if selection.portionOverride == nil, !["g", "mL"].contains(selection.input.unit),
            let fallback = suggestedPortion(selection) {
@@ -449,7 +449,16 @@ final class AIMealEntryService: MealEntryAnalyzing {
         ))
     }
 
-    private func productQuestion(_ foods: [FoodCatalogItem], input: MealFoodInput, items: [MealEntryItem], remaining: [MealFoodInput]) -> MealEntryAnalysis {
+    private func productQuestion(_ foods: [FoodCatalogItem], input: MealFoodInput, items: [MealEntryItem], remaining: [MealFoodInput]) async throws -> MealEntryAnalysis {
+        // 업체명·브랜드 없는 입력에 이름이 같은 제품이 2개 이상이면 묻지 않고 가운데 제품을 쓴다(2026-11-24, #41 사용자 결정).
+        // 실기기에서 아이스티처럼 선택지 이름이 모두 같아 방문자가 구분할 수 없었다. 분량을 정하는 방식은 그대로다.
+        if input.brand.isEmpty, let median = Self.medianSameNameProduct(foods, name: searchName(foodName(of: input))) {
+            var food = median.food
+            food.source = "\(food.source) · \([food.brand, food.name].filter { !$0.isEmpty }.joined(separator: " ")) 영양값 기준"
+            MealDebugLog.log("같은 이름 제품 \(median.count)개 → 묻지 않고 가운데 제품: \(food.id) \(food.name) · \(food.brand)")
+            return try await resolveSelection(MealFoodSelection(input: input, food: food, isProductConfirmed: true),
+                items: items, remaining: remaining)
+        }
         var seen = Set<String>()
         let choices = foods.compactMap { candidate -> MealEntryChoice? in
             let product = PackagedFoodCatalog.entry(id: candidate.id) ?? PackagedFoodCatalog.replacement(for: candidate)
@@ -466,6 +475,27 @@ final class AIMealEntryService: MealEntryAnalyzing {
             explanation: "포장제품 후보예요. 먹은 제품과 같을 때만 선택해주세요. 없다면 음식 이름이나 브랜드를 수정해주세요",
             choices: Array(choices.prefix(4))
         ))
+    }
+
+    /// 이름이 입력과 같은 가공식품이 2개 이상일 때의 가운데 제품(#41). 같은 이름 제품 중 많은 단위(g 또는 mL, 같으면 g) 묶음을
+    /// 100g(mL)당 열량으로 정렬해 가운데를 고른다. 짝수면 가운데 둘 중 열량이 낮은 쪽. 같은 열량은 식품코드 순.
+    /// 포장제품 표(PackagedFoodReferences.json) 항목은 이미 확인된 제품이라 이 규칙에서 뺀다.
+    static func medianSameNameProduct(_ foods: [FoodCatalogItem], name: String) -> (food: FoodCatalogItem, count: Int)? {
+        let key = FoodReferenceCatalog.normalized(name)
+        var seen = Set<String>()
+        let same = foods.filter { food in
+            food.category == "가공식품" && PackagedFoodCatalog.entry(id: food.id) == nil
+                && FoodReferenceCatalog.normalized(food.name) == key && food.baseAmount > 0 && seen.insert(food.id).inserted
+        }
+        guard same.count >= 2 else { return nil }
+        let grams = same.filter { $0.amountUnit == "g" }, milliliters = same.filter { $0.amountUnit == "mL" }
+        let group = (milliliters.count > grams.count ? milliliters : grams)
+            .sorted { left, right in
+                let a = left.nutrition.calories / left.baseAmount, b = right.nutrition.calories / right.baseAmount
+                return a == b ? left.id < right.id : a < b
+            }
+        guard !group.isEmpty else { return nil }
+        return (group[(group.count - 1) / 2], same.count)
     }
 
     /// 후보 카드의 분량 표시. 제품 총중량을 알면 "1개 120g · 약 500kcal", 모르면 영양 기준량.
@@ -721,7 +751,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
             var candidates = Array(compatible.prefix(8))
 
             if prefersProducts, !productMatches.isEmpty {
-                return productQuestion(productMatches, input: input, items: items, remaining: remaining)
+                return try await productQuestion(productMatches, input: input, items: items, remaining: remaining)
             }
 
             if normalized(input.name) == "돼지갈비", !prefersProducts {
@@ -807,7 +837,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
             // 일반 음식 후보가 있으면(예: 만두 → 만두 군만두) 지금처럼 그 후보를 먼저 본다.
             // 브랜드 없는 입력의 productMatches는 이름이 같은 제품만 남는다(#37 G1).
             if !prefersProducts, input.brand.isEmpty, exact.isEmpty, compatible.isEmpty, !productMatches.isEmpty {
-                return productQuestion(productMatches, input: input, items: items, remaining: remaining)
+                return try await productQuestion(productMatches, input: input, items: items, remaining: remaining)
             }
             var selected: FoodCatalogItem?
             var missingInformation = MealClarificationReason.none
@@ -828,7 +858,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
                         expanded += self.candidates(from: matches, input: input).filter { seen.insert($0.id).inserted }
                     }
                     if prefersProducts, !productMatches.isEmpty {
-                        return productQuestion(productMatches, input: input, items: items, remaining: remaining)
+                        return try await productQuestion(productMatches, input: input, items: items, remaining: remaining)
                     }
                     let additions = expanded.filter { food in !compatible.contains { $0.id == food.id } }
                     guard !additions.isEmpty else { break }
@@ -862,7 +892,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
             }
             if let food = selected {
                 if food.category == "가공식품" || !food.brand.isEmpty {
-                    return productQuestion([food], input: input, items: items, remaining: remaining)
+                    return try await productQuestion([food], input: input, items: items, remaining: remaining)
                 }
                 if normalized(food.name) == normalized(input.name) {
                     return try await resolveSelection(MealFoodSelection(input: input, food: food), items: items, remaining: remaining)
@@ -875,7 +905,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
                 return packagedQuestion(products, input: input, items: items, remaining: remaining)
             }
             if !productMatches.isEmpty {
-                return productQuestion(productMatches, input: input, items: items, remaining: remaining)
+                return try await productQuestion(productMatches, input: input, items: items, remaining: remaining)
             }
             if prefersProducts { throw MealEntryError.foodNotFound(input.name) }
             // 소스·조리법·재료를 글로 적어 달라는 질문(선택지 0개)은 내지 않는다(#41). 모델이 정보 부족이라고 해도 영양 추정으로 간다.

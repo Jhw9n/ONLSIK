@@ -230,6 +230,12 @@ struct MealEntryOutcomeTests {
             if let volume = expect.volumeAsWeight, (item.volumeNote != nil) != volume {
                 failures.append(Failure(type: .amount, message: volume ? "국물 mL 안내가 없음" : "국물 mL 안내가 붙음: \(item.volumeNote ?? "")"))
             }
+            if let source = expect.sourceContains, !item.food.source.contains(source) {
+                failures.append(Failure(type: .name, message: "출처 ‘\(item.food.source)’에 ‘\(source)’ 없음"))
+            }
+            if let id = expect.foodID, item.food.id != id {
+                failures.append(Failure(type: .name, message: "자료 \(item.food.id) (기대 \(id))"))
+            }
             if expect.asksUnitEstimate == true,
                !questionLog.contains(where: { $0.contains("얼마나 드셨나요") && $0.contains("(약 ") }) {
                 failures.append(Failure(type: .question, message: "AI 1단위 추정 수량 질문이 없음"))
