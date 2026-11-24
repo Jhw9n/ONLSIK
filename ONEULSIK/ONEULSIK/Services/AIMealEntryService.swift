@@ -66,6 +66,22 @@ struct MealNutritionEstimate {
     let amountUnit: String
     let nutritionPer100: NutritionValues
     let ingredients: String
+    /// 1단위 분량을 모델이 추정했는지(#41 2차 B). false면 분량 추정이 실패해 amountPerUnit이 영양 기준량(100)이다.
+    var portionEstimated = true
+
+    /// 영양 추정의 1단위 분량을 물을 때 쓰는 임시 자료(100g 또는 100mL 기준). 실제 해석기와 서비스가 같은 값을 쓴다.
+    static func portionReference(name: String, amountUnit: String, nutrition: NutritionValues) -> FoodCatalogItem {
+        FoodCatalogItem(id: "portion-reference", name: name, servingUnit: "회",
+            servingGrams: amountUnit == "g" ? 100 : 0, nutrition: nutrition,
+            servingMilliliters: amountUnit == "mL" ? 100 : 0, category: "조리 음식")
+    }
+
+    /// 영양 추정에 쓰지 않는 표기(#41 2차 A). 모델이 재료를 영어로 돌려주면(예: 포케 → fish, sliced fish) 화면·저장 출처에 내보내지 않는다.
+    var displayIngredients: String? {
+        let text = ingredients.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty, !text.unicodeScalars.contains(where: { ("a"..."z").contains($0) || ("A"..."Z").contains($0) }) else { return nil }
+        return text
+    }
 
     var isValid: Bool {
         let macros = [nutritionPer100.carbohydrateGrams, nutritionPer100.proteinGrams, nutritionPer100.fatGrams]
@@ -404,7 +420,8 @@ final class AIMealEntryService: MealEntryAnalyzing {
            let answer = choice.continuationInput?.details {
             let defaultUnit = householdUnit(for: original, food: choice.selection?.food)
             guard let amount = MealInputGrounding.portionAnswer(answer, defaultUnit: defaultUnit) else {
-                return amountQuestion(original, selection: choice.selection, items: choice.items, remaining: choice.remainingFoods, invalid: true)
+                return amountQuestion(original, selection: choice.selection, items: choice.items, remaining: choice.remainingFoods, invalid: true,
+                    estimate: choice.estimate)
             }
             let input = MealFoodInput(
                 name: original.name, sourceText: "\(original.name) \(amount.quantity)\(amount.unit)",
@@ -417,6 +434,9 @@ final class AIMealEntryService: MealEntryAnalyzing {
                     portionOverride: keepsOverride ? selection.portionOverride : nil, portionUnit: keepsOverride ? selection.portionUnit : nil,
                     isProductConfirmed: selection.isProductConfirmed),
                     items: choice.items, remaining: choice.remainingFoods)
+            }
+            if let estimate = choice.estimate {
+                return try await reusedEstimate(input, estimate: estimate, items: choice.items, remaining: choice.remainingFoods)
             }
             return try await resolve([input] + choice.remainingFoods, items: choice.items)
         }
@@ -496,12 +516,9 @@ final class AIMealEntryService: MealEntryAnalyzing {
                 }
                 return try await portionFallback(selection, items: items, remaining: remaining)
             }
-            // DB 자료는 있는데 분량만 못 정했을 때(#41): 원문에 수량이 있거나 이미 수량을 골랐으면 같은 수량 질문을 다시 내지 않고
-            // 제품 포장량 → 대표 분량 → 1인분 선택 질문 순서로 기록한다. 수량이 없을 때만 수량 질문을 낸다.
-            guard selection.input.omittedQuantity, !selection.input.hasConfirmedPortion else {
-                return try await portionFallback(selection, items: items, remaining: remaining)
-            }
-            return amountQuestion(selection.input, selection: selection, items: items, remaining: remaining)
+            // DB 자료는 있는데 분량만 못 정했을 때(#41): 제품 포장량 → 대표 분량 → 1인분 순서로 기록한다.
+            // 수량을 적지 않은 입력도 수량을 묻지 않고 1단위로 가정한다(2026-11-24, #41 2차 B 사용자 결정).
+            return try await portionFallback(selection, items: items, remaining: remaining)
         }
         return try await resolve(remaining, items: items + [item])
     }
@@ -644,30 +661,26 @@ final class AIMealEntryService: MealEntryAnalyzing {
 
     private static func amountText(_ value: Double) -> String { value.formatted(.number.precision(.fractionLength(0...1))) }
 
-    /// 1단위 분량을 정한 뒤의 기록(#41). 원문에 수량이 있으면("1인분", "반", "두 개") 수량 질문 없이 그 수량으로 바로 기록하고,
-    /// 수량이 없을 때만 수량(1, 0.5, 1.5)을 고르게 한다. 방문자에게 무게는 묻지 않는다.
+    /// 분량 정보가 없어 영양 기준량(100g·mL)을 1단위로 기록했다는 안내(#41 2차 B). 수량도 없었으면 그 가정도 함께 적는다.
+    static func baseAmountNote(base: Double, unit: String, assumedQuantity: Bool, servingUnit: String = "인분") -> String {
+        let note = "분량 정보가 없어 1\(servingUnit) 분량을 영양 기준량(\(amountText(base))\(unit))으로 계산했어요"
+        return assumedQuantity ? MealEntryItem.assumedQuantityNote(unit: servingUnit) + ". " + note : note
+    }
+
+    /// 1단위 분량을 정한 뒤의 기록(#41). 원문에 수량이 있으면("1인분", "반", "두 개") 그 수량으로 바로 기록한다.
+    /// 수량이 없으면 묻지 않고 1단위로 가정해 기록하고 "수량이 없어서 1{단위}로 가정했어요"를 붙인다(2026-11-24, #41 2차 B 사용자 결정).
+    /// 방문자에게 무게는 묻지 않는다.
     private func unitPortionChoice(_ selection: MealFoodSelection, estimate: MealPortionEstimate, unit: String, explanation: String,
                                    items: [MealEntryItem], remaining: [MealFoodInput]) async throws -> MealEntryAnalysis {
-        func chosen(_ quantity: Double) -> MealFoodSelection {
-            let input = MealFoodInput(name: selection.input.name, sourceText: selection.input.sourceText,
-                quantity: quantity, unit: unit, brand: selection.input.brand, details: selection.input.details,
-                isSideDish: selection.input.isSideDish, hasConfirmedPortion: true)
-            return MealFoodSelection(input: input, food: selection.food, isSimilar: selection.isSimilar,
-                portionOverride: estimate, portionUnit: unit, isProductConfirmed: selection.isProductConfirmed)
-        }
-        if !selection.input.omittedQuantity || selection.input.hasConfirmedPortion {
-            MealDebugLog.log("원문 수량 \(Self.amountText(selection.input.quantity))\(unit) → 수량 질문 없이 1\(unit) \(Self.amountText(estimate.amountPerUnit))\(estimate.amountUnit)로 기록")
-            return try await resolveSelection(chosen(selection.input.quantity), items: items, remaining: remaining)
-        }
-        return .question(MealEntryQuestion(
-            title: "‘\(selection.input.name)’을 얼마나 드셨나요?",
-            explanation: explanation + " 먹은 수량을 골라주세요.",
-            choices: [1, 0.5, 1.5].map { quantity in
-                MealEntryChoice(id: UUID().uuidString, title: "\(Self.amountText(quantity))\(unit)",
-                    items: items, selection: chosen(quantity), remainingFoods: remaining,
-                    subtitle: "약 \(Self.amountText(estimate.amountPerUnit * quantity))\(estimate.amountUnit)")
-            }
-        ))
+        let assumed = selection.input.omittedQuantity && !selection.input.hasConfirmedPortion
+        let input = MealFoodInput(name: selection.input.name, sourceText: selection.input.sourceText,
+            quantity: assumed ? 1 : selection.input.quantity, unit: unit, brand: selection.input.brand, details: selection.input.details,
+            isSideDish: selection.input.isSideDish, hasConfirmedPortion: true, omittedQuantity: assumed)
+        MealDebugLog.log("\(assumed ? "수량 없음 → 질문 없이 1\(unit)로 가정" : "원문 수량 \(Self.amountText(input.quantity))\(unit) → 수량 질문 없이"), "
+            + "1\(unit) \(Self.amountText(estimate.amountPerUnit))\(estimate.amountUnit)로 기록: \(explanation)")
+        return try await resolveSelection(MealFoodSelection(input: input, food: selection.food, isSimilar: selection.isSimilar,
+            portionOverride: estimate, portionUnit: unit, isProductConfirmed: selection.isProductConfirmed),
+            items: items, remaining: remaining)
     }
 
     /// DB 자료는 있는데 분량 추정이 실패했을 때의 대체 흐름(#41, 작업 H). 오류 대신 아래 순서로 기록한다. 무게는 묻지 않는다.
@@ -704,6 +717,18 @@ final class AIMealEntryService: MealEntryAnalyzing {
         guard base > 0 else {
             MealDebugLog.log("오류: 분량 추정 대체 분량 없음(영양 기준량 없음) \(food.id)")
             throw MealEntryError.portionUnknown(selection.input.name)
+        }
+        if selection.input.omittedQuantity, !selection.input.hasConfirmedPortion {
+            // 수량도 분량 정보도 없으면 묻지 않고 영양 기준량을 1인분으로 기록한다(#41 2차 B).
+            MealDebugLog.log("대체 분량: 수량 없음 → 질문 없이 영양 기준량 \(Self.amountText(base))\(food.amountUnit)를 1인분으로 기록")
+            let input = MealFoodInput(name: selection.input.name, sourceText: selection.input.sourceText,
+                quantity: base, unit: food.amountUnit, brand: selection.input.brand, details: selection.input.details,
+                isSideDish: selection.input.isSideDish, hasConfirmedPortion: true)
+            stage = "기록 계산"
+            var item = try await makeItem(MealFoodSelection(input: input, food: food, isSimilar: selection.isSimilar,
+                isProductConfirmed: selection.isProductConfirmed))
+            item.quantityNote = Self.baseAmountNote(base: base, unit: food.amountUnit, assumedQuantity: true)
+            return try await resolve(remaining, items: items + [item])
         }
         MealDebugLog.log("대체 분량: 1인분 선택 질문(영양 기준량 \(Self.amountText(base))\(food.amountUnit))")
         return .question(MealEntryQuestion(
@@ -794,7 +819,8 @@ final class AIMealEntryService: MealEntryAnalyzing {
         ))
     }
 
-    private func amountQuestion(_ input: MealFoodInput, selection: MealFoodSelection? = nil, items: [MealEntryItem], remaining: [MealFoodInput], invalid: Bool = false) -> MealEntryAnalysis {
+    private func amountQuestion(_ input: MealFoodInput, selection: MealFoodSelection? = nil, items: [MealEntryItem], remaining: [MealFoodInput],
+                                invalid: Bool = false, estimate: MealNutritionEstimate? = nil) -> MealEntryAnalysis {
         let unit = householdUnit(for: input, food: selection?.food)
         var answers = ["0.5\(unit)", "1\(unit)", "1.5\(unit)"]
         let name = normalized(input.name)
@@ -809,7 +835,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
             var continuation = input
             continuation.details = answer
             return MealEntryChoice(id: UUID().uuidString, title: title, items: items, selection: selection,
-                remainingFoods: remaining, continuationInput: continuation, portionInput: input)
+                remainingFoods: remaining, continuationInput: continuation, portionInput: input, estimate: estimate)
         }
         return .question(MealEntryQuestion(
             title: "‘\(input.name)’을 얼마나 드셨나요?",
@@ -1159,14 +1185,60 @@ final class AIMealEntryService: MealEntryAnalyzing {
         if try await !hasGroundedReference(estimate, input: input) {
             MealDebugLog.log("영양 추정 기준 음식 '\(estimate.referenceFood)'이 입력에 없음 → 입력 이름 '\(input.name)'으로 AI 추정 기록")
         }
+        let capped = Self.reconciledEstimate(estimate, name: input.name)
         let item: MealEntryItem
         do {
-            item = try estimatedItem(input, estimate: estimate)
+            item = try estimatedItem(input, estimate: capped)
         } catch MealEntryError.portionUnknown {
             guard !input.hasConfirmedPortion else { throw MealEntryError.portionUnknown(input.name) }
-            return amountQuestion(input, items: items, remaining: remaining)
+            // 수량을 고른 뒤에는 앞의 영양 추정을 다시 쓴다(#41 2차 F). 검색·후보 선택·영양 추정을 되풀이하지 않는다.
+            return amountQuestion(input, items: items, remaining: remaining, estimate: estimate)
         }
         return try await resolve(remaining, items: items + [item])
+    }
+
+    /// 모델이 돌려준 열량과 탄·단·지 열량(4·4·9kcal/g)이 추정값 검사(isValid) 허용 범위를 넘게 다르면, 열량은 그대로 두고
+    /// 탄·단·지를 같은 비율로 맞춘다(2026-11-24, #41 2차 A). 실기기 "텐동" 추정이 100g당 220kcal인데 탄 40·단 5·지 15(315kcal)라
+    /// 그대로면 결과 검증 오류 화면이 난다. 맞춘 뒤에도 검사를 못 넘으면 그대로 돌려준다(기존처럼 오류).
+    static func reconciledEstimate(_ estimate: MealNutritionEstimate, name: String) -> MealNutritionEstimate {
+        guard !estimate.isValid else { return estimate }
+        let value = estimate.nutritionPer100
+        let macroEnergy = value.carbohydrateGrams * 4 + value.proteinGrams * 4 + value.fatGrams * 9
+        guard value.calories.isFinite, value.calories > 0, macroEnergy.isFinite, macroEnergy > 0 else { return estimate }
+        let ratio = value.calories / macroEnergy
+        let adjusted = MealNutritionEstimate(referenceFood: estimate.referenceFood, amountPerUnit: estimate.amountPerUnit,
+            amountUnit: estimate.amountUnit,
+            nutritionPer100: NutritionValues(calories: value.calories, carbohydrateGrams: value.carbohydrateGrams * ratio,
+                proteinGrams: value.proteinGrams * ratio, fatGrams: value.fatGrams * ratio),
+            ingredients: estimate.ingredients, portionEstimated: estimate.portionEstimated)
+        guard adjusted.isValid else { return estimate }
+        MealDebugLog.log("AI 영양 추정 탄단지 보정: \(name) 100\(estimate.amountUnit)당 \(amountText(value.calories))kcal는 그대로, 탄단지 열량 \(amountText(macroEnergy))kcal → 같은 비율(\(ratio.formatted(.number.precision(.fractionLength(2)))))로 맞춤")
+        return adjusted
+    }
+
+    /// 수량 질문에 답한 뒤 앞의 영양 추정을 다시 쓴다(#41 2차 F). 새 단위의 1단위 분량만 모델에 묻는다(실제 해석기와 같은 방식).
+    private func reusedEstimate(_ input: MealFoodInput, estimate: MealNutritionEstimate, items: [MealEntryItem], remaining: [MealFoodInput]) async throws -> MealEntryAnalysis {
+        var amount = 100.0
+        var portionEstimated = false
+        if input.unit == "g" || input.unit == "mL" {
+            guard input.unit == estimate.amountUnit else { throw MealEntryError.portionUnknown(input.name) }
+            amount = 1
+            portionEstimated = true
+        } else {
+            do {
+                amount = try await model("분량 추정").portion(for: input, food: MealNutritionEstimate.portionReference(
+                    name: input.name, amountUnit: estimate.amountUnit, nutrition: estimate.nutritionPer100)).amountPerUnit
+                portionEstimated = true
+            } catch MealEntryError.portionUnknown {
+            } catch MealEntryError.generationFailed {
+            }
+            try Task.checkCancellation()
+        }
+        MealDebugLog.log("수량 선택 뒤 앞의 영양 추정 재사용(검색·후보 선택·영양 추정 다시 하지 않음): \(input.name) \(Self.amountText(input.quantity))\(input.unit)")
+        return try await estimatedWithoutQuestion(input, estimate: MealNutritionEstimate(referenceFood: estimate.referenceFood,
+            amountPerUnit: amount, amountUnit: estimate.amountUnit, nutritionPer100: estimate.nutritionPer100,
+            ingredients: estimate.ingredients, portionEstimated: portionEstimated),
+            reason: "수량 선택", items: items, remaining: remaining)
     }
 
     /// 용기 단위 표(DrinkReferences.json)로 술·음료를 질문 없이 기록한다. 표로 계산할 수 없으면 nil을 돌려 일반 흐름을 따른다.
@@ -1330,14 +1402,15 @@ final class AIMealEntryService: MealEntryAnalyzing {
         MealInputGrounding.isUnspecifiedSide(name)
     }
 
+    /// 수량을 적지 않은 입력도 묻지 않고 1단위(AI 분량 추정)로 기록하고 안내를 붙인다(#41 2차 B).
+    /// 모델이 분량을 못 정한 추정값(portionEstimated false)은 영양 기준량(100g·mL)을 1단위로 기록하고 그 사실을 안내한다.
     private func estimatedItem(_ input: MealFoodInput, estimate: MealNutritionEstimate) throws -> MealEntryItem {
-        // 수량을 적지 않았고 대표 분량도 없으면 AI 분량으로 채우지 않고 수량을 묻는다.
-        guard !input.omittedQuantity else { throw MealEntryError.portionUnknown(input.name) }
         guard estimate.isValid else { throw MealEntryError.invalidResult }
         let isMeasured = input.unit == "g" || input.unit == "mL"
         guard !isMeasured || input.unit == estimate.amountUnit else { throw MealEntryError.portionUnknown(input.name) }
+        let usesBaseAmount = !isMeasured && !estimate.portionEstimated
         let portion = MealPortionEstimate(amountPerUnit: estimate.amountPerUnit, amountUnit: estimate.amountUnit)
-        guard isMeasured || portion.isPlausible(for: input.unit, foodName: input.name) else { throw MealEntryError.portionUnknown(input.name) }
+        guard isMeasured || usesBaseAmount || portion.isPlausible(for: input.unit, foodName: input.name) else { throw MealEntryError.portionUnknown(input.name) }
         let basis = isMeasured ? 1 : estimate.amountPerUnit
         let count = input.quantity
         guard (0.1...10000).contains(basis * count) else { throw MealEntryError.portionUnknown(input.name) }
@@ -1347,10 +1420,18 @@ final class AIMealEntryService: MealEntryAnalyzing {
             servingGrams: estimate.amountUnit == "g" ? basis : 0,
             nutrition: estimate.nutritionPer100 * (basis / 100),
             servingMilliliters: estimate.amountUnit == "mL" ? basis : 0,
-            source: "AI 영양 추정 · \(estimate.ingredients)", category: "추정 음식"
+            // 재료 설명이 영어면 화면·저장 출처에 내보내지 않는다(#41 2차 A).
+            source: "AI 영양 추정" + (estimate.displayIngredients.map { " · \($0)" } ?? ""), category: "추정 음식"
         )
-        let item = MealEntryItem(food: food, servingCount: count, portionBasis: isMeasured ? .entered : .aiEstimated, nutritionBasis: .estimated)
+        var item = MealEntryItem(food: food, servingCount: count,
+            portionBasis: isMeasured ? .entered : (usesBaseAmount ? .estimated : .aiEstimated), nutritionBasis: .estimated)
         guard item.isValid else { throw MealEntryError.invalidResult }
+        if usesBaseAmount {
+            MealDebugLog.log("영양 추정 분량 모름 → 영양 기준량 \(Self.amountText(basis))\(estimate.amountUnit)를 1\(food.servingUnit)으로 기록: \(input.name)")
+            item.quantityNote = Self.baseAmountNote(base: basis, unit: estimate.amountUnit, assumedQuantity: input.omittedQuantity, servingUnit: food.servingUnit)
+        } else if input.omittedQuantity, !isMeasured {
+            item.quantityNote = MealEntryItem.assumedQuantityNote(unit: food.servingUnit)
+        }
         return item
     }
 
@@ -1501,7 +1582,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
     /// - 포장제품: 개(제품 1개)
     /// - 대표 분량이 있는 음식: 대표 분량 단위(예: 김밥 → 줄, 쌀밥 → 공기)
     /// - 참고표(FoodReferences.json)의 estimatedPortions가 있는 음식: 그 단위(인분 우선)
-    /// - 근거가 없으면 AI 분량으로 채우지 않고 수량을 묻는다(portionUnknown).
+    /// - 근거가 없으면: 수량을 적지 않은 입력은 1인분(AI 분량 추정, #41 2차 B), 개수만 적은 입력은 portionUnknown(대체 분량).
     private func inputWithAssumedUnit(_ selection: MealFoodSelection) throws -> MealFoodInput {
         var input = selection.input
         let food = selection.food
@@ -1516,6 +1597,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
         if isOversizedPackage(food) {
             // 대용량 포장은 일반 음식처럼: 대표 분량이 있으면 그 단위, 없으면 수량 질문(무게는 묻지 않음)
             if let portion = oversizedPackagePortion(input, food: food) { return input.withUnit(portion.unit) }
+            if input.omittedQuantity { return input }
             throw MealEntryError.portionUnknown(input.name)
         }
         if let portion = FoodPortion.representative(for: food, allowsVolumeAsWeight: true) {
@@ -1527,6 +1609,9 @@ final class AIMealEntryService: MealEntryAnalyzing {
                 return input.withUnit(unit)
             }
         }
+        // 수량을 적지 않았고 대표 분량도 없으면 묻지 않고 1인분으로 가정해 AI 분량 추정으로 간다(#41 2차 B).
+        // 추정이 안 되면 대체 분량(portionFallback)으로 기록한다.
+        if input.omittedQuantity { return input }
         throw MealEntryError.portionUnknown(input.name)
     }
 

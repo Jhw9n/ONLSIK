@@ -253,6 +253,9 @@ struct MealEntryOutcomeTests {
             if let source = expect.sourceContains, !item.food.source.contains(source) {
                 failures.append(Failure(type: .name, message: "출처 ‘\(item.food.source)’에 ‘\(source)’ 없음"))
             }
+            if let excluded = expect.sourceExcludes, let hit = excluded.first(where: { item.food.source.contains($0) }) {
+                failures.append(Failure(type: .name, message: "출처 ‘\(item.food.source)’에 ‘\(hit)’ 포함"))
+            }
             if let id = expect.foodID, item.food.id != id {
                 failures.append(Failure(type: .name, message: "자료 \(item.food.id) (기대 \(id))"))
             }
@@ -341,8 +344,7 @@ struct DebugLogTests {
                  llm: MealCase.LLM(food: "텐동", brand: nil, portion: nil, pick: nil, estimate: nil, fail: ["estimate"]),
                  expected: ["원문: 텐동 1인분", "오류: 영양 추정 generationFailed"]),
         Scenario(id: "D03", input: "흑임자젤리", llm: MealCase.LLM(food: "흑임자젤리", brand: nil, portion: nil, pick: nil, estimate: nil),
-                 expected: ["원문: 흑임자젤리", "질문: 이 제품을 드셨나요?", "선택: 흑임자젤리", "질문: ‘흑임자젤리’을 얼마나 드셨나요?",
-                            "선택: 1인분", "기록: "]),
+                 expected: ["원문: 흑임자젤리", "질문: 이 제품을 드셨나요?", "선택: 흑임자젤리", "기록: "]),
     ]
 
     @Test(arguments: scenarios)

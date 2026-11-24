@@ -129,6 +129,8 @@ struct MealCase: Decodable, CustomTestStringConvertible {
         var errorContains: String?
         /// 기록에 저장되는 출처(nutritionSource)에 들어가야 할 글자(#41)
         var sourceContains: String?
+        /// 기록 출처(nutritionSource)에 들어가면 안 되는 글자(#41 2차 A, 예: 모델이 영어로 돌려준 재료)
+        var sourceExcludes: [String]?
         /// 기록에 쓰인 DB 항목 ID(#41, 같은 이름 제품의 가운데 제품 확인)
         var foodID: String?
         /// 질문 제목이나 고른 선택지에 이 글자가 들어가면 실패(#41, 예: 관련 없는 비슷한 음식 후보)
@@ -171,6 +173,7 @@ struct MealCase: Decodable, CustomTestStringConvertible {
         if let names = expect.exactNames { parts.append("기록 이름 \(names.joined(separator: ", "))") }
         if let error = expect.errorContains { parts.append("오류 화면(‘\(error)’)") }
         if let source = expect.sourceContains { parts.append("출처에 ‘\(source)’") }
+        if let excluded = expect.sourceExcludes { parts.append("출처에 없음(\(excluded.joined(separator: ", ")))") }
         if let id = expect.foodID { parts.append("자료 \(id)") }
         if let excluded = expect.questionsExclude { parts.append("질문에 없음(\(excluded.joined(separator: ", ")))") }
         if expect.volumeAsWeight == true { parts.append("국물 mL 안내") }
