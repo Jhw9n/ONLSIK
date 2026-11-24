@@ -493,6 +493,21 @@
       "id": "M86", "input": "고등어구이 정식", "note": "#41 작업 A: 정식·세트는 구성을 글로 묻지 않고(선택지 0개) 이름 하나의 음식으로 처리. DB에 같은 이름이 없으면 모델 영양 추정",
       "llm": { "food": "고등어구이 정식", "estimate": { "referenceFood": "고등어구이", "amount": 550, "amountUnit": "g", "calories": 150, "carbohydrate": 15, "protein": 10, "fat": 6, "ingredients": "고등어구이, 밥, 국, 반찬" } },
       "expect": { "maxQuestions": 1, "questionsExclude": ["어떤 음식이 있었나요"] }
+    },
+    {
+      "id": "M87", "input": "카라멜마끼아또", "note": "실기기 기록 재현(2026-11-24, #41): 모델 음식 추출이 '냉동삼겹살, 숯불쭈꾸미, 야사이시오라멘, 카라멜마키아또'(앞의 셋은 지시문 예시 이름)라 오류 invalidResult. 지금은 참고표 별칭과 정확히 같은 입력이라 모델 추출 없이 카페 음료 데이터로 기록(작업 C). 1잔 355g, 커피 카라멜마끼아토 100g당 81kcal → 287.6kcal ±5%",
+      "llm": { "rawFoods": ["냉동삼겹살", "숯불쭈꾸미", "야사이시오라멘", "카라멜마키아또"] },
+      "expect": { "maxQuestions": 0, "items": ["카라멜마키아또"], "units": ["잔"], "amount": { "units": ["g"], "min": 354, "max": 356 }, "kcal": { "min": 273, "max": 302 } }
+    },
+    {
+      "id": "M89", "input": "텐동 1인분", "note": "#41 작업 D: 모델이 원문에 없는 이름만 돌려주면(지시문 예시 이름) 모두 버리고 원문을 음식 하나로 보고 계속한다. 오류 없이 텐동 1인분 AI 추정",
+      "llm": { "rawFoods": ["냉동삼겹살", "숯불쭈꾸미", "야사이시오라멘"], "estimate": { "referenceFood": "새우튀김", "amount": 350, "amountUnit": "g", "calories": 180, "carbohydrate": 25, "protein": 7, "fat": 6, "ingredients": "밥, 새우튀김, 소스" } },
+      "expect": { "maxQuestions": 0, "items": ["텐동"], "basis": "aiEstimated", "units": ["인분"], "count": 1 }
+    },
+    {
+      "id": "M90", "input": "오늘 저녁에 김치찌개 먹었어", "note": "#41 작업 D: 모델이 예시 이름 셋과 원문 음식을 함께 돌려주면 원문에 없는 셋만 버린다",
+      "llm": { "rawFoods": ["냉동삼겹살", "김치찌개", "숯불쭈꾸미"] },
+      "expect": { "maxQuestions": 0, "items": ["김치찌개"], "units": ["인분"], "assumedQuantity": true }
     }
   ]
 }

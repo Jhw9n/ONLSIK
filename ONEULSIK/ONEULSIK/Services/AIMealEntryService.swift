@@ -207,6 +207,16 @@ final class AIMealEntryService: MealEntryAnalyzing {
         return try await resolve(try await foodInputs(in: text), items: [])
     }
 
+    /// 입력 전체가 참고표(FoodReferences.json)·술 표(DrinkReferences.json)의 이름·별칭 하나와 정확히 같으면 그 음식(양 없음).
+    /// 끝의 "먹었어"·문장부호는 뗀다. 맞춤법 변형(SpellingVariants.json)은 이름 비교에서 맞춘다.
+    static func knownDataName(in text: String) -> MealFoodInput? {
+        let name = text.replacingOccurrences(of: #"\s*(?:먹었어요|먹었어|마셨어요|마셨어)?[.!]*\s*$"#, with: "", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty, name.count <= 60, name.allSatisfy({ $0.isLetter || $0.isWhitespace }),
+              FoodReferenceCatalog.entry(for: name) != nil || DrinkReferenceCatalog.recognizes(name) else { return nil }
+        return MealFoodInput(name: name, sourceText: text, quantity: 1, unit: "인분", brand: "")
+    }
+
     /// 쉼표로 나눈 조각. 숫자 사이의 쉼표(1,000g)는 나누지 않는다. 빈 조각은 버린다.
     static func commaSeparatedPieces(_ text: String) -> [String] {
         let marked = text.replacingOccurrences(of: #"(?<!\d),|,(?!\d)"#, with: "\u{1F}", options: .regularExpression)
@@ -216,20 +226,36 @@ final class AIMealEntryService: MealEntryAnalyzing {
     /// 한 줄(또는 쉼표로 나눈 한 조각)에서 음식 입력을 뽑아 원문에 맞춰 검증한다.
     private func foodInputs(in text: String) async throws -> [MealFoodInput] {
         let generated: [MealFoodInput]
+        var usesModel = false
         if let singleFood = MealInputGrounding.singlePreparedReference(in: text) {
             generated = singleFood
         } else if let singleFood = MealInputGrounding.singleFoodWithAmount(in: text),
                   try await isKnownSingleFood(singleFood) {
             generated = [singleFood]
+        } else if let known = Self.knownDataName(in: text) {
+            // 참고표·술 표의 이름·별칭과 정확히 같은 입력은 모델 추출 없이 처리한다(2026-11-24, #41).
+            // 양을 적은 입력("아메리카노 한잔")은 위 singleFoodWithAmount가 같은 방식으로 처리한다.
+            MealDebugLog.log("데이터 이름과 일치: 모델 음식 추출 없이 '\(known.name)'")
+            generated = [known]
         } else if let listedFoods = try await catalogFoodList(in: text) {
             generated = listedFoods
         } else if let singleFood = MealFoodNames.singleRelatedRamen(in: text) {
             generated = singleFood
         } else {
             generated = try await interpreter.foods(in: MealFoodNames.extractionText(text))
+            usesModel = true
         }
         try Task.checkCancellation()
-        let inputs = try MealInputGrounding.ground(generated, in: text)
+        var inputs: [MealFoodInput]
+        do {
+            inputs = try MealInputGrounding.ground(generated, in: text)
+        } catch MealEntryError.invalidResult where usesModel && !generated.isEmpty {
+            // 모델이 뽑은 이름이 모두 원문에 없으면 원문을 음식 하나로 보고 계속한다(#41). 오류를 내지 않는다.
+            MealDebugLog.log("모델 음식 추출이 원문과 맞지 않음 → 원문을 음식 하나로 처리: \(text)")
+            let whole = MealInputGrounding.singleFoodWithAmount(in: text)
+                ?? MealFoodInput(name: text, sourceText: text, quantity: 1, unit: "인분", brand: "")
+            inputs = try MealInputGrounding.ground([whole], in: text)
+        }
         for input in inputs {
             guard input.isValid, !input.sourceText.isEmpty,
                   text.contains(input.sourceText),

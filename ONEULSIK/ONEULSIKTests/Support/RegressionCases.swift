@@ -99,6 +99,8 @@ struct MealCase: Decodable, CustomTestStringConvertible {
         var searchTerms: [String]? = nil
         /// 한 줄에서 모델이 뽑을 음식 이름들(원문에 있는 것만 돌려준다). 없으면 food 하나
         var foods: [String]? = nil
+        /// 원문과 상관없이 그대로 돌려줄 음식 이름(#41, 실기기 모델이 지시문 예시 이름을 섞어 돌려준 경우 재현)
+        var rawFoods: [String]? = nil
     }
     struct AmountRange: Decodable { let units: [String]; let min: Double; let max: Double }
     struct Expect: Decodable {
