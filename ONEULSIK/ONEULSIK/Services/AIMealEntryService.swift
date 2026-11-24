@@ -185,15 +185,11 @@ final class AIMealEntryService: MealEntryAnalyzing {
                 choices: [MealEntryChoice(id: UUID().uuidString, title: corrected, items: [], correctedText: corrected)]
             ))
         }
+        // 정식·세트는 구성을 글로 적어 달라고 묻지 않고(선택지 0개 질문 없음, #41) 이름 하나의 음식으로 처리한다.
+        // 구성은 임의로 추가하지 않는다. DB에 없으면 모델 영양 추정으로 기록된다.
         if let name = MealInputGrounding.setMenuName(in: text) {
             let input = MealFoodInput(name: name, sourceText: text, quantity: 1, unit: "인분", brand: "")
-            return .question(MealEntryQuestion(
-                title: "‘\(name)’에 어떤 음식이 있었나요?",
-                explanation: "함께 먹은 음식까지 이번 식사 전체를 적어주세요. 구성은 임의로 추가하지 않아요",
-                choices: [],
-                clarification: MealEntryChoice(id: UUID().uuidString, title: "확인", items: [], continuationInput: input),
-                inputPlaceholder: "예: 고등어구이, 밥 한 공기, 미소된장국"
-            ))
+            return try await resolve([input], items: [])
         }
         // 쉼표로 나뉜 한 줄은 모델에 보내기 전에 앱이 나눠 각각 처리한다(2026-11-23, #39). 실기기에서
         // "와인 한잔, 김치찌게 1인분"을 모델이 김치찌개 하나로만 돌려줘 와인이 빠졌다. 이름만 쉼표로 늘어놓은 줄은
@@ -469,10 +465,17 @@ final class AIMealEntryService: MealEntryAnalyzing {
     }
 
     private func packageCountQuestion(_ selection: MealFoodSelection, items: [MealEntryItem], remaining: [MealFoodInput]) -> MealEntryAnalysis {
-        .question(MealEntryQuestion(
+        func choice(_ count: String) -> MealEntryChoice {
+            var answer = selection.input
+            answer.details = count
+            return MealEntryChoice(id: UUID().uuidString, title: "\(count)개", items: items, selection: selection,
+                remainingFoods: remaining, continuationInput: answer, requiresPackageCount: true)
+        }
+        // 선택지 없이 글로만 답하는 질문은 내지 않는다(#41).
+        return .question(MealEntryQuestion(
             title: "제품을 몇 개 드셨나요?",
-            explanation: "조리 후 무게 대신 포장 개수로 알려주세요. 반 개는 0.5로 적으면 돼요",
-            choices: [],
+            explanation: "조리 후 무게 대신 포장 개수로 골라주세요",
+            choices: ["1", "0.5", "1.5", "2"].map(choice),
             clarification: MealEntryChoice(id: UUID().uuidString, title: "확인", items: items, selection: selection,
                 remainingFoods: remaining, continuationInput: selection.input, requiresPackageCount: true),
             inputPlaceholder: "예: 1개, 0.5개"
@@ -656,7 +659,8 @@ final class AIMealEntryService: MealEntryAnalyzing {
                 return packagedQuestion(products, input: input, items: items, remaining: remaining)
             }
             if isUnspecified(input.name) {
-                return try clarification(for: input, question: "어떤 반찬을 드셨나요?", items: items, remaining: remaining)
+                return try await estimatedWithoutQuestion(input, estimate: try await interpreter.estimateNutrition(for: input),
+                    reason: "무엇인지 정해지지 않은 반찬", items: items, remaining: remaining)
             }
             if !prefersProducts, input.details.isEmpty,
                let reference = FoodReferenceCatalog.entry(for: input.name),
@@ -802,6 +806,14 @@ final class AIMealEntryService: MealEntryAnalyzing {
                     }
                     let additions = expanded.filter { food in !compatible.contains { $0.id == food.id } }
                     guard !additions.isEmpty else { break }
+                    // 같은 이름의 일반 음식이 DB에 없고, 모델 검색어로 찾은 후보 중 입력 이름과 겹치는 후보가 하나도 없으면
+                    // 비슷한 음식 질문을 내지 않고 영양 추정으로 간다(2026-11-24, #41). 실기기에서 "텐동"에 검색어
+                    // "떡볶이, 오징어"의 후보가 비슷한 음식으로 나왔다.
+                    if exact.isEmpty, !additions.contains(where: { Self.namesOverlap(input.name, $0.name) }) {
+                        MealDebugLog.log("모델 검색어 후보가 입력과 겹치지 않음 → 비슷한 음식 질문 없이 영양 추정: \(input.name), 후보 "
+                            + additions.prefix(3).map(\.name).joined(separator: ", "))
+                        break
+                    }
                     // 이름이 입력 음식이나 모델 검색어와 정확히 같은 일반 음식을 맨 앞에(2026-11-23, #39). 후보 정렬은
                     // 분류 "음식"을 원재료보다 앞에 두어, 검색어 "우유"의 원재료 "우유"가 "우유 딸기"·"달걀찜 우유" 뒤로 밀렸다.
                     let exactNames = Set([normalized(input.name)] + terms.prefix(2).map { normalized($0) })
@@ -840,20 +852,14 @@ final class AIMealEntryService: MealEntryAnalyzing {
                 return productQuestion(productMatches, input: input, items: items, remaining: remaining)
             }
             if prefersProducts { throw MealEntryError.foodNotFound(input.name) }
-            if input.details.isEmpty, let question = missingInformation.question(for: input.name) {
-                return try clarification(for: input, question: question, items: items, remaining: remaining)
+            // 소스·조리법·재료를 글로 적어 달라는 질문(선택지 0개)은 내지 않는다(#41). 모델이 정보 부족이라고 해도 영양 추정으로 간다.
+            if missingInformation != .none {
+                MealDebugLog.log("후보 선택에서 정보 부족(\(missingInformation)) → 질문 없이 영양 추정: \(input.name)")
             }
             do {
-                if let estimate = try await interpreter.estimateNutrition(for: input) {
-                    try Task.checkCancellation()
-                    guard try await hasGroundedReference(estimate, input: input) else {
-                        return try clarification(for: input, question: "어떤 재료나 소스가 들어갔나요?", items: items, remaining: remaining)
-                    }
-                    items.append(try estimatedItem(input, estimate: estimate))
-                } else {
-                    try Task.checkCancellation()
-                    return try clarification(for: input, question: "어떤 재료나 소스가 들어갔나요?", items: items, remaining: remaining)
-                }
+                let estimate = try await interpreter.estimateNutrition(for: input)
+                try Task.checkCancellation()
+                return try await estimatedWithoutQuestion(input, estimate: estimate, reason: "DB 후보 없음", items: items, remaining: remaining)
             } catch MealEntryError.portionUnknown {
                 guard !input.hasConfirmedPortion else { throw MealEntryError.portionUnknown(input.name) }
                 return amountQuestion(input, items: items, remaining: remaining)
@@ -899,33 +905,55 @@ final class AIMealEntryService: MealEntryAnalyzing {
         ))
     }
 
+    /// 입력 이름과 후보 이름이 겹치는지(#41). 표기 변형·기호를 맞춘 뒤 후보 이름 전체에 입력과 같은 연속 두 글자가 있거나,
+    /// 후보의 주 이름(첫 쉼표 앞, 예: "오징어, 냉동" → 오징어)과 짧은 쪽 글자의 절반 이상(올림)이 같으면 겹친다고 본다.
+    /// 두 글자 기준만 쓰면 "멸균유 → 우유"처럼 한 글자만 같은 짧은 이름이 빠져서(M73) 글자 비율도 본다.
+    /// 비율은 주 이름으로만 봐서 "텐동"이 상태 설명 "냉동"의 '동' 한 글자로 "오징어, 냉동"과 겹치지 않게 한다(M84).
+    static func namesOverlap(_ input: String, _ candidate: String) -> Bool {
+        let a = Array(FoodReferenceCatalog.normalized(input)), b = FoodReferenceCatalog.normalized(candidate)
+        guard !a.isEmpty, !b.isEmpty else { return false }
+        if a.count >= 2, (0..<(a.count - 1)).contains(where: { b.contains(String(a[$0...($0 + 1)])) }) { return true }
+        let main = FoodReferenceCatalog.normalized(String(candidate.split(separator: ",").first ?? Substring(candidate)))
+        guard !main.isEmpty else { return false }
+        let common = Set(a).intersection(Set(main)).count
+        return common * 2 >= min(a.count, main.count)
+    }
+
     /// 비슷한 음식 질문의 마지막 선택지(2026-11-23, #39). 후보가 먹은 음식과 다를 때 DB 자료 대신 모델 영양 추정으로 기록한다.
     static let estimateChoiceTitle = "목록에 없어요"
     static let estimateChoiceSubtitle = "AI가 영양값을 추정해요"
 
-    /// "목록에 없어요"를 고른 음식을 모델 영양 추정으로 기록한다. 추정할 수 없거나 모델을 쓸 수 없으면
-    /// 기존 흐름(재료·조리법을 적어 달라는 질문)으로, 분량을 모르면 수량 질문으로 간다.
+    /// "목록에 없어요"를 고른 음식을 모델 영양 추정으로 기록한다. 분량을 모르면 수량 질문으로 간다.
+    /// 재료를 글로 적어 달라는 질문(선택지 0개)은 내지 않는다(#41). 추정할 수 없으면 오류로 끝난다.
     private func estimatedChoice(_ input: MealFoodInput, items: [MealEntryItem], remaining: [MealFoodInput]) async throws -> MealEntryAnalysis {
+        let estimate: MealNutritionEstimate?
+        do {
+            estimate = try await interpreter.estimateNutrition(for: input)
+        } catch MealEntryError.portionUnknown {
+            guard !input.hasConfirmedPortion else { throw MealEntryError.portionUnknown(input.name) }
+            return amountQuestion(input, items: items, remaining: remaining)
+        }
+        try Task.checkCancellation()
+        return try await estimatedWithoutQuestion(input, estimate: estimate, reason: "목록에 없어요 선택", items: items, remaining: remaining)
+    }
+
+    /// 모델 영양 추정으로 입력한 음식 이름 그대로 기록한다(#41). 기준 음식이 입력에 없어도(예: 텐동 → 김밥) 질문하지 않는다.
+    /// 수량을 적지 않았거나 분량이 맞지 않으면 수량 선택 질문으로 가고, 추정 자체가 없으면 음식을 찾지 못했다는 오류로 끝난다.
+    private func estimatedWithoutQuestion(_ input: MealFoodInput, estimate: MealNutritionEstimate?, reason: String,
+                                          items: [MealEntryItem], remaining: [MealFoodInput]) async throws -> MealEntryAnalysis {
+        guard let estimate else {
+            MealDebugLog.log("오류: 영양 추정 추정값 없음(\(reason)) \(input.name)")
+            throw MealEntryError.foodNotFound(input.name)
+        }
+        if try await !hasGroundedReference(estimate, input: input) {
+            MealDebugLog.log("영양 추정 기준 음식 '\(estimate.referenceFood)'이 입력에 없음 → 입력 이름 '\(input.name)'으로 AI 추정 기록")
+        }
         let item: MealEntryItem
         do {
-            guard let estimate = try await interpreter.estimateNutrition(for: input) else {
-                return try clarification(for: input, question: "어떤 재료나 소스가 들어갔나요?", items: items, remaining: remaining)
-            }
-            try Task.checkCancellation()
-            guard try await hasGroundedReference(estimate, input: input) else {
-                return try clarification(for: input, question: "어떤 재료나 소스가 들어갔나요?", items: items, remaining: remaining)
-            }
             item = try estimatedItem(input, estimate: estimate)
-        } catch let error as MealEntryError {
-            switch error {
-            case .portionUnknown:
-                guard !input.hasConfirmedPortion else { throw error }
-                return amountQuestion(input, items: items, remaining: remaining)
-            case .unavailable, .generationFailed:
-                return try clarification(for: input, question: "어떤 재료나 소스가 들어갔나요?", items: items, remaining: remaining)
-            default:
-                throw error
-            }
+        } catch MealEntryError.portionUnknown {
+            guard !input.hasConfirmedPortion else { throw MealEntryError.portionUnknown(input.name) }
+            return amountQuestion(input, items: items, remaining: remaining)
         }
         return try await resolve(remaining, items: items + [item])
     }
@@ -933,8 +961,9 @@ final class AIMealEntryService: MealEntryAnalyzing {
     /// 용기 단위 표(DrinkReferences.json)로 술·음료를 질문 없이 기록한다. 표로 계산할 수 없으면 nil을 돌려 일반 흐름을 따른다.
     private func resolveDrink(_ input: MealFoodInput, drink: DrinkReference, items: [MealEntryItem], remaining: [MealFoodInput]) async throws -> MealEntryAnalysis? {
         let hasDegree = (input.sourceText + " " + input.details).range(of: #"\d+(?:\.\d+)?\s*(?:도|%)"#, options: .regularExpression) != nil
+        // 도수를 적은 일반 술 이름은 제품명을 글로 묻지 않고(선택지 0개 질문 없음, #41) 술 표의 일반 항목으로 기록한다.
         if hasDegree, !drink.isProduct(input.name) {
-            return try clarification(for: input, question: "‘\(input.name)’ 제품명을 알려주세요", items: items, remaining: remaining)
+            MealDebugLog.log("도수를 적은 일반 술 이름: 제품명 질문 없이 술 표 기준 \(drink.name)")
         }
         if ["인분", "개"].contains(input.unit), MealInputGrounding.hasExplicitAmount(in: input.sourceText) {
             return amountQuestion(input, items: items, remaining: remaining)
@@ -1084,17 +1113,6 @@ final class AIMealEntryService: MealEntryAnalyzing {
         return candidates(from: references, input: input).contains { food in
             terms.allSatisfy { normalized(food.name).contains($0) }
         }
-    }
-
-    private func clarification(for input: MealFoodInput, question: String, items: [MealEntryItem], remaining: [MealFoodInput]) throws -> MealEntryAnalysis {
-        guard input.details.isEmpty else { throw MealEntryError.foodNotFound(input.name) }
-        return .question(MealEntryQuestion(
-            title: question,
-            explanation: isUnspecified(input.name) ? "여러 가지라면 쉼표로 나눠 알려주세요" : "‘\(input.name)’에 대해 짧게 알려주세요",
-            choices: [],
-            clarification: MealEntryChoice(id: UUID().uuidString, title: "확인", items: items, remainingFoods: remaining, continuationInput: input),
-            inputPlaceholder: isUnspecified(input.name) ? "먹은 반찬 이름을 적어주세요" : "재료나 조리 방법을 짧게 적어주세요"
-        ))
     }
 
     private func isUnspecified(_ name: String) -> Bool {

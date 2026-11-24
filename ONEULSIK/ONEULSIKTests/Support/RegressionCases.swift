@@ -119,6 +119,8 @@ struct MealCase: Decodable, CustomTestStringConvertible {
         var asksAmount: Bool?
         /// 수량을 적지 않아 기본값(대표 분량 1단위)으로 가정했고, 카드에 그 안내가 붙어야 함(false면 붙으면 안 됨)
         var assumedQuantity: Bool?
+        /// 질문 제목이나 고른 선택지에 이 글자가 들어가면 실패(#41, 예: 관련 없는 비슷한 음식 후보)
+        var questionsExclude: [String]?
         /// 포장 중량을 모르는 제품에서 AI가 1단위 분량을 추정하고 수량을 고르는 질문을 거쳐야 함(#39, 무게 질문 대신)
         var asksUnitEstimate: Bool?
         /// mL 국물·면 항목에 대표 분량을 같은 숫자의 mL로 계산했다는 안내가 붙어야 함(false면 붙으면 안 됨)
@@ -154,6 +156,7 @@ struct MealCase: Decodable, CustomTestStringConvertible {
         if expect.asksAmount == true { parts.append("수량 질문") }
         if expect.assumedQuantity == true { parts.append("기본값 안내") }
         if expect.asksUnitEstimate == true { parts.append("AI 1단위 추정 수량 질문") }
+        if let excluded = expect.questionsExclude { parts.append("질문에 없음(\(excluded.joined(separator: ", ")))") }
         if expect.volumeAsWeight == true { parts.append("국물 mL 안내") }
         if expect.volumeAsWeight == false { parts.append("국물 mL 안내 없음") }
         if let items = expect.items { parts.append("음식 \(items.count)개(\(items.joined(separator: ", ")))") }

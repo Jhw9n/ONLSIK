@@ -419,11 +419,9 @@
       "expect": { "maxQuestions": 1, "assumedQuantity": true, "basis": "package", "units": ["개"], "count": 1, "amount": { "units": ["g"], "min": 115, "max": 125 }, "kcal": { "min": 480, "max": 520 } }
     },
     {
-      "id": "M72", "input": "텐동 1인분", "note": "실기기 기록 재현(2026-11-23, #39, 실기기 입력은 수량 없는 '텐동'): 모델 검색어 '떡볶이, 오징어'로 비슷한 음식 질문 선택지가 떡볶이 하나뿐이던 경로. 질문 끝에 '목록에 없어요'가 있고 고르면 DB 자료 대신 모델 영양 추정으로 간다. 모델 추정 기준 음식이 입력에 없으면 기존처럼 재료 질문(답: 새우튀김, 밥)을 거쳐 '새우튀김' 기준 AI 추정으로 기록된다. 수량 없는 입력은 기존 규칙대로 AI 추정 뒤 수량 질문으로 가므로 기록까지 보려고 1인분을 적음. 분량·열량은 가짜 해석기 추정값이라 기대값에 넣지 않음",
+      "id": "M72", "input": "텐동 1인분", "note": "실기기 기록 재현(2026-11-23, #39). 2026-11-24(#41)부터 모델 검색어 '떡볶이, 오징어'의 후보가 입력과 겹치지 않으면 비슷한 음식 질문 없이 영양 추정으로 가고, 추정 기준 음식(새우튀김)이 입력에 없어도 재료 질문(선택지 0개) 없이 '텐동'으로 AI 추정 기록한다. 이전 기대: 목록에 없어요 → 재료 질문 답 '새우튀김, 밥' → 질문 3회 이하. 분량·열량은 가짜 해석기 추정값이라 기대값에 넣지 않음",
       "llm": { "food": "텐동", "searchTerms": ["떡볶이", "오징어"], "estimate": { "referenceFood": "새우튀김", "amount": 350, "amountUnit": "g", "calories": 180, "carbohydrate": 25, "protein": 7, "fat": 6, "ingredients": "밥, 새우튀김, 채소튀김, 소스" } },
-      "choose": "목록에 없어요",
-      "answers": ["새우튀김, 밥"],
-      "expect": { "maxQuestions": 3, "kind": "general", "nameContains": ["텐동"], "nameExcludes": ["떡볶이"], "basis": "aiEstimated" }
+      "expect": { "maxQuestions": 0, "kind": "general", "nameContains": ["텐동"], "nameExcludes": ["떡볶이"], "questionsExclude": ["떡볶이", "오징어", "재료"], "basis": "aiEstimated" }
     },
     {
       "id": "M73", "input": "멸균유 200g", "note": "후보 순서(2026-11-23, #39): 실기기 '흰우유'에서 모델 검색어 '우유, 흰 우유'로 모은 후보 중 이름이 같은 원재료 '우유'가 6번째였고 모델이 1번 '우유 딸기'를 골랐다. 원인은 후보 정렬이 분류 '음식'을 원재료보다 앞에 둔 것. 이름이 입력이나 검색어와 정확히 같은 일반 음식을 맨 앞에 둔다. DB에 없는 이름(멸균유)으로 같은 검색어 경로를 재현. 농진청 우유 100g당 67kcal × 2 = 134kcal ±5% → 127~141",
@@ -479,6 +477,22 @@
       "id": "M83", "input": "흰우유 한 잔", "note": "#39 데이터: 흰우유 → 우유(RDA-M0090000009a, 100g당 67kcal). 1잔 200mL(식품교환표 우유군 1교환단위)를 200g으로 계산 → 134kcal ±5%",
       "llm": { "food": "흰우유" },
       "expect": { "maxQuestions": 0, "units": ["잔"], "amount": { "units": ["g"], "min": 199, "max": 201 }, "kcal": { "min": 127, "max": 141 } }
+    },
+    {
+      "id": "M84", "input": "텐동", "note": "실기기 기록 재현(2026-11-24, #41): 검색어 '떡볶이, 오징어' → 비슷한 음식 질문(떡볶이) → 목록에 없어요 → 영양 추정(기준 음식 김밥) → 선택지 0개 재료 질문에서 막힘. 지금은 떡볶이·재료 질문 없이 AI 추정. 수량이 없어 수량 선택 질문 1회(1인분 선택)",
+      "llm": { "food": "텐동", "searchTerms": ["떡볶이", "오징어"], "estimate": { "referenceFood": "김밥", "amount": 350, "amountUnit": "g", "calories": 180, "carbohydrate": 25, "protein": 8, "fat": 12, "ingredients": "밥, 채소, 소스" } },
+      "choose": "1인분",
+      "expect": { "maxQuestions": 1, "kind": "general", "nameContains": ["텐동"], "questionsExclude": ["떡볶이", "오징어", "재료"], "basis": "aiEstimated", "units": ["인분"], "count": 1 }
+    },
+    {
+      "id": "M85", "input": "반찬 1인분", "note": "#41 작업 A: 무엇인지 정해지지 않은 반찬은 '어떤 반찬을 드셨나요?'(선택지 0개) 대신 모델 영양 추정으로 기록",
+      "llm": { "food": "반찬", "estimate": { "referenceFood": "나물", "amount": 70, "amountUnit": "g", "calories": 80, "carbohydrate": 8, "protein": 3, "fat": 4, "ingredients": "나물, 양념" } },
+      "expect": { "maxQuestions": 0, "nameContains": ["반찬"], "questionsExclude": ["어떤 반찬"], "basis": "aiEstimated" }
+    },
+    {
+      "id": "M86", "input": "고등어구이 정식", "note": "#41 작업 A: 정식·세트는 구성을 글로 묻지 않고(선택지 0개) 이름 하나의 음식으로 처리. DB에 같은 이름이 없으면 모델 영양 추정",
+      "llm": { "food": "고등어구이 정식", "estimate": { "referenceFood": "고등어구이", "amount": 550, "amountUnit": "g", "calories": 150, "carbohydrate": 15, "protein": 10, "fat": 6, "ingredients": "고등어구이, 밥, 국, 반찬" } },
+      "expect": { "maxQuestions": 1, "questionsExclude": ["어떤 음식이 있었나요"] }
     }
   ]
 }

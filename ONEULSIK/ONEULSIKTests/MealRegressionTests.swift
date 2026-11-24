@@ -128,6 +128,7 @@ struct MealEntryOutcomeTests {
         let service = AIMealEntryService(interpreter: FakeMealFoodInterpreter(script: testCase.llm), catalog: FoodCatalogService())
         var failures: [Failure] = []
         var questionLog: [String] = []
+        var shownText: [String] = []
         var items: [MealEntryItem] = []
         let answers = testCase.answers ?? []
         var answerIndex = 0
@@ -145,6 +146,11 @@ struct MealEntryOutcomeTests {
                     }
                     let preferred = testCase.choose.flatMap { wanted in
                         question.choices.first { "\($0.title) \($0.subtitle ?? "")".contains(wanted) }
+                    }
+                    shownText.append(([question.title] + question.choices.map(\.title)).joined(separator: " / "))
+                    if question.choices.isEmpty {
+                        // 방문자가 고를 것이 없는 질문은 어떤 경로에서도 내지 않는다(#41).
+                        failures.append(Failure(type: .question, message: "선택지 0개 질문: \(question.title)"))
                     }
                     if let first = preferred ?? question.choices.first {
                         questionLog.append("\(question.title) → \(first.title)\(first.subtitle.map { " (\($0))" } ?? "")")
@@ -169,6 +175,10 @@ struct MealEntryOutcomeTests {
         }
 
         let expect = testCase.expect
+        if let excluded = expect.questionsExclude,
+           let hit = shownText.first(where: { line in excluded.contains { line.contains($0) } }) {
+            failures.append(Failure(type: .question, message: "나오면 안 되는 질문·선택지: \(hit)"))
+        }
         // 방문자에게 무게(g·mL)를 묻지 않는다(#39).
         if let weight = questionLog.first(where: { $0.contains("중량을 알려주세요") }) {
             failures.append(Failure(type: .question, message: "무게 질문: \(weight)"))
