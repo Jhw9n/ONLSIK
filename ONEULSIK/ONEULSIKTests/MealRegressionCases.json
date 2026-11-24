@@ -622,6 +622,16 @@
       "expect": { "maxQuestions": 0, "questionsExclude": ["얼마나 드셨나요", "열량이 높게"], "exactNames": ["연어덮밥"], "basis": "aiEstimated", "assumedQuantity": true, "kcal": { "min": 675, "max": 690 } }
     },
     {
+      "id": "M112", "input": "순대국밥", "note": "실기기 기록 재현(2026-11-24, #41 2차 B·D): DB '국밥 순대국밥'인데 비슷한 음식 질문 → 수량 질문 → 1인분 450g. 지금: '{분류어} {입력}' 이름은 같은 음식으로 보고 질문 없이 기록, 이름은 입력 그대로, 출처에 DB 이름",
+      "llm": { "food": "순대국밥", "portion": { "amount": 450 } },
+      "expect": { "maxQuestions": 0, "questionsExclude": ["비슷한 음식", "얼마나 드셨나요"], "exactNames": ["순대국밥"], "sourceContains": "국밥 순대국밥 영양값 기준", "assumedQuantity": true }
+    },
+    {
+      "id": "M113", "input": "진라면", "note": "실기기 기록 재현(2026-11-24, #41 2차 E): 검색어 '진라면, 라면' → 일반 음식 '라면'(국물 포함 100g당 82kcal) 비슷한 음식 질문 → 150g 123kcal. 지금: 이름이 '진라면'으로 시작하는 오뚜기라면 제품 10개(업체 표기 '(주)'·'주식회사' 차이는 같은 업체, '진라면 볶음밥'처럼 띄어 쓴 다른 음식은 제외)의 가운데 P108-003000400-0993 진라면(순한맛) 120g",
+      "llm": { "food": "진라면", "searchTerms": ["진라면", "라면"] },
+      "expect": { "maxQuestions": 0, "questionsExclude": ["비슷한 음식", "얼마나 드셨나요"], "foodID": "P108-003000400-0993", "basis": "package", "kind": "processed", "amount": { "units": ["g"], "min": 119, "max": 121 }, "kcal": { "min": 495, "max": 505 } }
+    },
+    {
       "id": "M114", "input": "딸기라떼", "note": "실기기(2026-11-24, #41 2차 B): 수량 없는 입력에 수량 질문이 나왔다. 지금은 1개로 가정하고 안내. 제품·분량은 M88과 같음(가짜 해석기 300g)",
       "llm": { "food": "딸기라떼", "portion": { "amount": 300 } },
       "expect": { "maxQuestions": 0, "questionsExclude": ["얼마나 드셨나요", "이 제품을 드셨나요"], "assumedQuantity": true, "count": 1, "amount": { "units": ["g"], "min": 299, "max": 301 } }

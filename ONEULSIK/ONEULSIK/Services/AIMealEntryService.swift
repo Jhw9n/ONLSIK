@@ -569,10 +569,49 @@ final class AIMealEntryService: MealEntryAnalyzing {
     /// 포장제품 표(PackagedFoodReferences.json) 항목은 이미 확인된 제품이라 이 규칙에서 뺀다.
     static func medianSameNameProduct(_ foods: [FoodCatalogItem], name: String) -> (food: FoodCatalogItem, count: Int)? {
         let key = FoodReferenceCatalog.normalized(name)
+        return medianProduct(foods) { FoodReferenceCatalog.normalized($0.name) == key }
+    }
+
+    /// 이름이 입력으로 시작하는 한 업체의 제품 묶음의 가운데 제품(#41 2차 E). 조건:
+    /// - 가공식품이고 정규화한 이름이 입력 이름으로 시작하며 더 길다(같은 이름 제품은 medianSameNameProduct 몫).
+    /// - 입력 이름 바로 뒤가 띄어쓰기로 나뉜 다른 단어면 뺀다(예: "진라면 볶음밥"은 다른 음식, "진라면(순한맛)"은 같은 제품군).
+    /// - 2개 이상이고 업체 표기("(주)", "주식회사" 등 법인 표기·띄어쓰기를 뗀 이름)가 모두 같다.
+    static func productLine(_ foods: [FoodCatalogItem], name: String) -> (food: FoodCatalogItem, count: Int)? {
+        let key = FoodReferenceCatalog.normalized(name)
+        guard key.count >= 2 else { return nil }
+        let line = foods.filter { food in
+            guard food.category == "가공식품", !food.brand.isEmpty else { return false }
+            let compact = FoodReferenceCatalog.normalized(food.name)
+            guard compact.hasPrefix(key), compact != key else { return false }
+            var joined = ""
+            let words = food.name.split(whereSeparator: \.isWhitespace)
+            for (index, word) in words.enumerated() {
+                joined += FoodReferenceCatalog.normalized(String(word))
+                if joined.count >= key.count { return !(joined.count == key.count && index < words.count - 1) }
+            }
+            return false
+        }
+        let brands = Set(line.map { companyKey($0.brand) })
+        guard brands.count == 1, brands.first?.isEmpty == false else { return nil }
+        return medianProduct(line) { _ in true }
+    }
+
+    /// 업체 표기 비교용 키: 법인 표기와 띄어쓰기·기호를 뗀다(예: "오뚜기라면(주)" = "오뚜기라면 주식회사").
+    static func companyKey(_ brand: String) -> String {
+        var text = brand
+        for mark in ["주식회사", "유한회사", "(주)", "㈜", "(유)", "농업회사법인", "영농조합법인"] {
+            text = text.replacingOccurrences(of: mark, with: "")
+        }
+        return FoodReferenceCatalog.normalized(text)
+    }
+
+    /// 제품 묶음의 가운데 제품: 많은 단위(g 또는 mL, 같으면 g) 묶음을 100당 열량으로 정렬해 가운데. 짝수면 낮은 쪽, 같은 열량은 식품코드 순.
+    /// 포장제품 표(PackagedFoodReferences.json) 항목은 이미 확인된 제품이라 뺀다.
+    private static func medianProduct(_ foods: [FoodCatalogItem], where matches: (FoodCatalogItem) -> Bool) -> (food: FoodCatalogItem, count: Int)? {
         var seen = Set<String>()
         let same = foods.filter { food in
             food.category == "가공식품" && PackagedFoodCatalog.entry(id: food.id) == nil
-                && FoodReferenceCatalog.normalized(food.name) == key && food.baseAmount > 0 && seen.insert(food.id).inserted
+                && matches(food) && food.baseAmount > 0 && seen.insert(food.id).inserted
         }
         guard same.count >= 2 else { return nil }
         let grams = same.filter { $0.amountUnit == "g" }, milliliters = same.filter { $0.amountUnit == "mL" }
@@ -972,6 +1011,23 @@ final class AIMealEntryService: MealEntryAnalyzing {
                (input.brand.isEmpty ? food.brand.isEmpty && food.category != "가공식품" : true) {
                 return try await resolveSelection(MealFoodSelection(input: input, food: food), items: items, remaining: remaining)
             }
+            // "{분류어} {입력}" 형태의 DB 이름은 같은 음식으로 보고 비슷한 음식 질문 없이 기록한다(2026-11-24, #41 2차 D).
+            // 실기기에서 "순대국밥"에 DB "국밥 순대국밥"이 비슷한 음식 질문으로 나왔다. 이름은 입력 그대로, 출처에 DB 이름을 남긴다.
+            if exact.isEmpty, !needsSauce, input.brand.isEmpty, input.details.isEmpty,
+               let food = compatible.first(where: { $0.brand.isEmpty && $0.category != "가공식품" && Self.isCategoryPrefixedName($0.name, of: query) }) {
+                MealDebugLog.log("분류어가 붙은 같은 이름 → 비슷한 음식 질문 없이 기록: \(input.name) = \(food.id) \(food.name)")
+                return try await resolveSelection(MealFoodSelection(input: input, food: food, isSimilar: true), items: items, remaining: remaining)
+            }
+            // 이름이 입력으로 시작하는 한 업체의 제품 묶음이 있으면 비슷한 일반 음식보다 먼저 가운데 제품을 쓴다(2026-11-24, #41 2차 E).
+            // 실기기에서 "진라면"이 일반 음식 "라면"(국물 포함)으로 가서 150g 123kcal가 됐다. 같은 이름 제품이 있으면 기존 흐름을 따른다.
+            if exact.isEmpty, !prefersProducts, input.brand.isEmpty, input.details.isEmpty, productMatches.isEmpty,
+               let line = Self.productLine(usableCandidates(from: results, input: input), name: query) {
+                var food = line.food
+                food.source = "\(food.source) · \([food.brand, food.name].filter { !$0.isEmpty }.joined(separator: " ")) 영양값 기준"
+                MealDebugLog.log("이름이 입력으로 시작하는 한 업체 제품 \(line.count)개 → 비슷한 음식 질문 없이 가운데 제품: \(food.id) \(food.name) · \(food.brand)")
+                return try await resolveSelection(MealFoodSelection(input: input, food: food, isProductConfirmed: true),
+                    items: items, remaining: remaining)
+            }
             let sauces = needsSauce ? sauceCandidates(compatible) : []
             if !sauces.isEmpty {
                 return .question(MealEntryQuestion(
@@ -1077,6 +1133,10 @@ final class AIMealEntryService: MealEntryAnalyzing {
                 if normalized(food.name) == normalized(input.name) {
                     return try await resolveSelection(MealFoodSelection(input: input, food: food), items: items, remaining: remaining)
                 }
+                if Self.isCategoryPrefixedName(food.name, of: input.name) {
+                    MealDebugLog.log("분류어가 붙은 같은 이름 → 비슷한 음식 질문 없이 기록: \(input.name) = \(food.id) \(food.name)")
+                    return try await resolveSelection(MealFoodSelection(input: input, food: food, isSimilar: true), items: items, remaining: remaining)
+                }
                 let reference = referenceEntry(for: input.name).flatMap { $0.matches(food) ? $0 : nil }
                 return similarFoodQuestion([food], input: input, items: items, remaining: remaining,
                     explanation: reference?.displayText ?? FoodModifierCatalog.stripped(input.name)?.displayText(for: food))
@@ -1154,6 +1214,15 @@ final class AIMealEntryService: MealEntryAnalyzing {
         guard !main.isEmpty else { return false }
         let common = Set(a).intersection(Set(main)).count
         return common * 2 >= min(a.count, main.count)
+    }
+
+    /// DB 이름이 "{분류어} {입력}"인지(#41 2차 D): 두 단어이고, 둘째 단어가 입력 이름과 같고, 첫 단어가 입력 이름의 끝부분이다
+    /// (공백·표기 변형을 맞춘 뒤). 예: 입력 "순대국밥"과 DB "국밥 순대국밥".
+    static func isCategoryPrefixedName(_ name: String, of input: String) -> Bool {
+        let words = name.split(whereSeparator: \.isWhitespace).map { FoodReferenceCatalog.normalized(String($0)) }
+        let key = FoodReferenceCatalog.normalized(input)
+        guard words.count == 2, !words[0].isEmpty, words[0] != key else { return false }
+        return words[1] == key && key.hasSuffix(words[0])
     }
 
     /// 비슷한 음식 질문의 마지막 선택지(2026-11-23, #39). 후보가 먹은 음식과 다를 때 DB 자료 대신 모델 영양 추정으로 기록한다.
