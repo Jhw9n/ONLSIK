@@ -273,6 +273,9 @@ final class AIMealEntryService: MealEntryAnalyzing {
             MealDebugLog.log("모델 음식 추출이 원문과 맞지 않음 → 원문을 음식 하나로 처리: \(text)")
             inputs = try MealInputGrounding.ground([Self.wholeTextFood(text)], in: text)
         }
+        if usesModel {
+            inputs = try await supplementedInputs(inputs, in: text)
+        }
         for input in inputs {
             guard input.isValid, !input.sourceText.isEmpty,
                   text.contains(input.sourceText),
@@ -281,6 +284,41 @@ final class AIMealEntryService: MealEntryAnalyzing {
             else { throw MealEntryError.invalidResult }
         }
         return inputs
+    }
+
+    /// 모델이 빠뜨린 음식을 원문 단어에서 보충한다(2026-11-24, #41 작업 J). 실기기에서 "오늘 점심에 친구랑 김치찌기 먹고
+    /// 아메리카노 마셨어"의 모델 추출이 "김치찌기" 하나뿐이었다. 원문을 단어로 나누고 끝의 조사·어미(MealTextParticles.json)를
+    /// 뗀 단어가 참고표·술 표 이름·별칭이나 DB 일반 음식(브랜드 없는 "음식" 분류) 이름과 정확히 맞고(맞춤법 변형 적용),
+    /// 이미 뽑힌 음식의 원문 범위와 겹치지 않으면 음식으로 더한다. 음식 이름은 코드에 넣지 않는다.
+    private func supplementedInputs(_ inputs: [MealFoodInput], in text: String) async throws -> [MealFoodInput] {
+        let covered = inputs.compactMap { MealFoodNames.range(of: $0.name, in: text) }
+        var extra: [(input: MealFoodInput, position: String.Index)] = []
+        for (word, range) in MealTextParticles.words(in: text) where !MealTextParticles.isStandalone(word) {
+            guard !covered.contains(where: { $0.overlaps(range) }) else { continue }
+            for candidate in [word, MealTextParticles.stripped(word)].compactMap({ $0 }) where candidate.count >= 2 {
+                let key = normalized(candidate)
+                guard !inputs.contains(where: { normalized($0.name) == key }),
+                      !extra.contains(where: { normalized($0.input.name) == key }) else { break }
+                guard try await isSupplementName(candidate) else { continue }
+                extra.append((MealFoodInput(name: candidate, sourceText: text, quantity: 1, unit: "인분", brand: ""), range.lowerBound))
+                break
+            }
+        }
+        guard !extra.isEmpty else { return inputs }
+        let merged = (inputs.map { ($0, MealFoodNames.range(of: $0.name, in: text)?.lowerBound ?? text.endIndex) } + extra)
+            .sorted { $0.1 < $1.1 }.map(\.0)
+        guard merged.count <= 8 else { return inputs }
+        MealDebugLog.log("모델이 빠뜨린 음식 보충: " + extra.map(\.input.name).joined(separator: ", "))
+        return try MealInputGrounding.ground(merged, in: text)
+    }
+
+    private func isSupplementName(_ name: String) async throws -> Bool {
+        if FoodReferenceCatalog.entry(for: name) != nil || DrinkReferenceCatalog.recognizes(name) { return true }
+        let matches = try await catalog.search(query: name)
+        try Task.checkCancellation()
+        return matches.contains { food in
+            food.brand.isEmpty && food.category == "음식" && FoodCatalogQuality.isUsable(food) && normalized(food.name) == normalized(name)
+        }
     }
 
     private func catalogFoodList(in text: String) async throws -> [MealFoodInput]? {

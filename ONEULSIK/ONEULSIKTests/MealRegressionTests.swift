@@ -205,6 +205,9 @@ struct MealEntryOutcomeTests {
         }
 
         var actual = items.isEmpty ? "기록 없음" : ""
+        if let names = expect.exactNames, items.map(\.food.name) != names {
+            failures.append(Failure(type: .name, message: "기록 이름 \(items.map(\.food.name).joined(separator: ", ")) (기대 \(names.joined(separator: ", ")))"))
+        }
         if let expected = expect.items {
             if items.count != expected.count {
                 failures.append(Failure(type: .error, message: "음식 \(items.count)개로 기록됨 (기대 \(expected.count)개)"))

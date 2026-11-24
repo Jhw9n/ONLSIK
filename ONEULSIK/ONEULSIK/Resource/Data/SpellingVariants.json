@@ -11,6 +11,6 @@
     { "standard": "짜장", "variants": ["자장"] },
     { "standard": "돈가스", "variants": ["돈까스"] },
     { "standard": "쌀밥", "variants": ["흰쌀밥"] },
-    { "standard": "찌개", "variants": ["찌게"] }
+    { "standard": "찌개", "variants": ["찌게", "찌기"] }
   ]
 }
