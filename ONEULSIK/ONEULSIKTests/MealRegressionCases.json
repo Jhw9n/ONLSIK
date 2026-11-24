@@ -692,9 +692,9 @@
       "expect": { "maxQuestions": 0, "foodID": "D105-245000000-0001", "basis": "representative", "dishServing": true, "count": 1, "amount": { "units": ["g"], "min": 439, "max": 441 }, "kcal": { "min": 129, "max": 135 } }
     },
     {
-      "id": "M126", "input": "된장찌개", "note": "#43: 실기기 모델 분량 450g 207kcal. 원본 식품중량 200g(D106-275000000-0001)이라 지금보다 작아짐",
+      "id": "M126", "input": "된장찌개", "note": "#43: 실기기 모델 분량 450g 207kcal. 원본 식품중량 200g(D106-275000000-0001)이라 지금보다 작아짐. #43 3차 A(사용자 결정)부터 참고표 내부 기준 1인분 400g이 음식 DB 1인분 중량보다 먼저 쓰임. 이전 기대: 200g 90~94kcal, 분량 근거 representative, 음식 DB 1인분 중량 안내",
       "llm": { "food": "된장찌개", "portion": { "amount": 450 } },
-      "expect": { "maxQuestions": 0, "foodID": "D106-275000000-0001", "basis": "representative", "dishServing": true, "count": 1, "amount": { "units": ["g"], "min": 199, "max": 201 }, "kcal": { "min": 90, "max": 94 } }
+      "expect": { "maxQuestions": 0, "foodID": "D106-275000000-0001", "basis": "estimated", "dishServing": false, "count": 1, "amount": { "units": ["g"], "min": 399, "max": 401 }, "kcal": { "min": 180, "max": 188 } }
     },
     {
       "id": "M127", "input": "미역국", "note": "#43: 실기기 모델 분량 400g 48kcal. 원본 식품중량도 400g(D105-223000000-0001). 가짜 해석기에는 250g을 줘서 원본 값이 쓰이는지 확인",
@@ -715,6 +715,16 @@
       "id": "M130", "input": "에너지드링크", "note": "#43 D: 실기기 가운데 제품(P109-401040100-1455, 100mL당 66kcal, 포장량 없음)에 모델 분량 500mL 330kcal. 지금은 술·음료 표의 1캔 250mL(내부 기준), 영양값은 같은 제품",
       "llm": { "food": "에너지드링크", "portion": { "amount": 500, "unit": "mL" } },
       "expect": { "maxQuestions": 0, "foodID": "P109-401040100-1455", "units": ["캔"], "count": 1, "assumedQuantity": true, "amount": { "units": ["mL"], "min": 249, "max": 251 }, "kcal": { "min": 163, "max": 167 } }
+    },
+    {
+      "id": "M131", "input": "된장찌개", "note": "#43 3차 A: 실기기(b77c7af) 음식 DB 1인분 중량 200g 92kcal. 참고표 내부 기준 1인분 400g(찌개류 외식 1인분 준용)이 음식 DB 1인분 중량보다 먼저 쓰여야 함. 가짜 해석기 분량 450g은 쓰이지 않아야 함",
+      "llm": { "food": "된장찌개", "portion": { "amount": 450 } },
+      "expect": { "maxQuestions": 0, "foodID": "D106-275000000-0001", "basis": "estimated", "dishServing": false, "units": ["인분"], "count": 1, "amount": { "units": ["g"], "min": 399, "max": 401 }, "kcal": { "min": 180, "max": 188 } }
+    },
+    {
+      "id": "M132", "input": "된찌", "note": "#43 3차 A: 된장찌개 별칭도 참고표 1인분 400g",
+      "llm": { "food": "된찌", "portion": { "amount": 450 } },
+      "expect": { "maxQuestions": 0, "foodID": "D106-275000000-0001", "basis": "estimated", "count": 1, "amount": { "units": ["g"], "min": 399, "max": 401 } }
     }
   ]
 }
