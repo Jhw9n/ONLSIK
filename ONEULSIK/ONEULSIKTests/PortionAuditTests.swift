@@ -37,7 +37,7 @@ struct PortionAuditTests {
         let expected: [String]
         let isGuideSource: Bool
         let stopped: String
-        var linked: Bool { item?.quantityNote != nil }
+        var linked: Bool { item.map(PortionLinkTests.isLinked) ?? false }
     }
 
     /// 대표 분량 출처 URL에서 자료집 쪽 번호를 읽는다(FoodPortion.guideSource 형식).

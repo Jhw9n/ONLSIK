@@ -121,13 +121,15 @@ struct PlausibilityTests {
 struct MealEntryOutcomeTests {
     private static let maxQuestionRounds = 4
     private static let lineCalorieLimit = 1000.0
-    private static let amountConfirmationTitle = "이 양이 맞나요?"
+    private static let amountConfirmationTitle = "열량이 높게 계산됐어요"
 
     @Test(arguments: RegressionCases.shared.meals)
     func meal(_ testCase: MealCase) async {
         let service = AIMealEntryService(interpreter: FakeMealFoodInterpreter(script: testCase.llm), catalog: FoodCatalogService())
         var failures: [Failure] = []
         var questionLog: [String] = []
+        var shownText: [String] = []
+        var caughtError: String?
         var items: [MealEntryItem] = []
         let answers = testCase.answers ?? []
         var answerIndex = 0
@@ -145,6 +147,11 @@ struct MealEntryOutcomeTests {
                     }
                     let preferred = testCase.choose.flatMap { wanted in
                         question.choices.first { "\($0.title) \($0.subtitle ?? "")".contains(wanted) }
+                    }
+                    shownText.append(([question.title] + question.choices.map(\.title)).joined(separator: " / "))
+                    if question.choices.isEmpty {
+                        // 방문자가 고를 것이 없는 질문은 어떤 경로에서도 내지 않는다(#41).
+                        failures.append(Failure(type: .question, message: "선택지 0개 질문: \(question.title)"))
                     }
                     if let first = preferred ?? question.choices.first {
                         questionLog.append("\(question.title) → \(first.title)\(first.subtitle.map { " (\($0))" } ?? "")")
@@ -165,10 +172,17 @@ struct MealEntryOutcomeTests {
                 }
             }
         } catch {
-            failures.append(Failure(type: .error, message: "\(error.localizedDescription)"))
+            caughtError = error.localizedDescription
+            if testCase.expect.errorContains == nil {
+                failures.append(Failure(type: .error, message: "\(error.localizedDescription)"))
+            }
         }
 
         let expect = testCase.expect
+        if let excluded = expect.questionsExclude,
+           let hit = shownText.first(where: { line in excluded.contains { line.contains($0) } }) {
+            failures.append(Failure(type: .question, message: "나오면 안 되는 질문·선택지: \(hit)"))
+        }
         // 방문자에게 무게(g·mL)를 묻지 않는다(#39).
         if let weight = questionLog.first(where: { $0.contains("중량을 알려주세요") }) {
             failures.append(Failure(type: .question, message: "무게 질문: \(weight)"))
@@ -177,7 +191,23 @@ struct MealEntryOutcomeTests {
             failures.append(Failure(type: .question, message: "질문 \(questionLog.count)회 (허용 \(max)회): \(questionLog.first ?? "")"))
         }
 
+        // 모든 경로가 실패해 오류 화면이 나와야 하는 케이스(#41, 작업 G 표)
+        if let expectedError = expect.errorContains {
+            if let caughtError, !caughtError.contains(expectedError) {
+                failures.append(Failure(type: .error, message: "오류 ‘\(caughtError)’ (기대 ‘\(expectedError)’)"))
+            } else if caughtError == nil {
+                failures.append(Failure(type: .error, message: "오류 화면 ‘\(expectedError)’이 나와야 하는데 오류 없음"))
+            }
+            report(suite: "식사", id: testCase.id, input: testCase.input, expected: testCase.expectedSummary,
+                   actual: caughtError.map { "오류: \($0)" } ?? "오류 없음", questions: questionLog.count, questionLog: questionLog,
+                   failures: failures)
+            return
+        }
+
         var actual = items.isEmpty ? "기록 없음" : ""
+        if let names = expect.exactNames, items.map(\.food.name) != names {
+            failures.append(Failure(type: .name, message: "기록 이름 \(items.map(\.food.name).joined(separator: ", ")) (기대 \(names.joined(separator: ", ")))"))
+        }
         if let expected = expect.items {
             if items.count != expected.count {
                 failures.append(Failure(type: .error, message: "음식 \(items.count)개로 기록됨 (기대 \(expected.count)개)"))
@@ -206,7 +236,7 @@ struct MealEntryOutcomeTests {
                 + (item.quantityNote.map { " · \($0)" } ?? "")
                 + items.dropFirst().map { " ＋ \($0.food.name) · \($0.amountDescription) · \($0.nutrition.calories.short)kcal" }.joined()
 
-            // 2026-11-15 결정: 1,000kcal를 넘는 줄은 막지 않고 "이 양이 맞나요?" 확인을 거쳐야 한다.
+            // 2026-11-15 결정: 1,000kcal를 넘는 줄은 막지 않고 "열량이 높게 계산됐어요"(2026-11-24 #41 전에는 "이 양이 맞나요?") 확인을 거쳐야 한다.
             let confirmedAmount = questionLog.contains { $0.hasPrefix(Self.amountConfirmationTitle) }
             for other in items where other.nutrition.calories > Self.lineCalorieLimit && !confirmedAmount {
                 failures.append(Failure(type: .limit, message: "한 줄 \(other.nutrition.calories.short)kcal인데 양 확인 질문 없음 (1,000kcal 초과 시 확인 필요)"))
@@ -219,6 +249,15 @@ struct MealEntryOutcomeTests {
             }
             if let volume = expect.volumeAsWeight, (item.volumeNote != nil) != volume {
                 failures.append(Failure(type: .amount, message: volume ? "국물 mL 안내가 없음" : "국물 mL 안내가 붙음: \(item.volumeNote ?? "")"))
+            }
+            if let source = expect.sourceContains, !item.food.source.contains(source) {
+                failures.append(Failure(type: .name, message: "출처 ‘\(item.food.source)’에 ‘\(source)’ 없음"))
+            }
+            if let excluded = expect.sourceExcludes, let hit = excluded.first(where: { item.food.source.contains($0) }) {
+                failures.append(Failure(type: .name, message: "출처 ‘\(item.food.source)’에 ‘\(hit)’ 포함"))
+            }
+            if let id = expect.foodID, item.food.id != id {
+                failures.append(Failure(type: .name, message: "자료 \(item.food.id) (기대 \(id))"))
             }
             if expect.asksUnitEstimate == true,
                !questionLog.contains(where: { $0.contains("얼마나 드셨나요") && $0.contains("(약 ") }) {
@@ -282,5 +321,109 @@ func report(suite: String, id: String, input: String, expected: String, actual: 
     ))
     for failure in failures {
         Issue.record("[\(failure.type.rawValue)] \(id) \(input): \(failure.message)")
+    }
+}
+
+/// DEBUG 기록 점검(2026-11-24, #41 작업 K). 실기기 기록에서 치킨 양 확인 질문 뒤의 선택과 기록이 빠졌고, 오류는 단계 없이
+/// "오류: invalidResult"만 남았다. 질문의 선택("선택: …"), 최종 기록("기록: …"), 오류("오류: {단계} {원인}")가 한 번씩 남는지 본다.
+@MainActor
+@Suite("DEBUG 기록")
+struct DebugLogTests {
+    struct Scenario: Sendable, CustomTestStringConvertible {
+        let id: String
+        let input: String
+        let llm: MealCase.LLM
+        let expected: [String]
+        var testDescription: String { "\(id) \(input)" }
+    }
+
+    static let scenarios = [
+        Scenario(id: "D01", input: "치킨 반마리", llm: MealCase.LLM(food: "치킨", brand: nil, portion: nil, pick: nil, estimate: nil),
+                 expected: ["원문: 치킨 반마리", "질문: 열량이 높게 계산됐어요", "선택: 맞아요, 그대로 기록", "기록: "]),
+        Scenario(id: "D02", input: "텐동 1인분",
+                 llm: MealCase.LLM(food: "텐동", brand: nil, portion: nil, pick: nil, estimate: nil, fail: ["estimate"]),
+                 expected: ["원문: 텐동 1인분", "오류: 영양 추정 generationFailed"]),
+        Scenario(id: "D03", input: "흑임자젤리", llm: MealCase.LLM(food: "흑임자젤리", brand: nil, portion: nil, pick: nil, estimate: nil),
+                 expected: ["원문: 흑임자젤리", "질문: 이 제품을 드셨나요?", "선택: 흑임자젤리", "기록: "]),
+    ]
+
+    @Test(arguments: scenarios)
+    func lines(_ scenario: Scenario) async {
+        let capture = MealDebugLog.Capture()
+        await MealDebugLog.$capture.withValue(capture) {
+            let service = AIMealEntryService(interpreter: FakeMealFoodInterpreter(script: scenario.llm), catalog: FoodCatalogService())
+            do {
+                var analysis = try await service.analyze(scenario.input)
+                for _ in 0..<4 {
+                    guard case .question(let question) = analysis, let first = question.choices.first else { break }
+                    analysis = try await service.resolve(first)
+                }
+            } catch {}
+        }
+        let lines = capture.lines.map { $0.replacingOccurrences(of: "[ONEULSIK-AI] ", with: "") }
+        var failures: [Failure] = []
+        // 기대한 줄이 이 순서로 한 번씩(같은 줄 두 번 없음) 나와야 한다.
+        var cursor = lines.startIndex
+        for prefix in scenario.expected {
+            guard let index = lines[cursor...].firstIndex(where: { $0.hasPrefix(prefix) }) else {
+                failures.append(Failure(type: .error, message: "‘\(prefix)’ 줄이 없음(또는 순서가 다름)"))
+                continue
+            }
+            cursor = lines.index(after: index)
+        }
+        for prefix in ["선택: ", "기록: ", "오류: "] {
+            let matched = lines.filter { $0.hasPrefix(prefix) }
+            if Set(matched).count != matched.count {
+                failures.append(Failure(type: .error, message: "같은 ‘\(prefix)’ 줄이 두 번 남음"))
+            }
+        }
+        report(suite: "DEBUG 기록", id: scenario.id, input: scenario.input, expected: scenario.expected.joined(separator: " → "),
+               actual: lines.joined(separator: " / "), failures: failures)
+    }
+}
+
+/// 화면 경로의 DEBUG 기록(2026-11-24, #41 2차 G). 실기기에서 치킨 양 확인 질문을 고른 뒤 "선택:"·"기록:" 줄이 남지 않았다.
+/// DebugLogTests는 서비스의 resolve를 바로 부르므로, 여기서는 화면과 같이 MealEntryViewModel(submit → select)을 거친다.
+@MainActor
+@Suite("DEBUG 기록(화면 경로)")
+struct ViewModelDebugLogTests {
+    /// 다른 테스트(L01·L03 등)와 같은 DB를 함께 쓰면 검색이 밀려 오래 걸릴 수 있어 넉넉히 기다린다(최대 120초).
+    private func settle(_ model: MealEntryViewModel) async throws {
+        for _ in 0..<6000 {
+            if case .analyzing = model.phase { try await Task.sleep(for: .milliseconds(20)) } else { return }
+        }
+    }
+
+    @Test func confirmationChoice() async throws {
+        let capture = MealDebugLog.Capture()
+        var phaseAfterChoice = "질문 없음"
+        try await MealDebugLog.$capture.withValue(capture) {
+            let llm = MealCase.LLM(food: "치킨", brand: nil, portion: nil, pick: nil, estimate: nil)
+            let service = AIMealEntryService(interpreter: FakeMealFoodInterpreter(script: llm), catalog: FoodCatalogService())
+            let model = MealEntryViewModel(mealType: .lunch, analyzer: service, analysisTimeout: .seconds(120))
+            model.updateText("치킨 반마리")
+            model.submit()
+            try await settle(model)
+            guard case .question(let question) = model.phase, let first = question.choices.first else {
+                phaseAfterChoice = "제출 뒤 질문 없음(\(model.phase))"
+                return
+            }
+            model.select(first)
+            try await settle(model)
+            switch model.phase {
+            case .ready: phaseAfterChoice = "기록 \(model.items.count)개"
+            case .failed(let message): phaseAfterChoice = "오류 \(message)"
+            default: phaseAfterChoice = "\(model.phase)"
+            }
+        }
+        let lines = capture.lines.map { $0.replacingOccurrences(of: "[ONEULSIK-AI] ", with: "") }
+        var failures: [Failure] = []
+        for prefix in ["질문: 열량이 높게 계산됐어요", "선택: 맞아요, 그대로 기록", "기록: "] {
+            let count = lines.filter { $0.hasPrefix(prefix) }.count
+            if count != 1 { failures.append(Failure(type: .error, message: "‘\(prefix)’ 줄 \(count)회(기대 1회)")) }
+        }
+        if phaseAfterChoice != "기록 1개" { failures.append(Failure(type: .error, message: "선택 뒤 화면 상태 \(phaseAfterChoice)")) }
+        report(suite: "DEBUG 기록", id: "D04", input: "치킨 반마리(화면 경로)",
+               expected: "질문 → 선택 → 기록 줄이 한 번씩, 화면 기록 1개", actual: lines.joined(separator: " / "), failures: failures)
     }
 }

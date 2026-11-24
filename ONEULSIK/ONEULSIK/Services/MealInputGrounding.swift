@@ -135,19 +135,30 @@ enum MealInputGrounding {
     }
 
     static func ground(_ inputs: [MealFoodInput], in text: String) throws -> [MealFoodInput] {
-        let inputs = includingUnspecifiedSides(inputs, in: text)
-        guard !inputs.isEmpty, inputs.count <= 8, inputs.allSatisfy(\.isValid) else {
+        let generated = includingUnspecifiedSides(inputs, in: text)
+        guard !generated.isEmpty, generated.count <= 8, generated.allSatisfy(\.isValid) else {
             throw MealEntryError.invalidResult
         }
         var cursor = text.startIndex
         var ranges: [Range<String.Index>] = []
-        for input in inputs {
+        var kept: [MealFoodInput] = []
+        for input in generated {
             let name = foodName(input.name)
-            guard let range = MealFoodNames.range(of: name, in: text, after: cursor)
-            else { throw MealEntryError.invalidResult }
-            ranges.append(range)
-            cursor = range.upperBound
+            let exact = MealFoodNames.range(of: name, in: text, after: cursor)
+            if let range = exact ?? partialRange(of: name, in: text, after: cursor) {
+                if exact == nil {
+                    MealDebugLog.log("모델 음식 '\(input.name)'이 원문에 그대로 없어 원문 단어 '\(text[range])'로 맞춤")
+                }
+                kept.append(input)
+                ranges.append(range)
+                cursor = range.upperBound
+            } else {
+                // 원문에 근거가 없는 이름(예: 지시문 예시 이름이 출력에 섞인 경우)은 버린다(2026-11-24, #41).
+                MealDebugLog.log("모델 음식 '\(input.name)'은 원문에 없어 버림")
+            }
         }
+        guard !kept.isEmpty else { throw MealEntryError.invalidResult }
+        let inputs = kept
         let grounded: [MealFoodInput] = inputs.enumerated().compactMap { index, input in
             let start = index == 0 ? text.startIndex : ranges[index].lowerBound
             let end = index + 1 < ranges.count ? ranges[index + 1].lowerBound : text.endIndex
@@ -177,6 +188,41 @@ enum MealInputGrounding {
         }
         guard !grounded.isEmpty else { throw MealEntryError.invalidResult }
         return grounded
+    }
+
+    /// 모델이 돌려준 이름이 원문에 그대로 없을 때, 이름과 가장 많이 겹치는 원문 단어(조사·어미를 뗀 것)의 범위(#41).
+    /// 겹침은 연속으로 같은 글자 수(2자 이상, 이름 글자 수의 절반 이상)로 본다. 예: 모델 "카라멜마키아또" ↔ 원문 "카라멜마끼아또".
+    private static func partialRange(of name: String, in text: String, after start: String.Index) -> Range<String.Index>? {
+        let key = Array(normalized(name))
+        guard key.count >= 2 else { return nil }
+        var best: (length: Int, range: Range<String.Index>)?
+        for (word, range) in MealTextParticles.words(in: text, after: start) where !MealTextParticles.isStandalone(word) {
+            let core = MealTextParticles.stripped(word) ?? word
+            let coreRange = range.lowerBound..<text.index(range.lowerBound, offsetBy: core.count)
+            let length = longestCommonRun(key, Array(normalized(core)))
+            guard length >= 2, length * 2 >= key.count, length > (best?.length ?? 0) else { continue }
+            best = (length, coreRange)
+        }
+        return best?.range
+    }
+
+    private static func longestCommonRun(_ a: [Character], _ b: [Character]) -> Int {
+        guard !a.isEmpty, !b.isEmpty else { return 0 }
+        var previous = [Int](repeating: 0, count: b.count + 1)
+        var longest = 0
+        for i in 1...a.count {
+            var current = [Int](repeating: 0, count: b.count + 1)
+            for j in 1...b.count where a[i - 1] == b[j - 1] {
+                current[j] = previous[j - 1] + 1
+                longest = max(longest, current[j])
+            }
+            previous = current
+        }
+        return longest
+    }
+
+    private static func normalized(_ text: String) -> String {
+        FoodReferenceCatalog.normalized(text)
     }
 
     static func isUnspecifiedSide(_ name: String) -> Bool {
@@ -262,5 +308,39 @@ enum MealInputGrounding {
         default: unit = originalUnit
         }
         return (quantity, unit)
+    }
+}
+
+/// 식사 문장의 조사·어미(MealTextParticles.json, 2026-11-24, #41). 음식 이름은 넣지 않는다.
+nonisolated enum MealTextParticles {
+    private struct File: Decodable { let suffixes: [String]; let standaloneWords: [String] }
+
+    private static let file: File? = {
+        guard let url = Bundle.main.url(forResource: "MealTextParticles", withExtension: "json"),
+              let data = try? Data(contentsOf: url) else { return nil }
+        return try? JSONDecoder().decode(File.self, from: data)
+    }()
+
+    private static let suffixes = (file?.suffixes ?? []).sorted { $0.count > $1.count }
+    private static let standaloneWords = Set(file?.standaloneWords ?? [])
+
+    /// 조사를 떼지 않고 통째로 음식이 아닌 말(먹고, 마셨어 등)
+    static func isStandalone(_ word: String) -> Bool { standaloneWords.contains(word) }
+
+    /// 단어 끝 조사·어미를 긴 것부터 하나 뗀 결과. 뗄 것이 없거나 남는 글자가 2자 미만이면 nil.
+    static func stripped(_ word: String) -> String? {
+        for suffix in suffixes where word.hasSuffix(suffix) && word.count - suffix.count >= 2 {
+            return String(word.dropLast(suffix.count))
+        }
+        return nil
+    }
+
+    /// 원문의 단어(한글·영문·숫자가 이어진 덩어리)와 범위
+    static func words(in text: String, after start: String.Index? = nil) -> [(word: String, range: Range<String.Index>)] {
+        guard let expression = try? NSRegularExpression(pattern: #"[가-힣A-Za-z0-9]+"#) else { return [] }
+        let lower = start ?? text.startIndex
+        return expression.matches(in: text, range: NSRange(lower..., in: text)).compactMap { match in
+            Range(match.range, in: text).map { (String(text[$0]), $0) }
+        }
     }
 }

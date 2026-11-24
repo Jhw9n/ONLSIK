@@ -162,6 +162,7 @@ final class MealEntryViewModel {
         timeoutTask = Task { [weak self, analysisTimeout] in
             do { try await Task.sleep(for: analysisTimeout) } catch { return }
             guard let self, self.requestID == currentID else { return }
+            MealDebugLog.log("오류: 화면 시간 초과 timedOut")
             self.analysisTask?.cancel()
             self.analysisTask = nil
             self.requestID = nil
@@ -187,7 +188,10 @@ final class MealEntryViewModel {
                     case .question(let question):
                         guard !question.choices.isEmpty || question.clarification != nil,
                               Set(question.choices.map(\.id)).count == question.choices.count
-                        else { throw MealEntryError.invalidResult }
+                        else {
+                            MealDebugLog.log("오류: 화면 질문 검증 invalidResult(선택지 없음 또는 중복)")
+                            throw MealEntryError.invalidResult
+                        }
                         self.phase = .question(question)
                         self.retryChoice = nil
                         self.finishAnalysis()
@@ -195,7 +199,10 @@ final class MealEntryViewModel {
                     case .ready(let resultItems):
                         try self.validate(resultItems)
                         let existingIDs = Set(self.items.map(\.id))
-                        guard resultItems.allSatisfy({ !existingIDs.contains($0.id) }) else { throw MealEntryError.invalidResult }
+                        guard resultItems.allSatisfy({ !existingIDs.contains($0.id) }) else {
+                            MealDebugLog.log("오류: 화면 기록 검증 invalidResult(이미 있는 기록과 중복)")
+                            throw MealEntryError.invalidResult
+                        }
                         self.rowResults[row.id] = resultItems
                         self.refreshItems()
                     }
@@ -340,6 +347,7 @@ final class MealEntryViewModel {
 
     private func validate(_ result: [MealEntryItem]) throws {
         guard !result.isEmpty, result.allSatisfy(\.isValid), Set(result.map(\.id)).count == result.count else {
+            MealDebugLog.log("오류: 화면 기록 검증 invalidResult(빈 기록, 잘못된 값 또는 중복)")
             throw MealEntryError.invalidResult
         }
     }

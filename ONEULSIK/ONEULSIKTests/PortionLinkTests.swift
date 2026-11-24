@@ -15,6 +15,13 @@ struct PortionLinkTests {
         let description: String
     }
 
+    /// 수량 없이 입력해 1단위를 가정한 기록 중 근거 데이터(대표 분량·참고표·포장량)로 분량을 정한 것.
+    /// 2026-11-24(#41 2차 B)부터 수량이 없으면 AI 분량 추정(aiEstimated)이나 영양 기준량(entered)으로도 묻지 않고 기록하고 같은 안내를
+    /// 붙이므로, 안내만으로는 연결 여부를 알 수 없어 분량 근거도 본다.
+    static func isLinked(_ item: MealEntryItem) -> Bool {
+        item.quantityNote != nil && ![.aiEstimated, .entered].contains(item.portionBasis)
+    }
+
     static func outcome(for name: String) async -> Outcome {
         let script = MealCase.LLM(food: name, brand: nil, portion: nil, pick: nil, estimate: nil)
         let service = AIMealEntryService(interpreter: FakeMealFoodInterpreter(script: script), catalog: FoodCatalogService())
@@ -30,7 +37,7 @@ struct PortionLinkTests {
                 case .ready(let items):
                     guard let item = items.first else { return Outcome(linked: false, description: "기록 없음") }
                     let amount = "\(item.count.short)\(item.food.servingUnit) \((item.food.baseAmount * item.count).short)\(item.food.amountUnit)"
-                    return Outcome(linked: item.quantityNote != nil, description: "\(await describe(item.food)) \(amount)")
+                    return Outcome(linked: isLinked(item), description: "\(await describe(item.food)) \(amount)")
                 case .question(let question):
                     if let food = question.choices.first?.selection?.food ?? question.clarification?.selection?.food {
                         selected = await describe(food)

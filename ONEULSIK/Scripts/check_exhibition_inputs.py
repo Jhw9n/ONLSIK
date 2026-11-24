@@ -64,7 +64,7 @@ def classify(row, variants):
         reasons["S1"].append(f"오류: {row['error']}")
     if len(questions) >= 3 or "(질문 반복)" in questions:
         reasons["S1"].append(f"질문 {len(questions)}회")
-    confirmed_large = any("이 양이 맞나요" in q for q in questions)
+    confirmed_large = any("열량이 높게 계산됐어요" in q or "이 양이 맞나요" in q for q in questions)
     for item in row["items"]:
         name = item["databaseName"] or item["name"]
         if item["kcal"] >= 1500 and not confirmed_large:

@@ -5,7 +5,7 @@
     "meals.llm은 가짜 해석기의 응답입니다. food=LLM이 뽑은 음식 이름, portion=LLM 분량 추정(unit 생략 시 DB 항목 단위), pick=후보 중 고를 이름(생략 시 첫 후보), estimate=DB에 없을 때의 영양 추정. portion이 없으면 LLM이 분량을 모른다고 답한 것으로 처리합니다.",
     "확인 질문은 첫 번째 선택지를 고르는 것으로 진행하고 횟수를 기록합니다. maxQuestions를 넘으면 실패입니다.",
     "선택지 없는 자유 입력 질문은 answers에 적힌 사용자 입력을 순서대로 넣고, answers가 없거나 모자라면 실패입니다.",
-    "모든 meals 케이스에는 공통 조건이 붙습니다: 한 줄이 1,000kcal를 넘으면 \"이 양이 맞나요?\" 확인 질문을 거쳐야 함(2026-11-15 결정), drink=true이면 기록 단위가 인분이 아니어야 함."
+    "모든 meals 케이스에는 공통 조건이 붙습니다: 한 줄이 1,000kcal를 넘으면 \"열량이 높게 계산됐어요\" 확인 질문(2026-11-24 #41 전 문구: 이 양이 맞나요?)을 거쳐야 함(2026-11-15 결정), drink=true이면 기록 단위가 인분이 아니어야 함."
   ],
   "grounding": [
     { "id": "G01", "input": "소주 한병", "food": "소주", "expect": { "quantity": 1, "unit": "병" } },
@@ -234,14 +234,14 @@
       "expect": { "maxQuestions": 1, "drink": true, "basis": "package", "amount": { "units": ["mL"], "min": 290, "max": 310 }, "kcal": { "min": 200, "max": 250 } }
     },
     {
-      "id": "M28", "input": "그릴닭가슴살 1팩", "note": "큰 총중량(980g) 제품 → 1,000kcal 초과 양 확인 질문",
-      "llm": { "food": "그릴닭가슴살" }, "choose": "980g",
-      "expect": { "confirmsAmount": true, "basis": "package", "amount": { "units": ["g"], "min": 950, "max": 1000 }, "kcal": { "min": 1100, "max": 1250 } }
+      "id": "M28", "input": "그릴닭가슴살 1팩", "note": "원래 목적: 큰 총중량(980g) 제품의 1,000kcal 초과 양 확인 질문(이 확인은 M76~M78 치킨이 맡음). 2026-11-24(#41 작업 E)부터 같은 이름 제품 2개(하담푸드 150g 100g당 104kcal, 에이치제이에프 980g 120kcal) 중 가운데 둘의 낮은 쪽 P117-100010100-0023(150g)을 묻지 않고 쓴다. 이전 기대: 제품 질문에서 980g 선택 → 980g 1,176kcal 양 확인 질문",
+      "llm": { "food": "그릴닭가슴살" },
+      "expect": { "maxQuestions": 0, "basis": "package", "foodID": "P117-100010100-0023", "sourceContains": "농업회사법인하담푸드(주) 그릴닭가슴살 영양값 기준", "amount": { "units": ["g"], "min": 149, "max": 151 }, "kcal": { "min": 148, "max": 164 } }
     },
     {
-      "id": "M29", "input": "흑임자젤리 1개", "note": "식품중량이 빈 제품 → 무게를 묻지 않고(#39) AI가 1개 분량(50g)을 추정 → 수량 선택(1개)",
+      "id": "M29", "input": "흑임자젤리 1개", "note": "식품중량이 빈 제품 → 무게를 묻지 않고(#39) AI가 1개 분량(50g)을 추정 → 수량 선택(1개). 2026-11-24(#41 작업 L)부터 원문에 수량(1개)이 있으면 수량 질문 없이 그 수량으로 기록. 이전 기대: AI 1단위 추정 수량 질문을 거침(질문 2회 이하)",
       "llm": { "food": "흑임자젤리", "portion": { "amount": 50 } },
-      "expect": { "maxQuestions": 2, "asksUnitEstimate": true, "amount": { "units": ["g"], "min": 45, "max": 55 }, "kcal": { "min": 200, "max": 250 } }
+      "expect": { "maxQuestions": 1, "questionsExclude": ["얼마나 드셨나요"], "amount": { "units": ["g"], "min": 45, "max": 55 }, "kcal": { "min": 200, "max": 250 } }
     },
     {
       "id": "M37", "input": "공기밥 하나", "note": "단위 없는 개수(하나). 기존 M11 ‘밥 한공기’와 같은 결과. ‘공기밥’의 ‘공기’를 단위로 읽지 않아야 함. 실기기 실패 원인(모델 응답)을 몰라 모델 없이 앱이 직접 읽는지 확인(llm 비움)",
@@ -299,9 +299,9 @@
       "expect": { "maxQuestions": 0, "assumedQuantity": true, "kind": "general", "nameContains": ["밥"], "units": ["공기"], "count": 1, "amount": { "units": ["g"], "min": 205, "max": 215 } }
     },
     {
-      "id": "M48", "input": "제육볶음", "note": "수량 없음 + 대표 분량 없음 → 지금처럼 수량 질문. LLM이 분량을 답할 수 있어도(portion) 묻는지 확인. 답은 1인분",
+      "id": "M48", "input": "제육볶음", "note": "수량 없음 + 대표 분량 없음 → LLM 1인분 분량(portion 200g)으로 기록. 2026-11-24(#41 2차 B 사용자 결정)부터 수량이 없으면 묻지 않고 1단위로 가정해 기록하고 안내를 붙인다. 이전 기대: 수량 질문(asksAmount), 기본값 안내 없음",
       "llm": { "food": "제육볶음", "portion": { "amount": 200 } }, "choose": "1인분",
-      "expect": { "asksAmount": true, "assumedQuantity": false, "units": ["인분"], "count": 1 }
+      "expect": { "maxQuestions": 0, "questionsExclude": ["얼마나 드셨나요"], "assumedQuantity": true, "basis": "aiEstimated", "units": ["인분"], "count": 1 }
     },
     {
       "id": "M49", "input": "된장찌개 절반", "note": "실기기(2026-11-16): 모델이 이름에 ‘절반’을 붙여 돌려줘 ‘된장찌개 절반’과 가까운 음식 질문이 나오고 절반이 사라짐. 모델 응답 재현",
@@ -339,14 +339,14 @@
       "expect": { "maxQuestions": 1, "assumedQuantity": true, "basis": "package", "units": ["개"], "count": 1, "amount": { "units": ["g"], "min": 115, "max": 125 }, "kcal": { "min": 480, "max": 520 } }
     },
     {
-      "id": "M56", "input": "그릴닭가슴살", "note": "수량 없는 가공식품(결정 A) + 1,000kcal 초과 → 기존 양 확인 질문. M28과 같은 항목·기대 범위",
-      "llm": { "food": "그릴닭가슴살" }, "choose": "980g",
-      "expect": { "confirmsAmount": true, "assumedQuantity": true, "basis": "package", "amount": { "units": ["g"], "min": 950, "max": 1000 }, "kcal": { "min": 1100, "max": 1250 } }
+      "id": "M56", "input": "그릴닭가슴살", "note": "수량 없는 가공식품(결정 A)에서 제품 1개 가정(기본값 안내). M28과 같은 항목·기대 범위. 2026-11-24(#41 작업 E)부터 같은 이름 제품 2개(하담푸드 150g 100g당 104kcal, 에이치제이에프 980g 120kcal) 중 가운데 둘의 낮은 쪽 P117-100010100-0023(150g)을 묻지 않고 쓴다. 이전 기대: 제품 질문에서 980g 선택 → 980g 1,176kcal 양 확인 질문",
+      "llm": { "food": "그릴닭가슴살" },
+      "expect": { "assumedQuantity": true, "maxQuestions": 0, "basis": "package", "foodID": "P117-100010100-0023", "sourceContains": "농업회사법인하담푸드(주) 그릴닭가슴살 영양값 기준", "amount": { "units": ["g"], "min": 149, "max": 151 }, "kcal": { "min": 148, "max": 164 } }
     },
     {
-      "id": "M57", "input": "흑임자젤리", "note": "수량 없는 가공식품(결정 A)인데 총중량 정보 없음 → M29처럼 AI 1개 분량 추정 후 수량 선택(#39, 무게 질문 없음)",
+      "id": "M57", "input": "흑임자젤리", "note": "수량 없는 가공식품(결정 A)인데 총중량 정보 없음 → AI 1개 분량 추정(#39, 무게 질문 없음). 2026-11-24(#41 2차 B 사용자 결정)부터 수량이 없으면 묻지 않고 1단위로 가정해 기록하고 안내를 붙인다. 이전 기대: AI 1단위 추정 수량 질문(asksUnitEstimate), 질문 2회 이하",
       "llm": { "food": "흑임자젤리", "portion": { "amount": 50 } },
-      "expect": { "maxQuestions": 2, "asksUnitEstimate": true, "amount": { "units": ["g"], "min": 45, "max": 55 }, "kcal": { "min": 200, "max": 250 } }
+      "expect": { "maxQuestions": 1, "questionsExclude": ["얼마나 드셨나요"], "assumedQuantity": true, "amount": { "units": ["g"], "min": 45, "max": 55 }, "kcal": { "min": 200, "max": 250 } }
     },
     {
       "id": "M58", "input": "우동 1그릇", "note": "국물·면 mL 항목(2026-11-17 결정 B, VolumeAsWeight.json): DB 우동은 mL 기준만 있음. 대표 분량표 우동 1그릇 700g → 700mL, 국물 안내",
@@ -359,9 +359,9 @@
       "expect": { "maxQuestions": 0, "assumedQuantity": true, "volumeAsWeight": true, "kind": "general", "nameContains": ["우동"], "units": ["그릇"], "count": 1, "amount": { "units": ["mL"], "min": 690, "max": 710 } }
     },
     {
-      "id": "M60", "input": "탕수육", "note": "국물·면이 아닌 mL 항목(DB 탕수육은 mL 기준만 있음)은 결정 B를 적용하지 않고 지금처럼 수량 질문. 형식은 M48과 같음(수량 없이 입력, 답은 1인분). ‘탕수육 1인분’처럼 수량을 적으면 질문 없이 AI 추정으로 가서 이 확인에 쓰지 않음",
+      "id": "M60", "input": "탕수육", "note": "국물·면이 아닌 mL 항목(DB 탕수육은 mL 기준만 있음)은 결정 B를 적용하지 않음(국물 mL 안내 없음). 형식은 M48과 같음(수량 없이 입력). 2026-11-24(#41 2차 B 사용자 결정)부터 수량이 없으면 묻지 않고 1단위로 가정해 기록하고 안내를 붙인다. 이전 기대: 수량 질문(asksAmount)",
       "llm": { "food": "탕수육", "portion": { "amount": 200 } }, "choose": "1인분",
-      "expect": { "asksAmount": true, "volumeAsWeight": false, "units": ["인분"], "count": 1 }
+      "expect": { "maxQuestions": 0, "questionsExclude": ["얼마나 드셨나요"], "assumedQuantity": true, "volumeAsWeight": false, "units": ["인분"], "count": 1 }
     },
     {
       "id": "M61", "input": "우럭매운탕 1인분", "note": "같은 요리의 g 항목 우선(2026-11-17 결정, 어순만 다른 이름 포함): DB 검색은 mL 항목 ‘우럭 매운탕’을 먼저 고르지만 어순만 다른 g 항목 ‘매운탕 우럭’(D306-280210000-0001, 100g당 68kcal)이 있으므로 그 항목을 쓰고 1mL=1g은 쓰지 않음. 대표 분량표 매운탕 1인분 600g. 열량 68 × 6 = 408kcal, ±5% → 388~428 2026-11-20부터 대표 분량표 별칭 규칙(#31)으로 지정 자료를 바로 가져와 입력 이름이 표시되고(예: ‘우럭매운탕 (DB: 매운탕 우럭)’) 비슷한 음식 근거가 남는다(기록 자료·분량·열량은 같음).",
@@ -419,11 +419,9 @@
       "expect": { "maxQuestions": 1, "assumedQuantity": true, "basis": "package", "units": ["개"], "count": 1, "amount": { "units": ["g"], "min": 115, "max": 125 }, "kcal": { "min": 480, "max": 520 } }
     },
     {
-      "id": "M72", "input": "텐동 1인분", "note": "실기기 기록 재현(2026-11-23, #39, 실기기 입력은 수량 없는 '텐동'): 모델 검색어 '떡볶이, 오징어'로 비슷한 음식 질문 선택지가 떡볶이 하나뿐이던 경로. 질문 끝에 '목록에 없어요'가 있고 고르면 DB 자료 대신 모델 영양 추정으로 간다. 모델 추정 기준 음식이 입력에 없으면 기존처럼 재료 질문(답: 새우튀김, 밥)을 거쳐 '새우튀김' 기준 AI 추정으로 기록된다. 수량 없는 입력은 기존 규칙대로 AI 추정 뒤 수량 질문으로 가므로 기록까지 보려고 1인분을 적음. 분량·열량은 가짜 해석기 추정값이라 기대값에 넣지 않음",
+      "id": "M72", "input": "텐동 1인분", "note": "실기기 기록 재현(2026-11-23, #39). 2026-11-24(#41)부터 모델 검색어 '떡볶이, 오징어'의 후보가 입력과 겹치지 않으면 비슷한 음식 질문 없이 영양 추정으로 가고, 추정 기준 음식(새우튀김)이 입력에 없어도 재료 질문(선택지 0개) 없이 '텐동'으로 AI 추정 기록한다. 이전 기대: 목록에 없어요 → 재료 질문 답 '새우튀김, 밥' → 질문 3회 이하. 분량·열량은 가짜 해석기 추정값이라 기대값에 넣지 않음",
       "llm": { "food": "텐동", "searchTerms": ["떡볶이", "오징어"], "estimate": { "referenceFood": "새우튀김", "amount": 350, "amountUnit": "g", "calories": 180, "carbohydrate": 25, "protein": 7, "fat": 6, "ingredients": "밥, 새우튀김, 채소튀김, 소스" } },
-      "choose": "목록에 없어요",
-      "answers": ["새우튀김, 밥"],
-      "expect": { "maxQuestions": 3, "kind": "general", "nameContains": ["텐동"], "nameExcludes": ["떡볶이"], "basis": "aiEstimated" }
+      "expect": { "maxQuestions": 0, "kind": "general", "nameContains": ["텐동"], "nameExcludes": ["떡볶이"], "questionsExclude": ["떡볶이", "오징어", "재료"], "basis": "aiEstimated" }
     },
     {
       "id": "M73", "input": "멸균유 200g", "note": "후보 순서(2026-11-23, #39): 실기기 '흰우유'에서 모델 검색어 '우유, 흰 우유'로 모은 후보 중 이름이 같은 원재료 '우유'가 6번째였고 모델이 1번 '우유 딸기'를 골랐다. 원인은 후보 정렬이 분류 '음식'을 원재료보다 앞에 둔 것. 이름이 입력이나 검색어와 정확히 같은 일반 음식을 맨 앞에 둔다. DB에 없는 이름(멸균유)으로 같은 검색어 경로를 재현. 농진청 우유 100g당 67kcal × 2 = 134kcal ±5% → 127~141",
@@ -479,6 +477,204 @@
       "id": "M83", "input": "흰우유 한 잔", "note": "#39 데이터: 흰우유 → 우유(RDA-M0090000009a, 100g당 67kcal). 1잔 200mL(식품교환표 우유군 1교환단위)를 200g으로 계산 → 134kcal ±5%",
       "llm": { "food": "흰우유" },
       "expect": { "maxQuestions": 0, "units": ["잔"], "amount": { "units": ["g"], "min": 199, "max": 201 }, "kcal": { "min": 127, "max": 141 } }
+    },
+    {
+      "id": "M84", "input": "텐동", "note": "실기기 기록 재현(2026-11-24, #41): 검색어 '떡볶이, 오징어' → 비슷한 음식 질문(떡볶이) → 목록에 없어요 → 영양 추정(기준 음식 김밥) → 선택지 0개 재료 질문에서 막힘. 지금은 떡볶이·재료 질문 없이 AI 추정. 수량이 없어 수량 선택 질문 1회(1인분 선택)",
+      "llm": { "food": "텐동", "searchTerms": ["떡볶이", "오징어"], "estimate": { "referenceFood": "김밥", "amount": 350, "amountUnit": "g", "calories": 180, "carbohydrate": 25, "protein": 8, "fat": 12, "ingredients": "밥, 채소, 소스" } },
+      "choose": "1인분",
+      "expect": { "maxQuestions": 1, "kind": "general", "nameContains": ["텐동"], "questionsExclude": ["떡볶이", "오징어", "재료"], "basis": "aiEstimated", "units": ["인분"], "count": 1 }
+    },
+    {
+      "id": "M85", "input": "반찬 1인분", "note": "#41 작업 A: 무엇인지 정해지지 않은 반찬은 '어떤 반찬을 드셨나요?'(선택지 0개) 대신 모델 영양 추정으로 기록",
+      "llm": { "food": "반찬", "estimate": { "referenceFood": "나물", "amount": 70, "amountUnit": "g", "calories": 80, "carbohydrate": 8, "protein": 3, "fat": 4, "ingredients": "나물, 양념" } },
+      "expect": { "maxQuestions": 0, "nameContains": ["반찬"], "questionsExclude": ["어떤 반찬"], "basis": "aiEstimated" }
+    },
+    {
+      "id": "M86", "input": "고등어구이 정식", "note": "#41 작업 A: 정식·세트는 구성을 글로 묻지 않고(선택지 0개) 이름 하나의 음식으로 처리. DB에 같은 이름이 없으면 모델 영양 추정",
+      "llm": { "food": "고등어구이 정식", "estimate": { "referenceFood": "고등어구이", "amount": 550, "amountUnit": "g", "calories": 150, "carbohydrate": 15, "protein": 10, "fat": 6, "ingredients": "고등어구이, 밥, 국, 반찬" } },
+      "expect": { "maxQuestions": 1, "questionsExclude": ["어떤 음식이 있었나요"] }
+    },
+    {
+      "id": "M87", "input": "카라멜마끼아또", "note": "실기기 기록 재현(2026-11-24, #41): 모델 음식 추출이 '냉동삼겹살, 숯불쭈꾸미, 야사이시오라멘, 카라멜마키아또'(앞의 셋은 지시문 예시 이름)라 오류 invalidResult. 지금은 참고표 별칭과 정확히 같은 입력이라 모델 추출 없이 카페 음료 데이터로 기록(작업 C). 1잔 355g, 커피 카라멜마끼아토 100g당 81kcal → 287.6kcal ±5%",
+      "llm": { "rawFoods": ["냉동삼겹살", "숯불쭈꾸미", "야사이시오라멘", "카라멜마키아또"] },
+      "expect": { "maxQuestions": 0, "items": ["카라멜마키아또"], "units": ["잔"], "amount": { "units": ["g"], "min": 354, "max": 356 }, "kcal": { "min": 273, "max": 302 } }
+    },
+    {
+      "id": "M89", "input": "텐동 1인분", "note": "#41 작업 D: 모델이 원문에 없는 이름만 돌려주면(지시문 예시 이름) 모두 버리고 원문을 음식 하나로 보고 계속한다. 오류 없이 텐동 1인분 AI 추정",
+      "llm": { "rawFoods": ["냉동삼겹살", "숯불쭈꾸미", "야사이시오라멘"], "estimate": { "referenceFood": "새우튀김", "amount": 350, "amountUnit": "g", "calories": 180, "carbohydrate": 25, "protein": 7, "fat": 6, "ingredients": "밥, 새우튀김, 소스" } },
+      "expect": { "maxQuestions": 0, "items": ["텐동"], "basis": "aiEstimated", "units": ["인분"], "count": 1 }
+    },
+    {
+      "id": "M90", "input": "오늘 저녁에 김치찌개 먹었어", "note": "#41 작업 D: 모델이 예시 이름 셋과 원문 음식을 함께 돌려주면 원문에 없는 셋만 버린다",
+      "llm": { "rawFoods": ["냉동삼겹살", "김치찌개", "숯불쭈꾸미"] },
+      "expect": { "maxQuestions": 0, "items": ["김치찌개"], "units": ["인분"], "assumedQuantity": true }
+    },
+    {
+      "id": "M91", "input": "초코우유", "note": "실기기(2026-11-24, #41 작업 E): 같은 이름 제품 중 고르는 질문이 나왔다. 업체명 없는 입력에 이름이 같은 제품이 2개 이상이면 묻지 않고 100mL당 열량 가운데 제품을 쓴다. DB의 같은 이름 mL 제품 58(0437)·71(0448)·74(0450)·76(0438)·84(0451)kcal → 가운데 P119-204020400-0450(연세대학교연세우유, 190mL). 수량이 없어 1개 = 포장량 190mL → 140.6kcal ±5%",
+      "llm": { "food": "초코우유" },
+      "expect": { "maxQuestions": 0, "foodID": "P119-204020400-0450", "sourceContains": "연세대학교연세우유 초코우유 영양값 기준", "questionsExclude": ["이 제품을 드셨나요"], "amount": { "units": ["mL"], "min": 189, "max": 191 }, "kcal": { "min": 133, "max": 148 } }
+    },
+    {
+      "id": "M92", "input": "아이스티", "note": "실기기(2026-11-24, #41 작업 E): 선택지 두 개가 모두 이름 '아이스티'라 구분할 수 없었다. 같은 이름 mL 제품 2개(16kcal 3414, 50kcal 0274) → 짝수라 가운데 둘 중 낮은 쪽 P109-102010200-3414. 포장량이 없어 AI 1개 분량 추정(가짜 해석기 355mL) → 56.8kcal. 2026-11-24(#41 2차 B 사용자 결정)부터 수량이 없으면 묻지 않고 1단위로 가정해 기록하고 안내를 붙인다. 이전 기대: AI 1단위 추정 수량 질문(asksUnitEstimate)",
+      "llm": { "food": "아이스티", "portion": { "amount": 355, "unit": "mL" } },
+      "expect": { "maxQuestions": 0, "foodID": "P109-102010200-3414", "assumedQuantity": true, "questionsExclude": ["이 제품을 드셨나요", "얼마나 드셨나요"], "amount": { "units": ["mL"], "min": 354, "max": 356 }, "kcal": { "min": 54, "max": 60 } }
+    },
+    {
+      "id": "M93", "input": "마라샹궈 반", "note": "실기기 기록 재현(2026-11-24, #41 작업 E·L·M): 모델 추출 '마라샹궈 반'(수량 말이 이름에 붙음) → 제품 선택 → AI 1인분 300g → '얼마나 드셨나요?'(0.5/0.2/0.8). 지금: 이름에서 '반'을 떼고 원문 수량 0.5인분, 같은 이름 제품 7개의 가운데 P123-207020300-1957(100g당 191kcal), 포장 단위가 아닌 인분이라 AI 1인분 300g 추정을 쓰고 수량 질문 없이 기록 → 150g 286.5kcal ±5%",
+      "llm": { "food": "마라샹궈 반", "portion": { "amount": 300 } },
+      "expect": { "maxQuestions": 0, "nameContains": ["마라샹궈"], "nameExcludes": ["반"], "units": ["인분"], "count": 0.5, "foodID": "P123-207020300-1957", "sourceContains": "(주)찬장 청주지점 마라샹궈 영양값 기준", "questionsExclude": ["이 제품을 드셨나요", "얼마나 드셨나요"], "amount": { "units": ["g"], "min": 149, "max": 151 }, "kcal": { "min": 272, "max": 301 } }
+    },
+    {
+      "id": "M94", "input": "로제떡볶이 1인분", "note": "실기기 기록 재현(2026-11-24, #41 작업 E·L): 제품 선택 → AI 1인분 300g → '얼마나 드셨나요?'(1/0.5/1.5). 지금: 같은 이름 제품 18개의 가운데 P123-217020300-0428(100g당 198kcal), 원문 수량 1인분이라 수량 질문 없이 300g 594kcal ±5%",
+      "llm": { "food": "로제떡볶이", "portion": { "amount": 300 } },
+      "expect": { "maxQuestions": 0, "units": ["인분"], "count": 1, "foodID": "P123-217020300-0428", "questionsExclude": ["이 제품을 드셨나요", "얼마나 드셨나요"], "amount": { "units": ["g"], "min": 299, "max": 301 }, "kcal": { "min": 564, "max": 624 } }
+    },
+    {
+      "id": "M95", "input": "아이스티 한 잔", "note": "#41 작업 F: AI 1단위 분량 추정이 1,500 이상(가짜 해석기 1,500mL)이면 추정 실패로 본다. 실기기에서 초코우유 1개를 1,500mL로 추정해 0.5개가 약 533kcal였다. 대체 흐름: 포장량 없음(3414) → mL 자료라 대표 분량 없음 → 1인분 선택 질문(영양 기준량 100mL) → 1인분 100mL 16kcal",
+      "llm": { "food": "아이스티", "portion": { "amount": 1500, "unit": "mL" } },
+      "choose": "1인분",
+      "expect": { "maxQuestions": 1, "foodID": "P109-102010200-3414", "amount": { "units": ["mL"], "min": 99, "max": 101 }, "kcal": { "min": 15, "max": 17 } }
+    },
+    {
+      "id": "M96", "input": "흑임자젤리 2개", "note": "#41 작업 H: 포장량 없는 제품에서 AI 분량 추정이 실패해도(가짜 해석기 분량 모름) 오류 대신 대체 흐름. 포장량 없음 → 대표 분량 없음 → 1인분 선택 질문(영양 기준량 100g) → 1인분 100g 454kcal",
+      "llm": { "food": "흑임자젤리" },
+      "choose": "1인분",
+      "expect": { "maxQuestions": 2, "amount": { "units": ["g"], "min": 99, "max": 101 }, "kcal": { "min": 431, "max": 477 } }
+    },
+    {
+      "id": "M97", "input": "마라샹궈 반", "note": "#41 작업 G·H: 분량 추정 단계가 실패(generationFailed)해도 오류 없이 제품 포장량(1957, 450g)을 1인분으로 보고 원문 수량 0.5인분 → 225g 429.8kcal ±5%, 질문 없음",
+      "llm": { "food": "마라샹궈 반", "fail": ["portion"] },
+      "expect": { "maxQuestions": 0, "foodID": "P123-207020300-1957", "count": 0.5, "amount": { "units": ["g"], "min": 224, "max": 226 }, "kcal": { "min": 408, "max": 452 } }
+    },
+    {
+      "id": "M98", "input": "순두부찌개 먹었어", "note": "#41 작업 G(음식 추출 실패): 모델 음식 추출 단계가 실패하면 원문('먹었어' 뗌)을 음식 하나로 보고 DB 검색부터 계속",
+      "llm": { "food": "순두부찌개", "fail": ["foods"] },
+      "expect": { "maxQuestions": 1, "nameContains": ["순두부찌개"] }
+    },
+    {
+      "id": "M99", "input": "텐동 1인분", "note": "#41 작업 G(검색어 실패): 검색어 단계가 실패하면 검색어 없이 계속 → 영양 추정 기록",
+      "llm": { "food": "텐동", "fail": ["searchTerms"], "estimate": { "referenceFood": "새우튀김", "amount": 350, "amountUnit": "g", "calories": 180, "carbohydrate": 25, "protein": 7, "fat": 6, "ingredients": "밥, 새우튀김, 소스" } },
+      "expect": { "maxQuestions": 0, "nameContains": ["텐동"], "basis": "aiEstimated" }
+    },
+    {
+      "id": "M100", "input": "순두부찌개 1인분", "note": "#41 작업 G(후보 선택 실패): 후보 선택 단계가 실패하면 첫 후보(같은 이름이 앞)로 계속",
+      "llm": { "food": "순두부찌개", "fail": ["assess"] },
+      "expect": { "maxQuestions": 1, "nameContains": ["순두부찌개"] }
+    },
+    {
+      "id": "M101", "input": "순대국밥 1인분", "note": "#41 작업 G·H(일반 음식 분량 추정 실패): 이전에는 비슷한 음식 선택 뒤 분량을 계산하지 못했다는 오류로 끝났다. 지금은 대표 분량 또는 1인분 선택 질문으로 기록",
+      "llm": { "food": "순대국밥", "fail": ["portion"] },
+      "expect": { "maxQuestions": 2, "nameContains": ["순대국밥"] }
+    },
+    {
+      "id": "M102", "input": "텐동 1인분", "note": "#41 작업 G(영양 추정 실패): DB 자료가 없고 영양 추정 단계도 실패하면 쓸 수 있는 경로가 없어 오류 화면",
+      "llm": { "food": "텐동", "fail": ["estimate"] },
+      "expect": { "errorContains": "식사를 분석하지 못했어요" }
+    },
+    {
+      "id": "M103", "input": "텐동 1인분", "note": "#41 작업 G(모든 단계 실패): 음식 추출 실패 → 원문 '텐동 1인분'으로 계속 → 검색어·후보 선택 실패도 넘김 → 영양 추정 실패 → 오류 화면",
+      "llm": { "food": "텐동", "fail": ["foods", "searchTerms", "assess", "portion", "estimate"] },
+      "expect": { "errorContains": "식사를 분석하지 못했어요" }
+    },
+    {
+      "id": "M104", "input": "오늘 점심에 친구랑 김치찌기 먹고 아메리카노 마셨어", "note": "실기기 기록 재현(2026-11-24, #41 작업 N·J): 모델 추출이 '김치찌기' 하나뿐이라 아메리카노가 빠졌고, 비슷한 음식 질문에서 김치찌개를 골라도 기록 이름이 '김치찌기'였다. 지금: 찌기 → 찌개 맞춤법 변형으로 김치찌개, 원문 단어 보충으로 아메리카노(조사·어미 데이터로 '먹고'·'마셨어' 제외, '친구랑'은 음식 아님)",
+      "llm": { "rawFoods": ["김치찌기"] },
+      "expect": { "maxQuestions": 0, "items": ["김치찌개", "아메리카노"], "exactNames": ["김치찌개", "아메리카노"] }
+    },
+    {
+      "id": "M105", "input": "김치찌기 1인분", "note": "#41 작업 N: SpellingVariants.json에 찌기 → 찌개 추가. DB 이름에 '찌기'가 든 항목은 0개(띄어쓰기 무시)라 다른 음식에 걸리지 않음",
+      "llm": { "food": "김치찌기" },
+      "expect": { "maxQuestions": 0, "exactNames": ["김치찌개"], "units": ["인분"], "count": 1 }
+    },
+    {
+      "id": "M106", "input": "친구랑 떡볶이 먹었어", "note": "#41 작업 J: '친구랑'은 조사를 떼도 '친구'라 음식으로 보충되지 않는다",
+      "llm": { "rawFoods": ["떡볶이"] },
+      "expect": { "items": ["떡볶이"] }
+    },
+    {
+      "id": "M88", "input": "딸기라떼", "note": "실기기 기록 재현(2026-11-24, #41 작업 D·E): 모델 음식 추출 '냉동삼겹살, 숯불쭈꾸미, 야사이시오라멘, 딸기라떼' → 오류 invalidResult. 딸기라떼는 데이터 별칭이 없어 모델을 거친다. 지금: 원문에 없는 예시 이름 셋을 버리고 딸기라떼 한 줄. 같은 이름 제품은 g 2개(57kcal 4349, 100kcal 0311)·mL 1개라 g 묶음의 낮은 쪽 P109-801080100-4349(포장량 없음) → AI 1개 분량 추정(가짜 해석기 300g) 후 수량 선택(1개) → 171kcal ±5%",
+      "llm": { "rawFoods": ["냉동삼겹살", "숯불쭈꾸미", "야사이시오라멘", "딸기라떼"], "portion": { "amount": 300 } },
+      "expect": { "maxQuestions": 1, "items": ["딸기라떼"], "foodID": "P109-801080100-4349", "questionsExclude": ["이 제품을 드셨나요"], "amount": { "units": ["g"], "min": 299, "max": 301 }, "kcal": { "min": 162, "max": 180 } }
+    },
+    {
+      "id": "M107", "input": "텐동", "note": "실기기 기록 재현(2026-11-24, #41 2차 A): 모델 영양 추정 '가능 true, 기준 음식 김밥, 100g당 220kcal 탄 40 단 5 지 15' 뒤 실제 해석기의 '기준 음식이 입력에 있어야 함' 조건으로 추정이 버려져 오류 화면. 지금은 질문 없이 '텐동 · AI 추정'. 탄단지 열량(315kcal)이 220kcal와 맞지 않아 열량 그대로 탄단지를 같은 비율로 맞춤. 1인분 분량 300g은 가정값(실기기 기록에 없음)",
+      "llm": { "food": "텐동", "searchTerms": ["떡볶이", "오징어"], "estimate": { "referenceFood": "김밥", "amount": 300, "amountUnit": "g", "calories": 220, "carbohydrate": 40, "protein": 5, "fat": 15, "ingredients": "밥, 채소, 소스" } },
+      "expect": { "maxQuestions": 0, "exactNames": ["텐동"], "basis": "aiEstimated", "sourceContains": "AI 영양 추정", "assumedQuantity": true, "units": ["인분"], "count": 1, "kcal": { "min": 655, "max": 665 } }
+    },
+    {
+      "id": "M108", "input": "버거킹 와퍼", "note": "실기기 기록 재현(2026-11-24, #41 2차 A): 기준 음식 '햄버거'가 입력에 없어 추정이 버려지고 오류 화면. 영양값·분량(100g당 250kcal, 1인분 280g)은 가정값(실기기 기록에는 기준 음식만 있음)",
+      "llm": { "food": "버거킹 와퍼", "estimate": { "referenceFood": "햄버거", "amount": 280, "amountUnit": "g", "calories": 250, "carbohydrate": 20, "protein": 12, "fat": 13, "ingredients": "빵, 소고기 패티, 채소" } },
+      "expect": { "maxQuestions": 0, "nameContains": ["와퍼"], "basis": "aiEstimated", "sourceContains": "AI 영양 추정" }
+    },
+    {
+      "id": "M109", "input": "양꼬치", "note": "실기기 기록 재현(2026-11-24, #41 2차 A): 기준 음식 '오징어'가 입력에 없어 추정이 버려지고 오류 화면. 영양값·분량(100g당 230kcal, 1인분 200g)은 가정값",
+      "llm": { "food": "양꼬치", "estimate": { "referenceFood": "오징어", "amount": 200, "amountUnit": "g", "calories": 230, "carbohydrate": 3, "protein": 20, "fat": 15, "ingredients": "양고기, 향신료" } },
+      "expect": { "maxQuestions": 0, "exactNames": ["양꼬치"], "basis": "aiEstimated", "sourceContains": "AI 영양 추정" }
+    },
+    {
+      "id": "M110", "input": "포케", "note": "실기기 기록 재현(2026-11-24, #41 2차 A): 모델 검색어 'fish cake, pan-fried', 기준 음식 'fish', 재료가 영어. 추정이 버려져 오류 화면. 지금은 기록하고 영어 재료는 출처에 내보내지 않음. 영양값·분량(100g당 150kcal, 1인분 350g)은 가정값",
+      "llm": { "food": "포케", "searchTerms": ["fish cake, pan-fried"], "estimate": { "referenceFood": "fish", "amount": 350, "amountUnit": "g", "calories": 150, "carbohydrate": 20, "protein": 9, "fat": 4, "ingredients": "fish, sliced fish, rice" } },
+      "expect": { "maxQuestions": 0, "exactNames": ["포케"], "basis": "aiEstimated", "sourceContains": "AI 영양 추정", "sourceExcludes": ["fish", "rice"] }
+    },
+    {
+      "id": "M111", "input": "연어덮밥", "note": "실기기 기록 재현(2026-11-24, #41 2차 B·C·F): 검색어 '연어덮밥, 연어밥' → 영양 추정(기준 음식 연어, 100g당 350kcal) → 분량 450g → 수량 질문 → 다시 모델 전체 호출 → 양 확인(1,575kcal). 지금: 수량 질문 없이 1그릇이 아닌 1인분 가정, '덮밥'으로 끝나는 DB 일반 음식(브랜드 없는 음식, 같은 이름·단위는 하나) 13개 100당 열량 중간값 101kcal의 1.5배인 151.5kcal로 상한 → 450g 681.8kcal(이전 1,575kcal). 탄단지(45·14·13)는 가정값",
+      "llm": { "food": "연어덮밥", "searchTerms": ["연어덮밥", "연어밥"], "estimate": { "referenceFood": "연어", "amount": 450, "amountUnit": "g", "calories": 350, "carbohydrate": 45, "protein": 14, "fat": 13, "ingredients": "밥, 연어, 소스" } },
+      "expect": { "maxQuestions": 0, "questionsExclude": ["얼마나 드셨나요", "열량이 높게"], "exactNames": ["연어덮밥"], "basis": "aiEstimated", "assumedQuantity": true, "kcal": { "min": 675, "max": 690 } }
+    },
+    {
+      "id": "M112", "input": "순대국밥", "note": "실기기 기록 재현(2026-11-24, #41 2차 B·D): DB '국밥 순대국밥'인데 비슷한 음식 질문 → 수량 질문 → 1인분 450g. 지금: '{분류어} {입력}' 이름은 같은 음식으로 보고 질문 없이 기록, 이름은 입력 그대로, 출처에 DB 이름",
+      "llm": { "food": "순대국밥", "portion": { "amount": 450 } },
+      "expect": { "maxQuestions": 0, "questionsExclude": ["비슷한 음식", "얼마나 드셨나요"], "exactNames": ["순대국밥"], "sourceContains": "국밥 순대국밥 영양값 기준", "assumedQuantity": true }
+    },
+    {
+      "id": "M113", "input": "진라면", "note": "실기기 기록 재현(2026-11-24, #41 2차 E): 검색어 '진라면, 라면' → 일반 음식 '라면'(국물 포함 100g당 82kcal) 비슷한 음식 질문 → 150g 123kcal. 지금: 이름이 '진라면'으로 시작하는 오뚜기라면 제품 10개(업체 표기 '(주)'·'주식회사' 차이는 같은 업체, '진라면 볶음밥'처럼 띄어 쓴 다른 음식은 제외)의 가운데 P108-003000400-0993 진라면(순한맛) 120g",
+      "llm": { "food": "진라면", "searchTerms": ["진라면", "라면"] },
+      "expect": { "maxQuestions": 0, "questionsExclude": ["비슷한 음식", "얼마나 드셨나요"], "foodID": "P108-003000400-0993", "basis": "package", "kind": "processed", "amount": { "units": ["g"], "min": 119, "max": 121 }, "kcal": { "min": 495, "max": 505 } }
+    },
+    {
+      "id": "M114", "input": "딸기라떼", "note": "실기기(2026-11-24, #41 2차 B): 수량 없는 입력에 수량 질문이 나왔다. 지금은 1개로 가정하고 안내. 제품·분량은 M88과 같음(가짜 해석기 300g)",
+      "llm": { "food": "딸기라떼", "portion": { "amount": 300 } },
+      "expect": { "maxQuestions": 0, "questionsExclude": ["얼마나 드셨나요", "이 제품을 드셨나요"], "assumedQuantity": true, "count": 1, "amount": { "units": ["g"], "min": 299, "max": 301 } }
+    },
+    {
+      "id": "M115", "input": "에너지드링크", "note": "실기기(2026-11-24, #41 2차 B): 수량 없는 입력에 수량 질문이 나왔다. 지금은 1개(1단위)로 가정하고 안내. 가짜 해석기 분량 250mL",
+      "llm": { "food": "에너지드링크", "portion": { "amount": 250, "unit": "mL" } },
+      "expect": { "maxQuestions": 1, "questionsExclude": ["얼마나 드셨나요"], "assumedQuantity": true, "count": 1 }
+    },
+    {
+      "id": "M116", "input": "텐동 2인분", "note": "#41 2차 B·F: 영양 추정은 됐는데 분량 추정이 실패(portion 단계 실패)하면 이전에는 수량 질문을 내고 답한 뒤 모델 전체를 다시 불렀다. 지금은 묻지 않고 영양 기준량 100g을 1인분으로 계산(원문 2인분 → 200g)하고 안내",
+      "llm": { "food": "텐동", "fail": ["portion"], "estimate": { "referenceFood": "김밥", "amount": 300, "amountUnit": "g", "calories": 220, "carbohydrate": 30, "protein": 5, "fat": 9, "ingredients": "밥, 튀김, 소스" } },
+      "expect": { "maxQuestions": 0, "exactNames": ["텐동"], "units": ["인분"], "count": 2, "assumedQuantity": true, "amount": { "units": ["g"], "min": 199, "max": 201 }, "kcal": { "min": 435, "max": 445 } }
+    },
+    {
+      "id": "M117", "input": "라면", "note": "#41 2차 H: DB 라면(D103-148000000-0001)은 국물 포함 100g당 82kcal인데 실기기 모델이 1인분을 150g(면 무게 수준)으로 추정해 123kcal. 참고표 내부 기준 1인분 550g(자료집에 라면 항목 없음)이 AI 분량 추정보다 먼저 쓰여야 함. 가짜 해석기 분량 150g을 줘도 550g. 수량이 없어 1인분 가정 안내",
+      "llm": { "food": "라면", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "exactNames": ["라면"], "units": ["인분"], "count": 1, "assumedQuantity": true, "amount": { "units": ["g"], "min": 549, "max": 551 }, "kcal": { "min": 445, "max": 457 } }
+    },
+    {
+      "id": "M118", "input": "라면 1인분", "note": "#41 2차 H: 참고표 내부 기준 1인분 550g, 가짜 해석기 분량 150g은 쓰지 않음",
+      "llm": { "food": "라면", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "exactNames": ["라면"], "units": ["인분"], "count": 1, "assumedQuantity": false, "amount": { "units": ["g"], "min": 549, "max": 551 }, "kcal": { "min": 445, "max": 457 } }
+    },
+    {
+      "id": "M119", "input": "라면 2개", "note": "#41 2차 H: 참고표 내부 기준 1개 550g × 2",
+      "llm": { "food": "라면", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "units": ["개"], "count": 2, "amount": { "units": ["g"], "min": 1099, "max": 1101 }, "kcal": { "min": 890, "max": 915 }, "confirmsAmount": false }
+    },
+    {
+      "id": "M120", "input": "라면 한 그릇", "note": "#41 2차 H: 참고표 내부 기준 1그릇 550g",
+      "llm": { "food": "라면", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "units": ["그릇"], "count": 1, "amount": { "units": ["g"], "min": 549, "max": 551 }, "kcal": { "min": 445, "max": 457 } }
+    },
+    {
+      "id": "M121", "input": "신라면", "note": "#41 2차 H: 라면 대표 분량을 넣은 뒤에도 제품 이름은 대표 분량이 아니라 제품 포장량(제품 총중량 기준)으로 기록",
+      "llm": { "food": "신라면", "searchTerms": ["신라면", "라면"] },
+      "expect": { "maxQuestions": 1, "questionsExclude": ["비슷한 음식", "얼마나 드셨나요"], "basis": "package", "kind": "processed" }
+    },
+    {
+      "id": "M122", "input": "초코케이크", "note": "#41 2차 300개 점검: 수량 없는 입력을 1단위로 가정한 뒤 AI 분량 추정이 실패하면(가짜 해석기) 대체 분량의 제품 포장량 단계가 총열량 상한을 보지 않아 700g 2,450kcal 제품 1개로 기록됐다. 지금은 포장 총중량 규칙(총중량 1,500g·총열량 1,500kcal 미만)을 넘는 포장은 1단위로 쓰지 않음",
+      "llm": { "food": "초코케이크" },
+      "expect": { "maxQuestions": 1, "questionsExclude": ["얼마나 드셨나요", "열량이 높게"], "kcal": { "min": 1, "max": 1000 } }
     }
   ]
 }
