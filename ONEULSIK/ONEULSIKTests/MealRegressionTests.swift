@@ -387,8 +387,9 @@ struct DebugLogTests {
 @MainActor
 @Suite("DEBUG 기록(화면 경로)")
 struct ViewModelDebugLogTests {
+    /// 다른 테스트(L01·L03 등)와 같은 DB를 함께 쓰면 검색이 밀려 오래 걸릴 수 있어 넉넉히 기다린다(최대 120초).
     private func settle(_ model: MealEntryViewModel) async throws {
-        for _ in 0..<600 {
+        for _ in 0..<6000 {
             if case .analyzing = model.phase { try await Task.sleep(for: .milliseconds(20)) } else { return }
         }
     }
@@ -399,11 +400,14 @@ struct ViewModelDebugLogTests {
         try await MealDebugLog.$capture.withValue(capture) {
             let llm = MealCase.LLM(food: "치킨", brand: nil, portion: nil, pick: nil, estimate: nil)
             let service = AIMealEntryService(interpreter: FakeMealFoodInterpreter(script: llm), catalog: FoodCatalogService())
-            let model = MealEntryViewModel(mealType: .lunch, analyzer: service)
+            let model = MealEntryViewModel(mealType: .lunch, analyzer: service, analysisTimeout: .seconds(120))
             model.updateText("치킨 반마리")
             model.submit()
             try await settle(model)
-            guard case .question(let question) = model.phase, let first = question.choices.first else { return }
+            guard case .question(let question) = model.phase, let first = question.choices.first else {
+                phaseAfterChoice = "제출 뒤 질문 없음(\(model.phase))"
+                return
+            }
             model.select(first)
             try await settle(model)
             switch model.phase {
