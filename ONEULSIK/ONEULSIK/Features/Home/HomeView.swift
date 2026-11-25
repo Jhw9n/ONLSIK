@@ -9,7 +9,10 @@ struct HomeView: View {
     @State private var aiReportState: AIWeeklyReportState
     @State private var reportGenerationTask: Task<Void, Never>?
     @State private var reportGenerationID: UUID?
+    @State private var isShowingExerciseGame = false
 
+    private let profile: UserProfile
+    private let weightRecordStore: WeightRecordStore?
     private let scrollToTopTrigger: Int
     private let usesAutomaticAIAvailability: Bool
     private let aiReportAvailabilityService = AIWeeklyReportAvailabilityService()
@@ -18,9 +21,12 @@ struct HomeView: View {
     init(
         profile: UserProfile,
         mealRecordStore: MealRecordStore,
+        weightRecordStore: WeightRecordStore? = nil,
         scrollToTopTrigger: Int = 0,
         aiReportState: AIWeeklyReportState? = nil
     ) {
+        self.profile = profile
+        self.weightRecordStore = weightRecordStore
         self.scrollToTopTrigger = scrollToTopTrigger
         usesAutomaticAIAvailability = aiReportState == nil
         _aiReportState = State(
@@ -47,6 +53,16 @@ struct HomeView: View {
                         topInset: geometry.safeAreaInsets.top
                     ) {
                         isShowingNotificationNotice = true
+                    }
+
+                    if ExerciseGameFeature.isBannerEnabled {
+                        ExerciseGameBanner {
+                            withoutAnimation {
+                                isShowingExerciseGame = true
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.top, 30)
                     }
 
                     reportSection
@@ -94,6 +110,28 @@ struct HomeView: View {
                 transaction.disablesAnimations = true
             }
         }
+        .fullScreenCover(isPresented: $isShowingExerciseGame) {
+            let weight = exerciseWeight
+            ExerciseGameView(
+                weightKG: weight.kg,
+                usesFallbackWeight: weight.isFallback,
+                analyzer: ExerciseGameAnalyzer(),
+                onClose: {
+                    withoutAnimation {
+                        isShowingExerciseGame = false
+                    }
+                }
+            )
+            .transaction { transaction in
+                transaction.disablesAnimations = true
+            }
+        }
+    }
+
+    /// 운동 환산에 쓸 체중: 가장 최근 체중 기록 → 프로필 체중 → 65kg(#49). 읽기만 하고 기록을 만들지 않는다.
+    private var exerciseWeight: (kg: Double, isFallback: Bool) {
+        let latest = (try? weightRecordStore?.records(for: profile.kakaoUserID))?.last?.weightTenthsKG
+        return ExerciseEquivalentCatalog.weight(latestRecordTenthsKG: latest, profileTenthsKG: profile.weightTenthsKG)
     }
 
     @ViewBuilder

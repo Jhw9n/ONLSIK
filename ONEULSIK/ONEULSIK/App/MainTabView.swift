@@ -17,6 +17,7 @@ struct MainTabView: View {
             HomeView(
                 profile: profile,
                 mealRecordStore: mealRecordStore,
+                weightRecordStore: weightRecordStore,
                 scrollToTopTrigger: homeScrollToTopTrigger
             )
                 .tag(MainTab.home)
