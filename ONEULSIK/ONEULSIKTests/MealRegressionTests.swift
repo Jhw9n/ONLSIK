@@ -208,6 +208,9 @@ struct MealEntryOutcomeTests {
         if let names = expect.exactNames, items.map(\.food.name) != names {
             failures.append(Failure(type: .name, message: "기록 이름 \(items.map(\.food.name).joined(separator: ", ")) (기대 \(names.joined(separator: ", ")))"))
         }
+        if let name = expect.recordedName, items.first?.food.recordedName != name {
+            failures.append(Failure(type: .name, message: "저장 이름 ‘\(items.first?.food.recordedName ?? "-")’ (기대 ‘\(name)’)"))
+        }
         if let expected = expect.items {
             if items.count != expected.count {
                 failures.append(Failure(type: .error, message: "음식 \(items.count)개로 기록됨 (기대 \(expected.count)개)"))

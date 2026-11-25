@@ -122,7 +122,9 @@ struct MealEntryItem: Identifiable {
 struct RecentMealEntry: Identifiable {
     let id: UUID = UUID()
     let items: [MealEntryItem]
-    var title: String { items.map(\.food.name).joined(separator: " · ") }
+    /// 최근 먹은 식사 제목. 음식 사이는 ", "로 잇는다(#47). 기록 이름 안의 " · "(이전 기록의 업체명 등)와 헷갈리지 않게 한다.
+    /// 이 문자열을 다시 해석하는 곳은 없다(다시 기록하기는 items를 쓴다).
+    var title: String { items.map(\.food.name).joined(separator: ", ") }
 
     static func grouped(from records: [MealRecord], calendar: Calendar = .current) -> [RecentMealEntry] {
         struct MealKey: Hashable {

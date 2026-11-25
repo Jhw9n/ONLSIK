@@ -86,3 +86,21 @@ struct MealEntryTotalsTests {
                actual: "전 \(before) → 후 \(after), 합계 \(model.displayedTotalCalories)", failures: failures)
     }
 }
+
+/// 최근 먹은 식사 제목(RecentMealEntry.title, #47). 음식 사이는 ", "로 잇는다.
+/// 이전에는 " · "로 이어, 업체명이 붙은 기록 이름("고추참치 · 신진물산(주)")과 섞여 음식이 세 개처럼 보였다.
+@MainActor
+@Suite("최근 식사 제목")
+struct RecentMealTitleTests {
+    @Test("음식 두 개 기록의 제목")
+    func twoFoods() {
+        func item(_ name: String) -> MealEntryItem {
+            MealEntryItem(food: FoodCatalogItem(id: "test-\(name)", name: name, servingUnit: "인분", servingGrams: 100,
+                                                nutrition: NutritionValues(calories: 100, carbohydrateGrams: 0, proteinGrams: 0, fatGrams: 0)),
+                          servingCount: 1)
+        }
+        let title = RecentMealEntry(items: [item("고추참치"), item("쌀밥")]).title
+        let failures = title == "고추참치, 쌀밥" ? [] : [Failure(type: .displayText, message: "제목 ‘\(title)’ (기대 ‘고추참치, 쌀밥’)")]
+        report(suite: "최근 식사 제목", id: "R02", input: "고추참치 + 쌀밥", expected: "고추참치, 쌀밥", actual: title, failures: failures)
+    }
+}

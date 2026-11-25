@@ -930,6 +930,46 @@
       "id": "M173", "input": "간짜장", "note": "#45: 자장면 참고표 변경이 간짜장에 새지 않아야 함(간자장 D103-141000000-0001 500g 625kcal 그대로)",
       "llm": { "food": "간짜장", "portion": { "amount": 300 } },
       "expect": { "maxQuestions": 0, "foodID": "D103-141000000-0001", "count": 1, "amount": { "units": ["g"], "min": 499, "max": 501 }, "kcal": { "min": 620, "max": 630 } }
+    },
+    {
+      "id": "M174", "input": "고추참치 한캔", "note": "#47: 업체명 없이 입력 → 같은 이름 제품 가운데(#41 E)를 질문 없이 고름. 기록 이름은 입력 이름, 업체명은 저장 출처에만. 이전(실기기): '고추참치 · 신진물산㈜'",
+      "llm": { "food": "고추참치" },
+      "expect": { "maxQuestions": 0, "recordedName": "고추참치", "kind": "processed", "sourceContains": "고추참치 영양값 기준" }
+    },
+    {
+      "id": "M175", "input": "치킨버거", "note": "#47: 이전 '치킨버거 · (주)조이푸드' → '치킨버거'. 출처에 업체명",
+      "llm": { "food": "치킨버거" },
+      "expect": { "maxQuestions": 0, "recordedName": "치킨버거", "sourceContains": "(주)조이푸드 치킨버거 영양값 기준" }
+    },
+    {
+      "id": "M176", "input": "초코우유", "note": "#47: 이전 '초코우유 · 연세대학교연세우유' → '초코우유'. 출처는 그대로",
+      "llm": { "food": "초코우유" },
+      "expect": { "maxQuestions": 0, "recordedName": "초코우유", "foodID": "P119-204020400-0450", "sourceContains": "연세대학교연세우유 초코우유 영양값 기준" }
+    },
+    {
+      "id": "M177", "input": "진라면", "note": "#47: 한 업체 제품 묶음(#41 2차 E). 이전 '진라면(순한맛) · 오뚜기라면 주식회사' → '진라면'. 출처에 업체명·제품명",
+      "llm": { "food": "진라면", "searchTerms": ["진라면", "라면"] },
+      "expect": { "maxQuestions": 0, "recordedName": "진라면", "foodID": "P108-003000400-0993", "sourceContains": "오뚜기라면 주식회사 진라면(순한맛) 영양값 기준" }
+    },
+    {
+      "id": "M178", "input": "포카칩 반개", "note": "#47: 수량 말(반개)을 뗀 입력 이름으로 기록(#41 M). 업체명 없음",
+      "llm": { "food": "포카칩" },
+      "expect": { "recordedName": "포카칩", "sourceContains": "포카칩" }
+    },
+    {
+      "id": "M179", "input": "신라면", "note": "#47: '이 제품을 드셨나요?' 질문에서 고른 제품은 지금처럼 '신라면 · (주)농심'",
+      "llm": { "food": "신라면", "searchTerms": ["신라면", "라면"] },
+      "expect": { "maxQuestions": 1, "recordedName": "신라면 · (주)농심" }
+    },
+    {
+      "id": "M180", "input": "농심 신라면", "note": "#47: 업체명을 적은 입력은 지금처럼 '신라면 · (주)농심'",
+      "llm": { "food": "신라면", "brand": "농심" },
+      "expect": { "recordedName": "신라면 · (주)농심" }
+    },
+    {
+      "id": "M181", "input": "마라탕", "note": "#47: 참고표 업체 제품(allowsBrandedProduct)은 이미 입력 이름으로 기록, 그대로",
+      "llm": { "food": "마라탕", "portion": { "amount": 500 } },
+      "expect": { "maxQuestions": 0, "recordedName": "마라탕", "sourceContains": "(주)프레시지 마라탕 영양값 기준" }
     }
   ]
 }
