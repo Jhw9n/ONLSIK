@@ -176,18 +176,18 @@ struct ExerciseGameView: View {
         .onDisappear { analysisTask?.cancel() }
     }
 
-    /// 뒤로가기를 보일지: 입력 상태와 결과 상태. 칩이 떨어지는 연출·분석 중에는 숨기고 막는다.
-    /// (결과 화면 하단 버튼이 "다시 담기"라 결과에서 게임을 닫는 방법은 뒤로가기다.)
-    static func showsBackButton(isInputStage: Bool, isResultStage: Bool, showsResult: Bool) -> Bool {
-        (isInputStage && !showsResult) || (isResultStage && showsResult)
+    /// 뒤로가기를 보일지: 입력 상태에서만. 칩이 떨어지는 연출·분석 중과 결과 화면에서는 숨기고 막는다
+    /// (결과 화면에서는 하단 "다시 담기"만 누를 수 있다).
+    static func showsBackButton(isInputStage: Bool, showsResult: Bool) -> Bool {
+        isInputStage && !showsResult
     }
 
     private var backButtonVisible: Bool {
-        Self.showsBackButton(isInputStage: stage == .input, isResultStage: stage == .result, showsResult: showsResult)
+        Self.showsBackButton(isInputStage: stage == .input, showsResult: showsResult)
     }
 
     /// 뒤로가기 헤더(높이 56). 버튼 모양은 WeeklyReportView 헤더와 같고, 어두운 배경이라 아이콘은 Figma 2313:534의 흰색(#FFFFFF).
-    /// 입력·결과 상태에서 버튼이 보이고(연출 중에는 숨김) 자리는 늘 유지해 제목이 위아래로 움직이지 않는다.
+    /// 입력 상태에서만 버튼이 보이고(연출·결과에서는 숨김) 자리는 늘 유지해 제목·결과 배치가 위아래로 움직이지 않는다.
     private var header: some View {
         HStack {
             // 화면 전체에 키보드를 내리는 배경 탭(onTapGesture)이 깔려 있어, contentShape가 없으면 아이콘 위를 눌러도
@@ -558,7 +558,7 @@ struct ExerciseGameView: View {
                     .foregroundStyle(Color(hex: 0x8A8F9A))
                     .transition(.opacity)
             }
-            // 결과 화면은 "다시 담기": 게임을 닫지 않고 처음 연 것과 같은 입력 상태로 돌아간다(닫기는 왼쪽 위 뒤로가기).
+            // 결과 화면은 "다시 담기": 게임을 닫지 않고 처음 연 것과 같은 입력 상태로 돌아간다(결과 화면에서는 뒤로가기를 숨긴다).
             OnboardingBottomButton(
                 title: showsResult ? "다시 담기" : "담기",
                 isEnabled: showsResult || canStart,

@@ -855,19 +855,26 @@ struct Retry {
                failures: failures)
     }
 
-    @Test("결과에서 뒤로가기 → 게임 닫힘")
-    func backFromResultCloses() async throws {
+    @Test("결과에서는 뒤로가기가 숨겨져 눌리지 않음")
+    func backHiddenOnResult() async throws {
         let counter = CloseCounter()
         let window = try present(counter)
         try await Task.sleep(for: .milliseconds(1500))
-        // 뒤로가기 버튼(창 기준 x 4~52, 안전 영역 위 + 4~52) 아이콘에서 떨어진 오른쪽 아래 모서리 근처
-        try await TouchSynthesizer.tap(CGPoint(x: 48, y: window.safeAreaInsets.top + 48), in: window)
-        try await wait(upTo: .seconds(3)) { counter.count > 0 }
-        try await Task.sleep(for: .milliseconds(200))
+        let resultBefore = isResultScreen(window)
+        // 뒤로가기 자리(창 기준 x 4~52, 안전 영역 위 + 4~52)의 아이콘 가운데와 오른쪽 아래 모서리 근처
+        for point in [CGPoint(x: 28, y: window.safeAreaInsets.top + 28), CGPoint(x: 48, y: window.safeAreaInsets.top + 48)] {
+            try await TouchSynthesizer.tap(point, in: window)
+            try await Task.sleep(for: .milliseconds(500))
+        }
+        let resultAfter = isResultScreen(window)
         window.isHidden = true
-        report(suite: "운동 환산 다시 담기", id: "C02", input: "결과 화면 → 왼쪽 위 뒤로가기(오른쪽 아래 모서리 근처) 탭",
-               expected: "onClose 1번", actual: "onClose \(counter.count)번",
-               failures: counter.count == 1 ? [] : [Failure(type: .displayText, message: "결과 화면에서 뒤로가기를 눌러도 닫히지 않음(onClose \(counter.count)번)")])
+        var failures: [Failure] = []
+        if !resultBefore { failures.append(Failure(type: .displayText, message: "시험 준비 실패: 결과 화면이 아님")) }
+        if counter.count != 0 { failures.append(Failure(type: .displayText, message: "결과 화면에서 뒤로가기 자리를 눌러 게임이 닫힘(onClose \(counter.count)번)")) }
+        if !resultAfter { failures.append(Failure(type: .displayText, message: "뒤로가기 자리를 누른 뒤 결과 화면이 아님")) }
+        report(suite: "운동 환산 다시 담기", id: "C02", input: "결과 화면 → 왼쪽 위 뒤로가기 자리(아이콘 가운데·모서리) 탭",
+               expected: "onClose 0번, 결과 화면 그대로",
+               actual: "onClose \(counter.count)번, 결과 화면 \(resultAfter ? "그대로" : "아님")", failures: failures)
     }
 
     @Test("다시 담기 뒤 새 음식을 담으면 결과까지 감(가짜 분석기)")
