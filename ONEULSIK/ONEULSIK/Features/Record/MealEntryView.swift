@@ -7,8 +7,8 @@ struct MealEntryView: View {
     let onSaved: () -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.appRouter) private var router
     @State private var viewModel: MealEntryViewModel
-    @State private var showsFoodSearch = false
     @State private var savedThroughSearch = false
     @State private var footerHeight: CGFloat = 0
     @FocusState private var focusedRowID: UUID?
@@ -68,15 +68,8 @@ struct MealEntryView: View {
             loadRecentMeals()
         }
         .onDisappear { viewModel.cancelAnalysis() }
-        .fullScreenCover(isPresented: $showsFoodSearch, onDismiss: finishFoodSearch) {
-            FoodSearchView(
-                profile: profile,
-                mealType: viewModel.mealType,
-                recordedAt: recordedAt,
-                mealRecordStore: mealRecordStore,
-                onSaved: { savedThroughSearch = true }
-            )
-        }
+        // 저장 중·AI 분석 중에는 스와이프 뒤로가기를 막는다(뒤로가기 버튼은 지금처럼 분석을 취소하고 닫는다).
+        .popGestureDisabled(!canSwipeBack)
         .alert("안내", isPresented: Binding(
             get: { viewModel.saveError != nil },
             set: { if !$0 { viewModel.saveError = nil } }
@@ -414,7 +407,7 @@ struct MealEntryView: View {
                     if !isPreview {
                         Button("음식 직접 검색") {
                             focusedRowID = nil
-                            showsFoodSearch = true
+                            openFoodSearch()
                         }
                     }
                 }
@@ -610,6 +603,25 @@ struct MealEntryView: View {
         if viewModel.save(store: mealRecordStore, userID: profile.kakaoUserID, date: recordedAt) {
             onSaved()
             dismiss()
+        }
+    }
+
+    private var canSwipeBack: Bool {
+        if viewModel.isSaving { return false }
+        if case .analyzing = viewModel.phase { return false }
+        return true
+    }
+
+    /// 음식 검색을 push한다. 검색에서 저장한 뒤 검색이 빠지면 식사 기록도 닫는다(전의 onDismiss: finishFoodSearch).
+    private func openFoodSearch() {
+        router.push(.foodSearch, onPop: { finishFoodSearch() }) { [profile, recordedAt, mealRecordStore, mealType = viewModel.mealType] in
+            FoodSearchView(
+                profile: profile,
+                mealType: mealType,
+                recordedAt: recordedAt,
+                mealRecordStore: mealRecordStore,
+                onSaved: { savedThroughSearch = true }
+            )
         }
     }
 

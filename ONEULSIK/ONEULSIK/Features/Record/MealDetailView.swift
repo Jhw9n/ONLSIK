@@ -46,6 +46,7 @@ struct MealDetailView: View {
                     .font(.system(size: 18, weight: .medium))
                     .foregroundStyle(Color.black01)
                     .frame(width: 48, height: 48)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
 

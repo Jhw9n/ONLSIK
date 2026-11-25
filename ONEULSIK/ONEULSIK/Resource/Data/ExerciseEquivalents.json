@@ -1,0 +1,43 @@
+{
+  "source": {
+    "title": "2024 Adult Compendium of Physical Activities",
+    "citation": "Herrmann SD, et al. 2024 Adult Compendium of Physical Activities: A third update of the energy costs of human activities. J Sport Health Sci 2024;13(1):6-12.",
+    "url": "https://pacompendium.com"
+  },
+  "basisNote": "운동 환산 화면(#49)의 MET 값. 분당 kcal = MET × 3.5 × 체중(kg) ÷ 200. 시간(분) = kcal ÷ 분당 kcal(반올림). 거리 = 시속 × 시간. 2026-11-25 결정.",
+  "fallbackWeightKG": 65,
+  "exercises": [
+    {
+      "id": "walking",
+      "name": "걷기",
+      "compendiumCode": "17190",
+      "met": 3.8,
+      "speedKmh": 5,
+      "symbol": "figure.walk",
+      "colorHex": "6BE38A",
+      "detailFormat": "걸어서 약 {km}km",
+      "spokenDetailFormat": "걸어서 약 {km}킬로미터"
+    },
+    {
+      "id": "running",
+      "name": "러닝",
+      "compendiumCode": "12030",
+      "met": 8.5,
+      "speedKmh": 8,
+      "symbol": "figure.run",
+      "colorHex": "7FB2FF",
+      "detailFormat": "달려서 약 {km}km",
+      "spokenDetailFormat": "달려서 약 {km}킬로미터"
+    },
+    {
+      "id": "stairs",
+      "name": "천국의 계단",
+      "compendiumCode": "02065",
+      "met": 9.3,
+      "symbol": "figure.stairs",
+      "colorHex": "FFB27A",
+      "detailFormat": "스텝밀(계단 기구)",
+      "spokenDetailFormat": "스텝밀, 계단 기구"
+    }
+  ]
+}
