@@ -77,26 +77,34 @@ struct ExerciseGameView: View {
     private enum Metrics {
         /// 뒤로가기 헤더(header-page-iOS) 높이. 입력 상태에서만 버튼이 보이고 자리는 늘 유지한다.
         static let headerHeight: CGFloat = 56
-        /// 제목 윗변(헤더 아래 16)
-        static let titleTop: CGFloat = 72
-        /// 부제 윗변
-        static let subtitleTop: CGFloat = 162
-        /// 입력칸(Bowl Input 255×56, 가로 가운데, 375 기준 x 60) 윗변
-        static let inputTop: CGFloat = 252
-        static let inputSize = CGSize(width: 255, height: 56)
-        /// 그릇 묶음(320×230) 윗변
-        static let bowlTop: CGFloat = 324
+        /// 제목 첫 줄 윗변(헤더 아래 24). 결과 화면 제목(음식 이름 줄)도 같은 값
+        static let titleTop: CGFloat = 80
+        /// 1·2번 제목 한 줄 높이(30pt × 130%)와 두 줄 사이 간격: 첫 줄 80, 둘째 줄 121
+        static let titleLineHeight: CGFloat = 39
+        static let titleLineGap: CGFloat = 2
+        /// 부제 윗변(둘째 줄 아래 160 + 8)
+        static let subtitleTop: CGFloat = 168
+        /// 입력칸(Bowl Input 243×52, 가로 가운데, 375 기준 x 66) 윗변. 모서리 반지름은 높이의 절반
+        static let inputTop: CGFloat = 282
+        static let inputSize = CGSize(width: 243, height: 52)
+        /// 그릇 묶음 윗변
+        static let bowlTop: CGFloat = 370
+        /// 그릇 기본 배율: ExerciseBowlView 기준 320×230 → 297.92×214.13. 그릇 안 모든 도형·김·물결·입구가 같은 비율로 줄어든다.
+        static let bowlBaseScale: CGFloat = 0.931
         /// 작은 화면에서 그릇 위 간격(입력칸 아래에서)을 줄일 때 최소값
         static let bowlMinGap: CGFloat = 8
-        /// 그릇 묶음 + 아래 "계산하고 있어요" 자리
-        static let bowlBlockHeight: CGFloat = 256
+        /// 그릇 아래 "계산하고 있어요" 자리
+        static let bowlLabelSpace: CGFloat = 26
+        /// 기본 크기 그릇 묶음 높이(214.13 + 26)
+        static var bowlBlockHeight: CGFloat { ExerciseBowlView.size.height * bowlBaseScale + bowlLabelSpace }
+        /// 작은 화면에서 더 줄일 때 최소 배율. 기본 크기(297.92×214.13)에 곱한다(원래 320×230 기준으로는 0.745).
         static let bowlMinScale: CGFloat = 0.8
-        /// 결과: "927"+"kcal" 줄 윗변
-        static let resultKcalTop: CGFloat = 115
+        /// 결과: "927"(48 Bold) 윗변 123, "kcal"(24 Bold)은 같은 기준선
+        static let resultKcalTop: CGFloat = 123
         /// 결과: 카드 묶음 윗변
-        static let resultCardsTop: CGFloat = 221
-        /// 결과: kcal 줄 아래(62)에서 카드까지 최소 간격(작은 화면에서 줄일 때)
-        static let resultMinCardsTop: CGFloat = 185
+        static let resultCardsTop: CGFloat = 225
+        /// 결과: kcal 줄 아래(185)에서 8 띄운 카드 최소 위치(작은 화면에서 줄일 때)
+        static let resultMinCardsTop: CGFloat = 193
         static let cardHeight: CGFloat = 98
         static let cardSpacing: CGFloat = 14
         static let cardMinSpacing: CGFloat = 10
@@ -114,6 +122,11 @@ struct ExerciseGameView: View {
     private func bottomBlockHeight(result: Bool) -> CGFloat {
         Metrics.buttonHeight + Metrics.buttonBottomPadding + Metrics.contentBottomGap
             + (result ? Metrics.noteGap + Metrics.noteHeight : 0)
+    }
+
+    /// 기본 크기 그릇 묶음이 하단 버튼 위 공간에 들어가도록 더 줄이는 배율(0.8...1). 기본 배율 0.95에 곱한다.
+    static func bowlFitScale(contentHeight: CGFloat, bowlTop: CGFloat) -> CGFloat {
+        min(1, max(Metrics.bowlMinScale, (contentHeight - bowlTop) / Metrics.bowlBlockHeight))
     }
 
     var body: some View {
@@ -215,7 +228,7 @@ struct ExerciseGameView: View {
         .ignoresSafeArea()
     }
 
-    /// 비눗방울(Figma 2313:534): 54pt (20, 177), 22pt (318, 195), 40pt (306, 530). 가로는 폭 375 기준 비율.
+    /// 비눗방울(Figma 2313:534): 54pt (20, 182), 22pt (318, 204), 40pt (306, 578). 가로는 폭 375 기준 비율.
     /// 결과 화면(2314:554)에는 비눗방울이 없어 숨긴다.
     private func bubbles(_ size: CGSize) -> some View {
         let sx = size.width / 375
@@ -223,11 +236,11 @@ struct ExerciseGameView: View {
             let time = context.date.timeIntervalSinceReferenceDate
             ZStack(alignment: .topLeading) {
                 bubble(size: 54, tint: Color.exerciseLightGreen, time: time, period: 4.6, phase: 0)
-                    .position(x: (20 + 27) * sx, y: 177 + 27)
+                    .position(x: (20 + 27) * sx, y: 182 + 27)
                 bubble(size: 40, tint: Color(hex: 0x3FC6A8), time: time, period: 5.4, phase: 1.7)
-                    .position(x: (306 + 20) * sx, y: 530 + 20)
+                    .position(x: (306 + 20) * sx, y: 578 + 20)
                 bubble(size: 22, tint: .white, time: time, period: 3.9, phase: 3.1)
-                    .position(x: (318 + 11) * sx, y: 195 + 11)
+                    .position(x: (318 + 11) * sx, y: 204 + 11)
             }
             .frame(width: size.width, height: size.height, alignment: .topLeading)
             .opacity(showsResult ? 0 : 1)
@@ -251,24 +264,30 @@ struct ExerciseGameView: View {
 
     // MARK: - 화면 A·B
 
-    /// 헤더(56) → 제목 72, 부제 162 → 입력칸 252 → 그릇 324.
-    /// 작은 화면에서 그릇 묶음이 하단 버튼에 닿으면 먼저 그릇 위 간격을 줄이고(최소 8), 그래도 부족하면 그릇을 줄인다(최소 0.8배).
+    /// 헤더(56) → 제목 80·121, 부제 168 → 입력칸 282(243×52) → 그릇 370(297.92×214.13).
+    /// 작은 화면에서 그릇 묶음이 하단 버튼에 닿으면 먼저 그릇 위 간격을 줄이고(최소 8), 그래도 부족하면 그릇을 줄인다(기본 크기의 최소 0.8배).
     private func inputContent(_ size: CGSize) -> some View {
         let contentHeight = size.height - bottomBlockHeight(result: false)
         let inputBottom = Metrics.inputTop + Metrics.inputSize.height
         let minBowlTop = inputBottom + Metrics.bowlMinGap
         let bowlTop = max(minBowlTop, min(Metrics.bowlTop, contentHeight - Metrics.bowlBlockHeight))
-        let bowlScale = min(1, max(Metrics.bowlMinScale, (contentHeight - bowlTop) / Metrics.bowlBlockHeight))
+        let bowlScale = Metrics.bowlBaseScale * Self.bowlFitScale(contentHeight: contentHeight, bowlTop: bowlTop)
         let bowlSize = CGSize(width: ExerciseBowlView.size.width * bowlScale, height: ExerciseBowlView.size.height * bowlScale)
 
         return ZStack(alignment: .top) {
             Group {
-                Text("먹고 싶은 음식을\n그릇에 담아보세요")
-                    .font(.pretendardBold(30))
-                    .lineSpacing(7)
-                    .foregroundStyle(Color.exerciseGreen)
-                    .multilineTextAlignment(.center)
-                    .padding(.top, Metrics.titleTop)
+                // 두 줄을 줄 높이 39·간격 2로 따로 놓아 Figma 위치(72, 113)에 맞춘다. VoiceOver는 전처럼 한 제목으로 읽는다.
+                VStack(spacing: Metrics.titleLineGap) {
+                    ForEach(["먹고 싶은 음식을", "그릇에 담아보세요"], id: \.self) { line in
+                        Text(line)
+                            .font(.pretendardBold(30))
+                            .foregroundStyle(Color.exerciseGreen)
+                            .frame(height: Metrics.titleLineHeight)
+                    }
+                }
+                .padding(.top, Metrics.titleTop)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("먹고 싶은 음식을 그릇에 담아보세요")
                 Text("운동으로 얼마나 빼야 하는지 알려드려요")
                     .font(.pretendardMedium(15))
                     .foregroundStyle(Color(hex: 0xA3A8B3))
@@ -327,27 +346,44 @@ struct ExerciseGameView: View {
             .allowsHitTesting(false)
     }
 
-    /// 입력칸(글자만 받는다). 확인(return) 키는 하단 "담기"와 같다.
+    /// 안내 문구를 보일지: 글자가 비었고 포커스가 없을 때만. 눌러서 포커스가 잡히면 바로 숨기고 빈 칸 가운데에 커서만 둔다.
+    static func showsInputPlaceholder(text: String, isFocused: Bool) -> Bool {
+        text.isEmpty && !isFocused
+    }
+
+    /// 입력칸(글자만 받는다). 키보드 완료 키는 키보드만 내리고 분석은 하단 "담기"를 눌러야 시작한다(글자는 남음).
     /// 안내 문구·입력 글자·커서 모두 가로 가운데(좌우 안쪽 여백 22로 같게).
+    /// 안내 문구는 TextField prompt가 아니라 overlay다(prompt는 포커스가 잡혀도 글자를 칠 때까지 남는다). 바뀔 때 애니메이션 없음.
     private var inputField: some View {
-        TextField("", text: $text, prompt: Text("먹고 싶은 음식을 적어주세요")
-            .font(.pretendardSemiBold(16))
-            .foregroundStyle(Color(hex: 0x9AA0AB)))
+        TextField("", text: $text)
             .font(.pretendardSemiBold(16))
             .multilineTextAlignment(.center)
             .foregroundStyle(Color(hex: 0x1D1D1D))
             .tint(Color.exerciseGreen)
             .submitLabel(.done)
             .focused($isInputFocused)
-            .onSubmit(start)
+            .onSubmit(submitFromKeyboard)
             .onChange(of: text) { _, newValue in
                 if showsFailure, newValue != failedText { withAnimation(.easeOut(duration: 0.2)) { showsFailure = false } }
             }
             .padding(.horizontal, 22)
             .frame(maxHeight: .infinity)
-            .background(Color.white, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+            .overlay {
+                let showsPlaceholder = Self.showsInputPlaceholder(text: text, isFocused: isInputFocused)
+                Text("음식을 적어주세요")
+                    .font(.pretendardSemiBold(16))
+                    .foregroundStyle(Color(hex: 0x9AA0AB))
+                    .multilineTextAlignment(.center)
+                    .lineLimit(1)
+                    .padding(.horizontal, 22)
+                    .opacity(showsPlaceholder ? 1 : 0)
+                    .animation(nil, value: showsPlaceholder)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
+            .background(Color.white, in: RoundedRectangle(cornerRadius: Metrics.inputSize.height / 2, style: .continuous))
             .shadow(color: Color.black.opacity(0.12), radius: 6, y: 2)
-            .contentShape(RoundedRectangle(cornerRadius: 28))
+            .contentShape(RoundedRectangle(cornerRadius: Metrics.inputSize.height / 2))
             .onTapGesture { isInputFocused = true }
             .accessibilityLabel("먹고 싶은 음식")
             .accessibilityHint("음식 이름을 적고 아래 담기 버튼을 누르세요. 운동 시간으로 알려드려요")
@@ -527,6 +563,11 @@ struct ExerciseGameView: View {
     }
 
     // MARK: - 연출
+
+    /// 키보드 완료 키: 키보드만 내린다. 분석은 시작하지 않고 글자도 그대로 둔다(하단 "담기"는 글자가 있으면 활성).
+    private func submitFromKeyboard() {
+        isInputFocused = false
+    }
 
     private func start() {
         guard canStart else { return }
@@ -892,8 +933,16 @@ private extension Array {
     subscript(safe index: Int) -> Element? { indices.contains(index) ? self[index] : nil }
 }
 
+#Preview("담기 · 빈 입력") {
+    ExerciseGameView(weightKG: 65, usesFallbackWeight: true, analyzer: ExerciseGameAnalyzer(), snapshot: .empty, onClose: {})
+}
+
 #Preview("담기") {
     ExerciseGameView(weightKG: 65, usesFallbackWeight: true, analyzer: ExerciseGameAnalyzer(), snapshot: .typing("먹고 싶은 음식"), onClose: {})
+}
+
+#Preview("담기는 순간") {
+    ExerciseGameView(weightKG: 65, usesFallbackWeight: true, analyzer: ExerciseGameAnalyzer(), snapshot: .falling("먹고 싶은 음식", 0.55), onClose: {})
 }
 
 #Preview("결과") {
