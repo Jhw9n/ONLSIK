@@ -76,7 +76,9 @@ struct ExerciseGameTests {
     }
 
     private static func analyzer(_ script: MealCase.LLM) -> ExerciseGameAnalyzer {
-        ExerciseGameAnalyzer(analyzer: AIMealEntryService(interpreter: FakeMealFoodInterpreter(script: script), catalog: FoodCatalogService()))
+        // 전체 테스트를 병렬로 돌리면 시뮬레이터가 느려져 기본 60초 제한에 걸릴 수 있어 넉넉히 둔다(분석 규칙과 무관).
+        ExerciseGameAnalyzer(analyzer: AIMealEntryService(interpreter: FakeMealFoodInterpreter(script: script), catalog: FoodCatalogService()),
+                             timeout: .seconds(180))
     }
 
     private static func llm(food: String? = nil, foods: [String]? = nil, portion: Double? = nil) -> MealCase.LLM {

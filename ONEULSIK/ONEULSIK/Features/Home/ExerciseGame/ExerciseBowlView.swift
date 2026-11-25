@@ -1,7 +1,8 @@
 import SwiftUI
 
-/// 운동 환산 화면(#49)의 그릇. 이미지 없이 SwiftUI 도형으로 그린다. 기준 크기 320×230(Figma "운동 환산 이벤트 시안").
-/// 좌표: 입구(테두리 타원) 가운데가 (160, 32), 몸통 반원(지름 280) 바닥이 y=172, 받침이 그 아래 23.
+/// 운동 환산 화면(#49)의 그릇. 이미지 없이 SwiftUI 도형으로 그린다. 기준 크기 320×230(Figma "개발" 페이지 섹션 2312:534의 Bowl).
+/// 그리는 순서(아래부터): 초록 빛 → 바닥 그림자 → 몸통·받침 한 도형(BowlShape) → 받침 하이라이트 → 테두리 → 안쪽 → 김.
+/// 좌표: 테두리(280×64)와 안쪽(250×48) 가운데가 (160, 80). 몸통과 받침은 Path 하나라 눌림 애니메이션에서 같이 움직인다.
 struct ExerciseBowlView: View {
     /// 안쪽이 초록으로 차오른 정도(0...1)
     var fillProgress: Double
@@ -13,70 +14,93 @@ struct ExerciseBowlView: View {
     var reduceMotion: Bool
 
     static let size = CGSize(width: 320, height: 230)
-    static let mouthCenter = CGPoint(x: 160, y: 32)
+    static let mouthCenter = CGPoint(x: 160, y: 80)
     static let innerSize = CGSize(width: 250, height: 48)
 
     var body: some View {
         ZStack(alignment: .topLeading) {
-            // 아래 초록 빛
+            // 아래 초록 빛(10.5, 165, 300×116)
             Ellipse()
                 .fill(Color.exerciseGreen)
                 .frame(width: 300, height: 116)
                 .blur(radius: 40)
                 .opacity(glowOpacity)
-                .position(x: 160, y: 168)
+                .position(x: 160.5, y: 223)
 
-            // 바닥 그림자
+            // 바닥 그림자(85, 222, 150×14)
             Ellipse()
                 .fill(Color.black.opacity(0.4))
                 .frame(width: 150, height: 14)
                 .blur(radius: 6)
-                .position(x: 160, y: 198)
+                .position(x: 160, y: 229)
 
-            // 받침(굽)
-            BowlFootShape()
-                .fill(LinearGradient(stops: [
-                    .init(color: Color(hex: 0xD3DAE6), location: 0),
-                    .init(color: Color(hex: 0xB4BDCD), location: 0.55),
-                    .init(color: Color(hex: 0x8C96AA), location: 1)
-                ], startPoint: .top, endPoint: .bottom))
-                .overlay {
-                    BowlFootBottomEdge()
-                        .stroke(Color.white.opacity(0.35), style: StrokeStyle(lineWidth: 1.2, lineCap: .round))
-                }
-                .frame(width: 124, height: 23)
-                .position(x: 160, y: 170 + 11.5)
-
-            // 몸통: 아래쪽 반원
-            BowlBodyShape()
+            // 몸통과 받침(한 도형)
+            BowlShape()
                 .fill(LinearGradient(stops: [
                     .init(color: .white, location: 0),
-                    .init(color: Color(hex: 0xE4E9F2), location: 0.6),
-                    .init(color: Color(hex: 0xB9C3D6), location: 1)
+                    .init(color: Color(hex: 0xE4E9F2), location: 0.45),
+                    .init(color: Color(hex: 0xB9C3D6), location: 0.8),
+                    .init(color: Color(hex: 0x8C96AA), location: 1)
                 ], startPoint: .top, endPoint: .bottom))
-                .frame(width: 280, height: 140)
-                .position(x: 160, y: 32 + 70)
+                .frame(width: Self.size.width, height: Self.size.height)
 
-            // 테두리
+            // 받침 하이라이트(112, 225, 96×2, 투명도 0.7)
+            BowlFootHighlight()
+                .stroke(Color.white, style: StrokeStyle(lineWidth: 1.2, lineCap: .round))
+                .opacity(0.7)
+                .frame(width: Self.size.width, height: Self.size.height)
+
+            // 테두리(20, 48, 280×64)
             Ellipse()
                 .fill(LinearGradient(colors: [.white, Color(hex: 0xEEF1F6)], startPoint: .top, endPoint: .bottom))
                 .frame(width: 280, height: 64)
-                .position(x: 160, y: 32)
+                .position(x: 160, y: 80)
 
-            // 안쪽
+            // 안쪽(35, 56, 250×48)
             BowlInnerView(fillProgress: fillProgress)
                 .frame(width: Self.innerSize.width, height: Self.innerSize.height)
-                .position(x: 160, y: 32)
+                .position(Self.mouthCenter)
 
             if showsSteam {
                 BowlSteamView(reduceMotion: reduceMotion)
                     .frame(width: 120, height: 70)
-                    .position(x: 160, y: -24)
+                    .position(x: 160, y: 11)
                     .transition(.opacity)
             }
         }
         .frame(width: Self.size.width, height: Self.size.height, alignment: .topLeading)
         .accessibilityHidden(true)
+    }
+}
+
+/// 그릇 몸통과 받침을 한 Path로(320×230 기준 좌표, 프레임 크기에 맞춰 같은 비율로 늘이고 줄인다).
+struct BowlShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        let sx = rect.width / 320, sy = rect.height / 230
+        func p(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: rect.minX + x * sx, y: rect.minY + y * sy) }
+        var path = Path()
+        path.move(to: p(20, 80))
+        path.addCurve(to: p(113.4, 212), control1: p(20, 139.3), control2: p(57.5, 192.25))
+        path.addCurve(to: p(101, 224.5), control1: p(112, 219), control2: p(106, 222))
+        path.addCurve(to: p(103, 231), control1: p(96, 226.5), control2: p(97, 230))
+        path.addCurve(to: p(217, 231), control1: p(125, 233.6), control2: p(195, 233.6))
+        path.addCurve(to: p(219, 224.5), control1: p(223, 230), control2: p(224, 226.5))
+        path.addCurve(to: p(206.6, 212), control1: p(214, 222), control2: p(208, 219))
+        path.addCurve(to: p(300, 80), control1: p(262.5, 192.25), control2: p(300, 139.3))
+        path.closeSubpath()
+        return path
+    }
+}
+
+/// 받침 밑면의 반사선(112, 225에서 폭 96, 높이 2)
+private struct BowlFootHighlight: Shape {
+    func path(in rect: CGRect) -> Path {
+        let sx = rect.width / 320, sy = rect.height / 230
+        var path = Path()
+        path.move(to: CGPoint(x: rect.minX + 112 * sx, y: rect.minY + 225 * sy))
+        path.addQuadCurve(to: CGPoint(x: rect.minX + 208 * sx, y: rect.minY + 225 * sy),
+                          control: CGPoint(x: rect.minX + 160 * sx, y: rect.minY + 229 * sy))
+        return path
     }
 }
 
@@ -124,44 +148,6 @@ struct BowlBodyShape: Shape {
         path.addArc(center: CGPoint(x: rect.midX, y: rect.minY), radius: radius,
                     startAngle: .degrees(180), endAngle: .degrees(0), clockwise: true)
         path.closeSubpath()
-        return path
-    }
-}
-
-/// 받침(굽): 위는 몸통 바닥에 붙어 폭 92, 아래로 곡선으로 벌어져 밑면 폭 약 120, 밑면 모서리와 아래 변이 둥글다.
-struct BowlFootShape: Shape {
-    func path(in rect: CGRect) -> Path {
-        let w = rect.width, h = rect.height
-        let topInset = (w - 92) / 2
-        let bottomInset = (w - 120) / 2
-        var path = Path()
-        path.move(to: CGPoint(x: topInset, y: 0))
-        path.addLine(to: CGPoint(x: w - topInset, y: 0))
-        // 오른쪽 옆면: 아래로 갈수록 벌어지는 곡선
-        path.addCurve(to: CGPoint(x: w - bottomInset, y: h - 5),
-                      control1: CGPoint(x: w - topInset + 2, y: h * 0.45),
-                      control2: CGPoint(x: w - bottomInset - 4, y: h * 0.7))
-        // 밑면 오른쪽 모서리
-        path.addQuadCurve(to: CGPoint(x: w - bottomInset - 6, y: h), control: CGPoint(x: w - bottomInset + 1, y: h))
-        // 아래 변: 살짝 아래로 휜 곡선
-        path.addQuadCurve(to: CGPoint(x: bottomInset + 6, y: h), control: CGPoint(x: w / 2, y: h + 3))
-        path.addQuadCurve(to: CGPoint(x: bottomInset, y: h - 5), control: CGPoint(x: bottomInset - 1, y: h))
-        path.addCurve(to: CGPoint(x: topInset, y: 0),
-                      control1: CGPoint(x: bottomInset + 4, y: h * 0.7),
-                      control2: CGPoint(x: topInset - 2, y: h * 0.45))
-        path.closeSubpath()
-        return path
-    }
-}
-
-/// 받침 밑면 가장자리의 반사선
-private struct BowlFootBottomEdge: Shape {
-    func path(in rect: CGRect) -> Path {
-        let w = rect.width, h = rect.height
-        let inset = (w - 120) / 2 + 8
-        var path = Path()
-        path.move(to: CGPoint(x: inset, y: h - 1.5))
-        path.addQuadCurve(to: CGPoint(x: w - inset, y: h - 1.5), control: CGPoint(x: w / 2, y: h + 1.5))
         return path
     }
 }

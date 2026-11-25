@@ -1,11 +1,11 @@
 import SwiftUI
 import UIKit
 
-/// 홈 배너에서 여는 "먹고 싶은 음식 → 운동 시간" 화면(#49). Figma "운동 환산 이벤트 시안" 최종본 기준.
+/// 홈 배너에서 여는 "먹고 싶은 음식 → 운동 시간" 화면(#49). Figma "개발" 페이지 섹션 2312:534(1·2·3 화면) 기준.
 /// - 담기(A) → 담기는 연출(B) → 결과(C). 결과는 식사 기록으로 저장하지 않는다.
 /// - 분석은 기존 식사 입력 분석 서비스(ExerciseGameAnalyzer → AIMealEntryService)의 열량만 쓴다.
-/// - 배치(2026-11-25 실기기 확인 후): 화면 전체를 한 배율로 키우지 않는다. 글자·입력칸·카드·그릇은 시안의 pt 값 그대로이고,
-///   세로는 안전 영역 기준이다(Metrics). 작은 화면에서는 그릇만 줄이고(최소 0.8배), 그래도 부족하면 결과 카드 간격을 14 → 10으로 줄인다.
+/// - 배치: 화면 전체를 한 배율로 키우지 않는다. 글자·입력칸·카드·그릇은 Figma pt 값 그대로이고, 세로는 안전 영역 윗변이 0이다(Metrics).
+///   작은 화면에서는 그릇·카드 위 간격을 먼저 줄이고, 그래도 부족하면 그릇을 줄이거나(최소 0.8배) 카드 간격을 14 → 10으로 줄인다.
 /// - 키보드: 하단 버튼은 키보드를 따라 올라가지 않는다(키보드 안전 영역 무시). 입력칸이 키보드에 가려질 때만 내용을 올린다.
 struct ExerciseGameView: View {
     let weightKG: Double
@@ -73,27 +73,35 @@ struct ExerciseGameView: View {
         self.onClose = onClose
     }
 
-    /// 시안 값(pt). 세로 위치는 안전 영역 윗변에서 잰다(시안의 y에서 상태바 44를 뺀 값).
+    /// Figma "개발" 페이지 섹션 2312:534 값(pt). 세로 위치는 안전 영역 윗변이 0(Figma y에서 상태바 50을 뺀 값).
     private enum Metrics {
-        /// 제목 윗변(시안 84 - 44)
-        static let titleTop: CGFloat = 40
-        /// 제목 윗변에서 입력칸 윗변까지(시안 292 - 84)
-        static let inputOffsetFromTitle: CGFloat = 208
-        static let inputSize = CGSize(width: 287, height: 56)
-        /// 입력칸과 그릇 사이 최소 간격
-        static let bowlMinGap: CGFloat = 24
-        /// 그릇 묶음(320×230) + 아래 "계산하고 있어요" 자리
+        /// 뒤로가기 헤더(header-page-iOS) 높이. 입력 상태에서만 버튼이 보이고 자리는 늘 유지한다.
+        static let headerHeight: CGFloat = 56
+        /// 제목 윗변(헤더 아래 16)
+        static let titleTop: CGFloat = 72
+        /// 부제 윗변
+        static let subtitleTop: CGFloat = 162
+        /// 입력칸(271×56) 윗변
+        static let inputTop: CGFloat = 252
+        static let inputSize = CGSize(width: 271, height: 56)
+        /// 그릇 묶음(320×230) 윗변
+        static let bowlTop: CGFloat = 324
+        /// 작은 화면에서 그릇 위 간격(입력칸 아래에서)을 줄일 때 최소값
+        static let bowlMinGap: CGFloat = 8
+        /// 그릇 묶음 + 아래 "계산하고 있어요" 자리
         static let bowlBlockHeight: CGFloat = 256
         static let bowlMinScale: CGFloat = 0.8
-        /// 결과 제목·kcal 묶음 높이(30pt 한 줄 + 간격 6 + 48pt 숫자 줄)
-        static let resultHeaderHeight: CGFloat = 100
-        /// 결과 제목 묶음 아래에서 카드 묶음까지
-        static let resultCardsGap: CGFloat = 50
+        /// 결과: "927"+"kcal" 줄 윗변
+        static let resultKcalTop: CGFloat = 115
+        /// 결과: 카드 묶음 윗변
+        static let resultCardsTop: CGFloat = 221
+        /// 결과: kcal 줄 아래(62)에서 카드까지 최소 간격(작은 화면에서 줄일 때)
+        static let resultMinCardsTop: CGFloat = 185
         static let cardHeight: CGFloat = 98
         static let cardSpacing: CGFloat = 14
         static let cardMinSpacing: CGFloat = 10
         static let buttonHeight: CGFloat = 52
-        /// 하단 버튼 아래 여백. OnboardingScaffold·기록 화면처럼 안전 영역 안에서 4
+        /// 하단 버튼 아래 여백. OnboardingScaffold·기록 화면처럼 안전 영역 안에서 4(Figma 버튼 y 722 = 안전 영역 아래 4)
         static let buttonBottomPadding: CGFloat = 4
         /// 내용과 하단 버튼 사이 최소 간격
         static let contentBottomGap: CGFloat = 16
@@ -130,6 +138,9 @@ struct ExerciseGameView: View {
                 }
                 .offset(y: -contentLift)
 
+                header
+                    .offset(y: -contentLift)
+
                 chipLayer(size)
 
                 bottomArea(size)
@@ -148,6 +159,32 @@ struct ExerciseGameView: View {
         }
         .onAppear { applySnapshot() }
         .onDisappear { analysisTask?.cancel() }
+    }
+
+    /// 뒤로가기 헤더(높이 56). 버튼 모양은 WeeklyReportView 헤더와 같고, 어두운 배경이라 아이콘은 Figma 2313:534의 흰색(#FFFFFF).
+    /// 입력 상태에서만 버튼이 보이고(연출·결과에서는 숨김) 자리는 늘 유지해 제목이 위아래로 움직이지 않는다.
+    private var header: some View {
+        HStack {
+            Button {
+                isInputFocused = false
+                onClose()
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundStyle(Color.white)
+                    .frame(width: 24, height: 24)
+                    .frame(width: 48, height: 48)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("뒤로가기")
+            .opacity(stage == .input && !showsResult ? 1 : 0)
+            .allowsHitTesting(stage == .input && !showsResult)
+            .accessibilityHidden(!(stage == .input && !showsResult))
+
+            Spacer()
+        }
+        .padding(.leading, 4)
+        .frame(height: Metrics.headerHeight)
     }
 
     /// 입력칸이 키보드에 가려지면 가려지지 않을 만큼만 올린다. 이미 키보드보다 위에 있으면 올리지 않는다.
@@ -175,25 +212,22 @@ struct ExerciseGameView: View {
         .ignoresSafeArea()
     }
 
-    /// 비눗방울. 담기 화면은 제목과 입력칸 사이 양옆, 결과 화면은 제목·숫자·카드와 겹치지 않는 가장자리(숫자 줄 양옆, 제목 위 오른쪽).
+    /// 비눗방울(Figma 2313:534): 54pt (20, 177), 22pt (318, 195), 40pt (306, 530). 가로는 폭 375 기준 비율.
+    /// 결과 화면(2314:554)에는 비눗방울이 없어 숨긴다.
     private func bubbles(_ size: CGSize) -> some View {
-        let result = showsResult
-        let kcalRowY = Metrics.titleTop + Metrics.resultHeaderHeight - 29
-        let positions: [CGPoint] = result
-            ? [CGPoint(x: 34, y: kcalRowY), CGPoint(x: size.width - 28, y: kcalRowY - 6), CGPoint(x: size.width - 26, y: 16)]
-            : [CGPoint(x: size.width * 48 / 375, y: 192), CGPoint(x: size.width * 334 / 375, y: 170), CGPoint(x: size.width * 306 / 375, y: 226)]
+        let sx = size.width / 375
         return TimelineView(.animation(minimumInterval: 1 / 30, paused: reduceMotion)) { context in
             let time = context.date.timeIntervalSinceReferenceDate
             ZStack(alignment: .topLeading) {
                 bubble(size: 54, tint: Color.exerciseLightGreen, time: time, period: 4.6, phase: 0)
-                    .position(positions[0])
+                    .position(x: (20 + 27) * sx, y: 177 + 27)
                 bubble(size: 40, tint: Color(hex: 0x3FC6A8), time: time, period: 5.4, phase: 1.7)
-                    .position(positions[1])
+                    .position(x: (306 + 20) * sx, y: 530 + 20)
                 bubble(size: 22, tint: .white, time: time, period: 3.9, phase: 3.1)
-                    .position(positions[2])
+                    .position(x: (318 + 11) * sx, y: 195 + 11)
             }
             .frame(width: size.width, height: size.height, alignment: .topLeading)
-            .opacity(result ? 0.3 : 1)
+            .opacity(showsResult ? 0 : 1)
         }
         .allowsHitTesting(false)
         .accessibilityHidden(true)
@@ -214,21 +248,32 @@ struct ExerciseGameView: View {
 
     // MARK: - 화면 A·B
 
-    /// 제목(위 40) → 입력칸(제목 윗변에서 208) → 입력칸 아래부터 버튼 위까지 남는 공간 가운데에 그릇.
+    /// 헤더(56) → 제목 72, 부제 162 → 입력칸 252 → 그릇 324.
+    /// 작은 화면에서 그릇 묶음이 하단 버튼에 닿으면 먼저 그릇 위 간격을 줄이고(최소 8), 그래도 부족하면 그릇을 줄인다(최소 0.8배).
     private func inputContent(_ size: CGSize) -> some View {
         let contentHeight = size.height - bottomBlockHeight(result: false)
-        let inputTop = Metrics.titleTop + Metrics.inputOffsetFromTitle
-        let regionTop = inputTop + Metrics.inputSize.height + Metrics.bowlMinGap
-        let region = max(0, contentHeight - regionTop)
-        let bowlScale = min(1, max(Metrics.bowlMinScale, region / Metrics.bowlBlockHeight))
-        let blockHeight = Metrics.bowlBlockHeight * bowlScale
-        let bowlTop = regionTop + max(0, (region - blockHeight) / 2)
+        let inputBottom = Metrics.inputTop + Metrics.inputSize.height
+        let minBowlTop = inputBottom + Metrics.bowlMinGap
+        let bowlTop = max(minBowlTop, min(Metrics.bowlTop, contentHeight - Metrics.bowlBlockHeight))
+        let bowlScale = min(1, max(Metrics.bowlMinScale, (contentHeight - bowlTop) / Metrics.bowlBlockHeight))
         let bowlSize = CGSize(width: ExerciseBowlView.size.width * bowlScale, height: ExerciseBowlView.size.height * bowlScale)
 
         return ZStack(alignment: .top) {
-            titleBlock(lines: ["먹고 싶은 음식을", "그릇에 담아보세요"], subtitle: "운동으로 얼마나 빼야 하는지 알려드려요")
-                .padding(.top, Metrics.titleTop)
-                .opacity(titleDimmed ? 0.35 : 1)
+            Group {
+                Text("먹고 싶은 음식을\n그릇에 담아보세요")
+                    .font(.pretendardBold(30))
+                    .lineSpacing(7)
+                    .foregroundStyle(Color.exerciseGreen)
+                    .multilineTextAlignment(.center)
+                    .padding(.top, Metrics.titleTop)
+                Text("운동으로 얼마나 빼야 하는지 알려드려요")
+                    .font(.pretendardMedium(15))
+                    .foregroundStyle(Color(hex: 0xA3A8B3))
+                    .padding(.top, Metrics.subtitleTop)
+            }
+            .opacity(titleDimmed ? 0.35 : 1)
+            .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(.isHeader)
 
             ExerciseBowlView(fillProgress: fillProgress, glowOpacity: glowOpacity, showsSteam: showsSteam, reduceMotion: reduceMotion)
                 .overlay(alignment: .topLeading) { ripple }
@@ -242,7 +287,7 @@ struct ExerciseGameView: View {
 
             if showsWaiting {
                 WaitingLabel(reduceMotion: reduceMotion)
-                    .padding(.top, bowlTop + bowlSize.height + 6)
+                    .padding(.top, bowlTop + bowlSize.height + 10)
                     .transition(.opacity)
             }
 
@@ -253,7 +298,7 @@ struct ExerciseGameView: View {
                 .scaleEffect(x: isInputCollapsed ? 0.4 : 1, y: isInputCollapsed ? 0.75 : 1)
                 .opacity(isInputCollapsed ? 0 : 1)
                 .allowsHitTesting(stage == .input)
-                .padding(.top, inputTop)
+                .padding(.top, Metrics.inputTop)
 
             if showsFailure {
                 Text("그 음식은 아직 몰라요. 다른 음식을 담아 볼까요?")
@@ -261,7 +306,7 @@ struct ExerciseGameView: View {
                     .foregroundStyle(Color(hex: 0xA3A8B3))
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 16)
-                    .padding(.top, inputTop + Metrics.inputSize.height + 10)
+                    .padding(.top, inputBottom + 8)
                     .transition(.opacity)
             }
         }
@@ -363,41 +408,26 @@ struct ExerciseGameView: View {
             .fixedSize()
     }
 
-    private func titleBlock(lines: [String], subtitle: String?) -> some View {
-        VStack(spacing: 10) {
-            Text(lines.joined(separator: "\n"))
-                .font(.pretendardBold(30))
-                .lineSpacing(9)
-                .foregroundStyle(Color.exerciseGreen)
-                .multilineTextAlignment(.center)
-            if let subtitle {
-                Text(subtitle)
-                    .font(.pretendardMedium(15))
-                    .foregroundStyle(Color(hex: 0xA3A8B3))
-            }
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(.isHeader)
-    }
-
     // MARK: - 화면 C
 
-    /// 제목(위 40) → 제목 묶음 아래 50에서 카드 묶음. 카드 폭은 좌우 16 여백 안을 채운다.
+    /// 제목 72, "927 kcal" 115, 카드 묶음 221(Figma 2314:554). 카드 폭은 좌우 16 여백 안을 채운다.
+    /// 작은 화면에서 카드 묶음이 안내 문구·버튼에 닿으면 카드 위 간격을 줄이고(최소 185), 그래도 부족하면 카드 간격을 14 → 10.
     private func resultContent(_ result: ExerciseGameResult, size: CGSize) -> some View {
         let contentHeight = size.height - bottomBlockHeight(result: true)
         let cardCount = CGFloat(exercises.count)
-        let needed = Metrics.titleTop + Metrics.resultHeaderHeight + Metrics.resultCardsGap
-            + Metrics.cardHeight * cardCount + Metrics.cardSpacing * max(0, cardCount - 1)
-        let spacing = needed <= contentHeight ? Metrics.cardSpacing : Metrics.cardMinSpacing
+        let stack = { (spacing: CGFloat) in Metrics.cardHeight * cardCount + spacing * max(0, cardCount - 1) }
+        let cardsTop = max(Metrics.resultMinCardsTop, min(Metrics.resultCardsTop, contentHeight - stack(Metrics.cardSpacing)))
+        let spacing = cardsTop + stack(Metrics.cardSpacing) <= contentHeight ? Metrics.cardSpacing : Metrics.cardMinSpacing
         let cardWidth = size.width - 32
-        return VStack(spacing: 0) {
-            VStack(spacing: 6) {
+        return ZStack(alignment: .top) {
+            Group {
                 Text(result.title)
                     .font(.pretendardBold(30))
                     .foregroundStyle(Color.exerciseGreen)
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
                     .padding(.horizontal, 16)
+                    .padding(.top, Metrics.titleTop)
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
                     CountingText(value: countedKcal) { "\(Int($0.rounded()))" }
                         .font(.pretendardBold(48))
@@ -406,8 +436,8 @@ struct ExerciseGameView: View {
                 }
                 .foregroundStyle(Color.exerciseGreen)
                 .monospacedDigit()
+                .padding(.top, Metrics.resultKcalTop)
             }
-            .frame(height: Metrics.resultHeaderHeight, alignment: .top)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("\(result.title) \(Int(result.kcal.rounded()))킬로칼로리")
             .accessibilityAddTraits(.isHeader)
@@ -420,9 +450,8 @@ struct ExerciseGameView: View {
                         .offset(y: (cardVisible[safe: index] ?? true) ? 0 : 16)
                 }
             }
-            .padding(.top, Metrics.resultCardsGap)
+            .padding(.top, cardsTop)
         }
-        .padding(.top, Metrics.titleTop)
         .frame(width: size.width, height: contentHeight, alignment: .top)
     }
 
