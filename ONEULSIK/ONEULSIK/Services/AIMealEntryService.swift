@@ -540,9 +540,8 @@ final class AIMealEntryService: MealEntryAnalyzing {
         // 업체명·브랜드 없는 입력에 이름이 같은 제품이 2개 이상이면 묻지 않고 가운데 제품을 쓴다(2026-11-24, #41 사용자 결정).
         // 실기기에서 아이스티처럼 선택지 이름이 모두 같아 방문자가 구분할 수 없었다. 분량을 정하는 방식은 그대로다.
         if input.brand.isEmpty, let median = Self.medianSameNameProduct(foods, name: searchName(foodName(of: input))) {
-            var food = median.food
-            food.source = "\(food.source) · \([food.brand, food.name].filter { !$0.isEmpty }.joined(separator: " ")) 영양값 기준"
-            MealDebugLog.log("같은 이름 제품 \(median.count)개 → 묻지 않고 가운데 제품: \(food.id) \(food.name) · \(food.brand)")
+            let food = Self.autoSelectedProduct(median.food, input: input)
+            MealDebugLog.log("같은 이름 제품 \(median.count)개 → 묻지 않고 가운데 제품: \(food.id) \(median.food.name) · \(median.food.brand)")
             return try await resolveSelection(MealFoodSelection(input: input, food: food, isProductConfirmed: true),
                 items: items, remaining: remaining)
         }
@@ -567,6 +566,19 @@ final class AIMealEntryService: MealEntryAnalyzing {
     /// 이름이 입력과 같은 가공식품이 2개 이상일 때의 가운데 제품(#41). 같은 이름 제품 중 많은 단위(g 또는 mL, 같으면 g) 묶음을
     /// 100g(mL)당 열량으로 정렬해 가운데를 고른다. 짝수면 가운데 둘 중 열량이 낮은 쪽. 같은 열량은 식품코드 순.
     /// 포장제품 표(PackagedFoodReferences.json) 항목은 이미 확인된 제품이라 이 규칙에서 뺀다.
+    /// 업체명 없이 입력했는데 질문 없이 앱이 고른 제품(#41 E 같은 이름 제품의 가운데, #41 2차 E 한 업체 제품 묶음)의 기록용 자료(#47).
+    /// 기록 이름(카드·저장 foodName)은 입력한 음식 이름으로 하고 업체명은 빼서, 업체명은 저장 출처
+    /// "{출처} · {업체명} {제품명} 영양값 기준"에만 남긴다. 식품코드·영양값·분량 정보·분류는 그대로다.
+    /// 사용자가 업체명·제품명을 적었거나 질문에서 제품을 고른 경우에는 쓰지 않는다(지금처럼 제품 이름 · 업체명).
+    static func autoSelectedProduct(_ food: FoodCatalogItem, input: MealFoodInput) -> FoodCatalogItem {
+        var named = FoodCatalogItem(id: food.id, name: input.name, servingUnit: food.servingUnit, servingGrams: food.servingGrams,
+            nutrition: food.nutrition, servingMilliliters: food.servingMilliliters, brand: "",
+            source: "\(food.source) · \([food.brand, food.name].filter { !$0.isEmpty }.joined(separator: " ")) 영양값 기준",
+            sourceDate: food.sourceDate, category: food.category, packageAmount: food.packageAmount, categoryCode: food.categoryCode)
+        named.referencePortionUnit = food.referencePortionUnit
+        return named
+    }
+
     static func medianSameNameProduct(_ foods: [FoodCatalogItem], name: String) -> (food: FoodCatalogItem, count: Int)? {
         let key = FoodReferenceCatalog.normalized(name)
         return medianProduct(foods) { FoodReferenceCatalog.normalized($0.name) == key }
@@ -1034,9 +1046,8 @@ final class AIMealEntryService: MealEntryAnalyzing {
             // 실기기에서 "진라면"이 일반 음식 "라면"(국물 포함)으로 가서 150g 123kcal가 됐다. 같은 이름 제품이 있으면 기존 흐름을 따른다.
             if exact.isEmpty, !prefersProducts, input.brand.isEmpty, input.details.isEmpty, productMatches.isEmpty,
                let line = Self.productLine(usableCandidates(from: results, input: input), name: query) {
-                var food = line.food
-                food.source = "\(food.source) · \([food.brand, food.name].filter { !$0.isEmpty }.joined(separator: " ")) 영양값 기준"
-                MealDebugLog.log("이름이 입력으로 시작하는 한 업체 제품 \(line.count)개 → 비슷한 음식 질문 없이 가운데 제품: \(food.id) \(food.name) · \(food.brand)")
+                let food = Self.autoSelectedProduct(line.food, input: input)
+                MealDebugLog.log("이름이 입력으로 시작하는 한 업체 제품 \(line.count)개 → 비슷한 음식 질문 없이 가운데 제품: \(food.id) \(line.food.name) · \(line.food.brand)")
                 return try await resolveSelection(MealFoodSelection(input: input, food: food, isProductConfirmed: true),
                     items: items, remaining: remaining)
             }

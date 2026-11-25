@@ -125,6 +125,8 @@ struct MealCase: Decodable, CustomTestStringConvertible {
         var assumedQuantity: Bool?
         /// 기록된 음식 이름(표기 그대로, 맞춤법 정규화 없이) 순서대로(#41, 예: 김치찌기 → 김치찌개)
         var exactNames: [String]?
+        /// 저장되는 기록 이름(MealRecord.foodName = FoodCatalogItem.recordedName, 업체명이 있으면 "이름 · 업체명")이 이 값과 같아야 함(#47)
+        var recordedName: String?
         /// 모든 경로가 실패해 이 글자가 든 오류 화면으로 끝나야 함(#41, 작업 G)
         var errorContains: String?
         /// 기록에 저장되는 출처(nutritionSource)에 들어가야 할 글자(#41)
@@ -173,6 +175,7 @@ struct MealCase: Decodable, CustomTestStringConvertible {
         if expect.assumedQuantity == true { parts.append("기본값 안내") }
         if expect.asksUnitEstimate == true { parts.append("AI 1단위 추정 수량 질문") }
         if let names = expect.exactNames { parts.append("기록 이름 \(names.joined(separator: ", "))") }
+        if let name = expect.recordedName { parts.append("저장 이름 \(name)") }
         if let error = expect.errorContains { parts.append("오류 화면(‘\(error)’)") }
         if let source = expect.sourceContains { parts.append("출처에 ‘\(source)’") }
         if let excluded = expect.sourceExcludes { parts.append("출처에 없음(\(excluded.joined(separator: ", ")))") }
