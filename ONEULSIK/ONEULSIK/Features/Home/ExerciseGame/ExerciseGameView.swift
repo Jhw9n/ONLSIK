@@ -1,9 +1,12 @@
 import SwiftUI
 import UIKit
 
-/// 홈 배너에서 여는 "먹고 싶은 음식 → 운동 시간" 화면(#49). Figma "운동 환산 이벤트 시안" 최종본 기준(375×812).
+/// 홈 배너에서 여는 "먹고 싶은 음식 → 운동 시간" 화면(#49). Figma "운동 환산 이벤트 시안" 최종본 기준.
 /// - 담기(A) → 담기는 연출(B) → 결과(C). 결과는 식사 기록으로 저장하지 않는다.
 /// - 분석은 기존 식사 입력 분석 서비스(ExerciseGameAnalyzer → AIMealEntryService)의 열량만 쓴다.
+/// - 배치(2026-11-25 실기기 확인 후): 화면 전체를 한 배율로 키우지 않는다. 글자·입력칸·카드·그릇은 시안의 pt 값 그대로이고,
+///   세로는 안전 영역 기준이다(Metrics). 작은 화면에서는 그릇만 줄이고(최소 0.8배), 그래도 부족하면 결과 카드 간격을 14 → 10으로 줄인다.
+/// - 키보드: 하단 버튼은 키보드를 따라 올라가지 않는다(키보드 안전 영역 무시). 입력칸이 키보드에 가려질 때만 내용을 올린다.
 struct ExerciseGameView: View {
     let weightKG: Double
     let usesFallbackWeight: Bool
@@ -15,7 +18,12 @@ struct ExerciseGameView: View {
 
     @State private var text = ""
     @State private var stage = Stage.input
-    @State private var keyboardHeight: CGFloat = 0
+    /// 입력칸이 키보드에 가려질 때 내용을 올리는 양
+    @State private var contentLift: CGFloat = 0
+    /// 입력칸·그릇의 실제 위치(이 화면 좌표, 안전 영역 위가 0). 연출 좌표는 이 값으로 계산한다.
+    @State private var inputFrame = CGRect.zero
+    @State private var inputScreenFrame = CGRect.zero
+    @State private var bowlFrame = CGRect.zero
 
     // 담기 연출 상태
     @State private var isInputCollapsed = false
@@ -40,7 +48,6 @@ struct ExerciseGameView: View {
     @State private var failedText = ""
     @State private var analysisTask: Task<ExerciseGameResult, Error>?
     @State private var analysisFinished = false
-    @State private var layout = GameLayout(size: CGSize(width: 375, height: 812), safeTop: 44, safeBottom: 34)
 
     // 결과 상태
     @State private var result: ExerciseGameResult?
@@ -55,6 +62,8 @@ struct ExerciseGameView: View {
     private let snapshot: ExerciseGameSnapshot?
     @State private var trailLag = CGSize.zero
 
+    private static let space = "exerciseGame"
+
     init(weightKG: Double, usesFallbackWeight: Bool, analyzer: ExerciseGameAnalyzer,
          snapshot: ExerciseGameSnapshot? = nil, onClose: @escaping () -> Void) {
         self.weightKG = weightKG
@@ -64,42 +73,95 @@ struct ExerciseGameView: View {
         self.onClose = onClose
     }
 
+    /// 시안 값(pt). 세로 위치는 안전 영역 윗변에서 잰다(시안의 y에서 상태바 44를 뺀 값).
+    private enum Metrics {
+        /// 제목 윗변(시안 84 - 44)
+        static let titleTop: CGFloat = 40
+        /// 제목 윗변에서 입력칸 윗변까지(시안 292 - 84)
+        static let inputOffsetFromTitle: CGFloat = 208
+        static let inputSize = CGSize(width: 287, height: 56)
+        /// 입력칸과 그릇 사이 최소 간격
+        static let bowlMinGap: CGFloat = 24
+        /// 그릇 묶음(320×230) + 아래 "계산하고 있어요" 자리
+        static let bowlBlockHeight: CGFloat = 256
+        static let bowlMinScale: CGFloat = 0.8
+        /// 결과 제목·kcal 묶음 높이(30pt 한 줄 + 간격 6 + 48pt 숫자 줄)
+        static let resultHeaderHeight: CGFloat = 100
+        /// 결과 제목 묶음 아래에서 카드 묶음까지
+        static let resultCardsGap: CGFloat = 50
+        static let cardHeight: CGFloat = 98
+        static let cardSpacing: CGFloat = 14
+        static let cardMinSpacing: CGFloat = 10
+        static let buttonHeight: CGFloat = 52
+        /// 하단 버튼 아래 여백. OnboardingScaffold·기록 화면처럼 안전 영역 안에서 4
+        static let buttonBottomPadding: CGFloat = 4
+        /// 내용과 하단 버튼 사이 최소 간격
+        static let contentBottomGap: CGFloat = 16
+        /// 결과 안내 문구(12pt 한 줄)와 버튼 사이
+        static let noteGap: CGFloat = 16
+        static let noteHeight: CGFloat = 15
+    }
+
+    /// 하단 버튼 묶음이 차지하는 높이(안전 영역 아래쪽에서)
+    private func bottomBlockHeight(result: Bool) -> CGFloat {
+        Metrics.buttonHeight + Metrics.buttonBottomPadding + Metrics.contentBottomGap
+            + (result ? Metrics.noteGap + Metrics.noteHeight : 0)
+    }
+
     var body: some View {
         GeometryReader { proxy in
-            let layout = GameLayout(size: proxy.size, safeTop: proxy.safeAreaInsets.top, safeBottom: proxy.safeAreaInsets.bottom)
+            // 안전 영역 안 크기. 키보드 안전 영역은 무시해서 키보드가 올라와도 버튼·배치가 움직이지 않는다.
+            let size = proxy.size
             ZStack(alignment: .topLeading) {
-                background
-                bubbles(layout)
+                Color.clear
+                    .contentShape(Rectangle())
+                    .onTapGesture { isInputFocused = false }
+
+                bubbles(size)
 
                 Group {
                     if showsResult, let result {
-                        resultContent(result, layout: layout)
+                        resultContent(result, size: size)
                             .transition(.opacity)
                     } else {
-                        inputContent(layout)
+                        inputContent(size)
                             .transition(.opacity)
                     }
                 }
-                .offset(y: -contentLift(layout))
+                .offset(y: -contentLift)
 
-                bottomArea(layout)
+                chipLayer(size)
+
+                bottomArea(size)
             }
-            .frame(width: proxy.size.width, height: proxy.size.height)
-            .onAppear {
-                self.layout = layout
-                applySnapshot()
-            }
-            .onChange(of: proxy.size) { self.layout = layout }
+            .frame(width: size.width, height: size.height)
+            .coordinateSpace(.named(Self.space))
         }
-        .ignoresSafeArea()
+        .background { background }
+        .ignoresSafeArea(.keyboard)
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillChangeFrameNotification)) { note in
             guard let frame = note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }
-            let screenHeight = UIScreen.main.bounds.height
-            withAnimation(.easeOut(duration: 0.25)) {
-                keyboardHeight = max(0, screenHeight - frame.minY)
-            }
+            updateLift(keyboardTop: frame.minY < UIScreen.main.bounds.height ? frame.minY : nil)
         }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            updateLift(keyboardTop: nil)
+        }
+        .onAppear { applySnapshot() }
         .onDisappear { analysisTask?.cancel() }
+    }
+
+    /// 입력칸이 키보드에 가려지면 가려지지 않을 만큼만 올린다. 이미 키보드보다 위에 있으면 올리지 않는다.
+    private func updateLift(keyboardTop: CGFloat?) {
+        let lift: CGFloat
+        if let keyboardTop, !showsResult {
+            // 지금 올라가 있는 양을 빼서 원래 위치로 계산한다.
+            let inputBottom = inputScreenFrame.maxY + contentLift
+            lift = max(0, inputBottom + 16 - keyboardTop)
+        } else {
+            lift = 0
+        }
+        guard lift != contentLift else { return }
+        withAnimation(.easeOut(duration: 0.25)) { contentLift = lift }
     }
 
     // MARK: - 배경·장식
@@ -113,18 +175,25 @@ struct ExerciseGameView: View {
         .ignoresSafeArea()
     }
 
-    private func bubbles(_ layout: GameLayout) -> some View {
-        TimelineView(.animation(minimumInterval: 1 / 30, paused: reduceMotion)) { context in
+    /// 비눗방울. 담기 화면은 제목과 입력칸 사이 양옆, 결과 화면은 제목·숫자·카드와 겹치지 않는 가장자리(숫자 줄 양옆, 제목 위 오른쪽).
+    private func bubbles(_ size: CGSize) -> some View {
+        let result = showsResult
+        let kcalRowY = Metrics.titleTop + Metrics.resultHeaderHeight - 29
+        let positions: [CGPoint] = result
+            ? [CGPoint(x: 34, y: kcalRowY), CGPoint(x: size.width - 28, y: kcalRowY - 6), CGPoint(x: size.width - 26, y: 16)]
+            : [CGPoint(x: size.width * 48 / 375, y: 192), CGPoint(x: size.width * 334 / 375, y: 170), CGPoint(x: size.width * 306 / 375, y: 226)]
+        return TimelineView(.animation(minimumInterval: 1 / 30, paused: reduceMotion)) { context in
             let time = context.date.timeIntervalSinceReferenceDate
             ZStack(alignment: .topLeading) {
                 bubble(size: 54, tint: Color.exerciseLightGreen, time: time, period: 4.6, phase: 0)
-                    .position(x: layout.x(48), y: layout.y(236))
+                    .position(positions[0])
                 bubble(size: 40, tint: Color(hex: 0x3FC6A8), time: time, period: 5.4, phase: 1.7)
-                    .position(x: layout.x(334), y: layout.y(214))
+                    .position(positions[1])
                 bubble(size: 22, tint: .white, time: time, period: 3.9, phase: 3.1)
-                    .position(x: layout.x(306), y: layout.y(270))
+                    .position(positions[2])
             }
-            .opacity(showsResult ? 0.3 : 1)
+            .frame(width: size.width, height: size.height, alignment: .topLeading)
+            .opacity(result ? 0.3 : 1)
         }
         .allowsHitTesting(false)
         .accessibilityHidden(true)
@@ -145,50 +214,58 @@ struct ExerciseGameView: View {
 
     // MARK: - 화면 A·B
 
-    private func inputContent(_ layout: GameLayout) -> some View {
-        let bowlScale = layout.bowlScale
-        let bowlTop = layout.y(366)
-        let mouth = CGPoint(x: layout.centerX, y: bowlTop + ExerciseBowlView.mouthCenter.y * bowlScale)
-        let inputCenter = CGPoint(x: layout.centerX, y: layout.y(292) + 28)
-        return ZStack(alignment: .topLeading) {
+    /// 제목(위 40) → 입력칸(제목 윗변에서 208) → 입력칸 아래부터 버튼 위까지 남는 공간 가운데에 그릇.
+    private func inputContent(_ size: CGSize) -> some View {
+        let contentHeight = size.height - bottomBlockHeight(result: false)
+        let inputTop = Metrics.titleTop + Metrics.inputOffsetFromTitle
+        let regionTop = inputTop + Metrics.inputSize.height + Metrics.bowlMinGap
+        let region = max(0, contentHeight - regionTop)
+        let bowlScale = min(1, max(Metrics.bowlMinScale, region / Metrics.bowlBlockHeight))
+        let blockHeight = Metrics.bowlBlockHeight * bowlScale
+        let bowlTop = regionTop + max(0, (region - blockHeight) / 2)
+        let bowlSize = CGSize(width: ExerciseBowlView.size.width * bowlScale, height: ExerciseBowlView.size.height * bowlScale)
+
+        return ZStack(alignment: .top) {
             titleBlock(lines: ["먹고 싶은 음식을", "그릇에 담아보세요"], subtitle: "운동으로 얼마나 빼야 하는지 알려드려요")
-                .frame(width: layout.size.width)
-                .position(x: layout.centerX, y: layout.y(84) + 52)
+                .padding(.top, Metrics.titleTop)
                 .opacity(titleDimmed ? 0.35 : 1)
 
             ExerciseBowlView(fillProgress: fillProgress, glowOpacity: glowOpacity, showsSteam: showsSteam, reduceMotion: reduceMotion)
                 .overlay(alignment: .topLeading) { ripple }
                 .scaleEffect(x: 1, y: bowlSquash, anchor: .bottom)
-                .scaleEffect(bowlScale, anchor: .top)
-                .frame(width: ExerciseBowlView.size.width * bowlScale, height: ExerciseBowlView.size.height * bowlScale, alignment: .top)
-                .position(x: layout.centerX, y: bowlTop + ExerciseBowlView.size.height * bowlScale / 2)
+                .scaleEffect(bowlScale, anchor: .topLeading)
+                .frame(width: bowlSize.width, height: bowlSize.height, alignment: .topLeading)
+                .contentShape(Rectangle())
+                .onTapGesture { isInputFocused = false }
+                .onGeometryChange(for: CGRect.self) { $0.frame(in: .named(Self.space)) } action: { bowlFrame = $0 }
+                .padding(.top, bowlTop)
 
             if showsWaiting {
                 WaitingLabel(reduceMotion: reduceMotion)
-                    .position(x: layout.centerX, y: bowlTop + ExerciseBowlView.size.height * bowlScale + 14)
+                    .padding(.top, bowlTop + bowlSize.height + 6)
                     .transition(.opacity)
             }
 
             inputField
-                .frame(width: min(287, layout.size.width - 48), height: 56)
+                .frame(width: min(Metrics.inputSize.width, size.width - 32), height: Metrics.inputSize.height)
+                .onGeometryChange(for: CGRect.self) { $0.frame(in: .named(Self.space)) } action: { inputFrame = $0 }
+                .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { inputScreenFrame = $0 }
                 .scaleEffect(x: isInputCollapsed ? 0.4 : 1, y: isInputCollapsed ? 0.75 : 1)
                 .opacity(isInputCollapsed ? 0 : 1)
-                .position(inputCenter)
                 .allowsHitTesting(stage == .input)
+                .padding(.top, inputTop)
 
             if showsFailure {
                 Text("그 음식은 아직 몰라요. 다른 음식을 담아 볼까요?")
                     .font(.pretendardMedium(13))
                     .foregroundStyle(Color(hex: 0xA3A8B3))
                     .multilineTextAlignment(.center)
-                    .frame(width: layout.size.width - 32)
-                    .position(x: layout.centerX, y: inputCenter.y + 28 + 20)
+                    .padding(.horizontal, 16)
+                    .padding(.top, inputTop + Metrics.inputSize.height + 10)
                     .transition(.opacity)
             }
-
-            chipLayer(start: inputCenter, mouth: mouth, bowlScale: bowlScale, size: layout.size)
         }
-        .frame(width: layout.size.width, height: layout.size.height, alignment: .topLeading)
+        .frame(width: size.width, height: contentHeight, alignment: .top)
     }
 
     private var ripple: some View {
@@ -202,45 +279,46 @@ struct ExerciseGameView: View {
             .allowsHitTesting(false)
     }
 
+    /// 입력칸(글자만 받는다). 확인(return) 키는 하단 "담기"와 같다.
     private var inputField: some View {
-        HStack(spacing: 10) {
-            TextField("", text: $text, prompt: Text("먹고 싶은 음식을 적어주세요").foregroundStyle(Color(hex: 0x9AA0AB)))
-                .font(.pretendardMedium(16))
-                .foregroundStyle(Color(hex: 0x1D1D1D))
-                .tint(Color.exerciseGreen)
-                .submitLabel(.done)
-                .focused($isInputFocused)
-                .onSubmit(start)
-                .onChange(of: text) { _, newValue in
-                    if showsFailure, newValue != failedText { withAnimation(.easeOut(duration: 0.2)) { showsFailure = false } }
-                }
-                .accessibilityLabel("먹고 싶은 음식")
-                .accessibilityHint("음식 이름을 적고 담기를 누르면 운동 시간으로 알려드려요")
-
-            Button(action: start) {
-                Image(systemName: "plus")
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(Color.white)
-                    .frame(width: 40, height: 40)
-                    .background(Color.exerciseGreen, in: Circle())
+        TextField("", text: $text, prompt: Text("먹고 싶은 음식을 적어주세요").foregroundStyle(Color(hex: 0x9AA0AB)))
+            .font(.pretendardMedium(16))
+            .foregroundStyle(Color(hex: 0x1D1D1D))
+            .tint(Color.exerciseGreen)
+            .submitLabel(.done)
+            .focused($isInputFocused)
+            .onSubmit(start)
+            .onChange(of: text) { _, newValue in
+                if showsFailure, newValue != failedText { withAnimation(.easeOut(duration: 0.2)) { showsFailure = false } }
             }
-            .buttonStyle(.plain)
-            .disabled(!canStart)
-            .opacity(canStart ? 1 : 0.5)
-            .accessibilityLabel("담기")
-        }
-        .padding(.leading, 22)
-        .padding(.trailing, 8)
-        .frame(maxHeight: .infinity)
-        .background(Color.white, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
-        .shadow(color: Color.black.opacity(0.12), radius: 6, y: 2)
-        .contentShape(RoundedRectangle(cornerRadius: 28))
-        .onTapGesture { isInputFocused = true }
+            .padding(.horizontal, 22)
+            .frame(maxHeight: .infinity)
+            .background(Color.white, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+            .shadow(color: Color.black.opacity(0.12), radius: 6, y: 2)
+            .contentShape(RoundedRectangle(cornerRadius: 28))
+            .onTapGesture { isInputFocused = true }
+            .accessibilityLabel("먹고 싶은 음식")
+            .accessibilityHint("음식 이름을 적고 아래 담기 버튼을 누르세요. 운동 시간으로 알려드려요")
     }
 
+    private var bowlScaleNow: CGFloat {
+        bowlFrame.width > 0 ? bowlFrame.width / ExerciseBowlView.size.width : 1
+    }
+
+    /// 그릇 입구 가운데(이 화면 좌표)
+    private var mouth: CGPoint {
+        CGPoint(x: bowlFrame.midX, y: bowlFrame.minY + ExerciseBowlView.mouthCenter.y * bowlScaleNow)
+    }
+
+    /// 칩 시작점(입력칸 가운데)
+    private var chipStart: CGPoint { CGPoint(x: inputFrame.midX, y: inputFrame.midY) }
+
     /// 음식 이름 칩과 잔상. 그릇 입구보다 아래로 내려가면 입구 안쪽 타원 밖은 가려져 그릇 속으로 들어가 보인다.
-    private func chipLayer(start: CGPoint, mouth: CGPoint, bowlScale: CGFloat, size: CGSize) -> some View {
-        ZStack(alignment: .topLeading) {
+    private func chipLayer(_ size: CGSize) -> some View {
+        let start = chipStart
+        let mouth = self.mouth
+        let scale = bowlScaleNow
+        return ZStack(alignment: .topLeading) {
             if chipVisible {
                 if trailVisible && !reduceMotion {
                     chip.opacity(0.12)
@@ -259,9 +337,9 @@ struct ExerciseGameView: View {
         .mask {
             if chipMasked {
                 ZStack(alignment: .topLeading) {
-                    Rectangle().frame(width: size.width, height: mouth.y)
+                    Rectangle().frame(width: size.width, height: max(0, mouth.y))
                     Ellipse()
-                        .frame(width: ExerciseBowlView.innerSize.width * bowlScale, height: ExerciseBowlView.innerSize.height * bowlScale)
+                        .frame(width: ExerciseBowlView.innerSize.width * scale, height: ExerciseBowlView.innerSize.height * scale)
                         .position(mouth)
                 }
                 .frame(width: size.width, height: size.height, alignment: .topLeading)
@@ -304,9 +382,15 @@ struct ExerciseGameView: View {
 
     // MARK: - 화면 C
 
-    private func resultContent(_ result: ExerciseGameResult, layout: GameLayout) -> some View {
-        let cardWidth = min(343, layout.size.width - 32)
-        return ZStack(alignment: .topLeading) {
+    /// 제목(위 40) → 제목 묶음 아래 50에서 카드 묶음. 카드 폭은 좌우 16 여백 안을 채운다.
+    private func resultContent(_ result: ExerciseGameResult, size: CGSize) -> some View {
+        let contentHeight = size.height - bottomBlockHeight(result: true)
+        let cardCount = CGFloat(exercises.count)
+        let needed = Metrics.titleTop + Metrics.resultHeaderHeight + Metrics.resultCardsGap
+            + Metrics.cardHeight * cardCount + Metrics.cardSpacing * max(0, cardCount - 1)
+        let spacing = needed <= contentHeight ? Metrics.cardSpacing : Metrics.cardMinSpacing
+        let cardWidth = size.width - 32
+        return VStack(spacing: 0) {
             VStack(spacing: 6) {
                 Text(result.title)
                     .font(.pretendardBold(30))
@@ -323,13 +407,12 @@ struct ExerciseGameView: View {
                 .foregroundStyle(Color.exerciseGreen)
                 .monospacedDigit()
             }
-            .frame(width: layout.size.width)
-            .position(x: layout.centerX, y: layout.y(84) + 52)
+            .frame(height: Metrics.resultHeaderHeight, alignment: .top)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("\(result.title) \(Int(result.kcal.rounded()))킬로칼로리")
             .accessibilityAddTraits(.isHeader)
 
-            VStack(spacing: 14) {
+            VStack(spacing: spacing) {
                 ForEach(Array(exercises.enumerated()), id: \.element.id) { index, exercise in
                     exerciseCard(exercise, result: result, progress: cardProgress[safe: index] ?? 1)
                         .frame(width: cardWidth)
@@ -337,9 +420,10 @@ struct ExerciseGameView: View {
                         .offset(y: (cardVisible[safe: index] ?? true) ? 0 : 16)
                 }
             }
-            .position(x: layout.centerX, y: layout.y(252) + (98 * 3 + 14 * 2) / 2)
+            .padding(.top, Metrics.resultCardsGap)
         }
-        .frame(width: layout.size.width, height: layout.size.height, alignment: .topLeading)
+        .padding(.top, Metrics.titleTop)
+        .frame(width: size.width, height: contentHeight, alignment: .top)
     }
 
     private func exerciseCard(_ exercise: ExerciseEquivalent, result: ExerciseGameResult, progress: Double) -> some View {
@@ -370,7 +454,7 @@ struct ExerciseGameView: View {
         .padding(.vertical, 24)
         .padding(.leading, 16)
         .padding(.trailing, 18)
-        .frame(height: 98)
+        .frame(height: Metrics.cardHeight)
         .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         .overlay { RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(Color.white.opacity(0.12), lineWidth: 1) }
         .accessibilityElement(children: .ignore)
@@ -379,8 +463,9 @@ struct ExerciseGameView: View {
 
     // MARK: - 하단
 
-    private func bottomArea(_ layout: GameLayout) -> some View {
-        VStack(spacing: 16) {
+    /// 하단 버튼: 다른 화면(OnboardingScaffold·기록 화면)처럼 안전 영역 안 아래 4, 좌우 16. 키보드를 따라 올라가지 않는다.
+    private func bottomArea(_ size: CGSize) -> some View {
+        VStack(spacing: Metrics.noteGap) {
             if showsResult {
                 Text(usesFallbackWeight
                      ? "체중 \(Int(weightKG.rounded()))kg 기준 대략적인 시간이에요"
@@ -397,16 +482,8 @@ struct ExerciseGameView: View {
             )
         }
         .padding(.horizontal, 16)
-        .padding(.bottom, max(layout.safeBottom, keyboardHeight) + 4)
-        .frame(width: layout.size.width, height: layout.size.height, alignment: .bottom)
-    }
-
-    /// 키보드가 입력칸·+ 버튼을 가리면 화면을 올린다.
-    private func contentLift(_ layout: GameLayout) -> CGFloat {
-        guard keyboardHeight > 0, !showsResult else { return 0 }
-        let inputBottom = layout.y(292) + 56
-        let buttonTop = layout.size.height - keyboardHeight - 4 - 52
-        return max(0, inputBottom + 16 - buttonTop)
+        .padding(.bottom, Metrics.buttonBottomPadding)
+        .frame(width: size.width, height: size.height, alignment: .bottom)
     }
 
     private var canStart: Bool {
@@ -644,10 +721,14 @@ struct ExerciseGameView: View {
             chipVisible = true
             chipMasked = true
             trailVisible = true
-            chipOffset = CGSize(width: -22 * (1 - fraction), height: -12 + (fallTarget.height + 12) * fraction * fraction)
             chipRotation = -8 * (1 - fraction)
             chipScale = 1.05 - 0.45 * fraction
             trailLag = CGSize(width: -6, height: 22)
+            // 입력칸·그릇 위치를 잰 뒤에 떨어지는 위치를 정한다.
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(200))
+                chipOffset = CGSize(width: -22 * (1 - fraction), height: -12 + (fallTarget.height + 12) * fraction * fraction)
+            }
         case .filled(let food):
             text = food
             chipText = food
@@ -681,10 +762,14 @@ struct ExerciseGameView: View {
         chipMasked = false
     }
 
-    /// 칩 시작점(입력칸 가운데)에서 그릇 입구 안쪽까지의 이동량(마지막으로 배치한 화면 크기 기준)
-    private var fallTarget: CGSize { CGSize(width: 0, height: layout.fallDistance) }
+    /// 칩 시작점(입력칸 가운데)에서 그릇 입구 안쪽(입구 가운데보다 조금 아래)까지의 이동량. 실제 배치한 입력칸·그릇 위치로 계산한다.
+    private var fallTarget: CGSize {
+        CGSize(width: mouth.x - chipStart.x, height: mouth.y + 14 * bowlScaleNow - chipStart.y)
+    }
     /// 그릇 오른쪽 테두리에 부딪히는 지점
-    private var rimHit: CGSize { CGSize(width: 112 * layout.bowlScale, height: layout.fallDistance - 30) }
+    private var rimHit: CGSize {
+        CGSize(width: mouth.x - chipStart.x + 112 * bowlScaleNow, height: fallTarget.height - 30)
+    }
 
     /// 분석이 끝났는지(성공·실패 모두)
     private func isFinished(_ task: Task<ExerciseGameResult, Error>) -> Bool { analysisFinished }
@@ -756,30 +841,6 @@ private struct WaitingLabel: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("계산하고 있어요")
-    }
-}
-
-/// 375×812 기준 배치를 기기 크기에 맞춘다. 세로 위치는 안전 영역 안 높이(기준 734) 비율로 늘이고 줄인다.
-struct GameLayout {
-    let size: CGSize
-    let safeTop: CGFloat
-    let safeBottom: CGFloat
-
-    var centerX: CGFloat { size.width / 2 }
-    var vScale: CGFloat {
-        let content = size.height - safeTop - safeBottom
-        return min(1.15, max(0.78, content / 734))
-    }
-    var hScale: CGFloat { min(1.1, size.width / 375) }
-    var bowlScale: CGFloat { min(1, vScale, hScale) }
-    /// 기준 화면에서 위에서 design만큼 떨어진 위치(안전 영역 기준)
-    func y(_ design: CGFloat) -> CGFloat { safeTop + (design - 44) * vScale }
-    func x(_ design: CGFloat) -> CGFloat { design * size.width / 375 }
-    /// 입력칸 가운데에서 그릇 입구 안쪽(입구 가운데보다 조금 아래)까지
-    var fallDistance: CGFloat {
-        let inputCenter = y(292) + 28
-        let mouth = y(366) + ExerciseBowlView.mouthCenter.y * bowlScale
-        return mouth + 14 * bowlScale - inputCenter
     }
 }
 

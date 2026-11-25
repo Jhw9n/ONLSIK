@@ -186,7 +186,9 @@ struct ExerciseGameSnapshotTests {
         let renderer = UIGraphicsImageRenderer(bounds: window.bounds)
         let image = renderer.image { _ in window.drawHierarchy(in: window.bounds, afterScreenUpdates: true) }
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        try image.pngData()?.write(to: directory.appendingPathComponent("\(name).png"))
+        // 파일 이름 앞에 화면 크기(pt)를 붙인다(예: 393x852_6_C_result.png).
+        let bounds = window.bounds
+        try image.pngData()?.write(to: directory.appendingPathComponent("\(Int(bounds.width))x\(Int(bounds.height))_\(name).png"))
         window.isHidden = true
     }
 

@@ -6,7 +6,7 @@
 
 | 파일 | 내용 |
 | --- | --- |
-| `ONEULSIK/Features/Home/ExerciseGame/ExerciseGameView.swift` | 담기(A)·담기 연출(B)·결과(C) 화면, 배치(`GameLayout`), 스크린샷용 고정 상태(`ExerciseGameSnapshot`) |
+| `ONEULSIK/Features/Home/ExerciseGame/ExerciseGameView.swift` | 담기(A)·담기 연출(B)·결과(C) 화면, 배치 값(`Metrics`), 스크린샷용 고정 상태(`ExerciseGameSnapshot`) |
 | `ONEULSIK/Features/Home/ExerciseGame/ExerciseBowlView.swift` | SwiftUI 도형으로 그린 그릇(몸통·테두리·안쪽·받침·그림자·초록 빛·김), 배너용 작은 그릇 |
 | `ONEULSIK/Features/Home/ExerciseGame/ExerciseGameAnalyzer.swift` | 분석(기존 `AIMealEntryService`), 표시 이름, 조사 |
 | `ONEULSIK/Features/Home/ExerciseGame/ExerciseGameBanner.swift` | 홈 배너, 배너 표시 스위치 `ExerciseGameFeature.isBannerEnabled` |
@@ -20,6 +20,24 @@
 - 분당 kcal = MET × 3.5 × 체중(kg) ÷ 200. 시간(분) = kcal ÷ 분당 kcal를 반올림. 거리 = 시속(걷기 5km, 러닝 8km) × 반올림 전 시간, 소수 첫째 자리.
 - 체중: 가장 최근 체중 기록 → 프로필 체중 → 65kg(20kg 미만·300kg 초과는 쓰지 않음). 65kg를 쓰면 안내 문구가 "체중 65kg 기준 대략적인 시간이에요"로 바뀐다.
 - 표시 이름: 음식 하나면 "이름 양"(0.5단위는 "반", 예: 반마리), 둘 이상이면 "첫 음식 외 N개". 이름은 기록 이름 대신 입력한 표기(참고표 별칭)를 쓴다. 조사 "은/는"은 마지막 글자 받침(숫자·단위는 읽는 소리)에 맞춘다.
+
+## 배치(2026-11-25 실기기 확인 후)
+
+- 화면 전체를 한 배율로 키우거나 줄이지 않는다. 글자(제목 30pt, kcal 48pt 등), 입력칸(287×56), 카드(높이 98, 폭은 좌우 16 여백 안), 그릇(320×230)은 시안의 pt 값 그대로다.
+- 세로는 안전 영역 기준이다. 제목 윗변은 안전 영역 위에서 40pt(시안 84pt에서 상태바 44를 뺀 값), 입력칸 윗변은 제목 윗변에서 208pt(시안 292 - 84).
+- 담기 화면: 입력칸 아래 24pt부터 하단 버튼 묶음 위까지 남는 공간 가운데에 그릇(+ "계산하고 있어요" 자리)을 둔다.
+- 결과 화면: 제목·kcal 묶음(높이 100) 아래 50pt부터 카드 3장. 안내 문구는 버튼 위 16pt.
+- 하단 버튼: 다른 화면(OnboardingScaffold·기록 화면)처럼 안전 영역 안 아래 4pt, 좌우 16pt. 담기·결과 화면이 같다.
+- 작은 화면: 그릇만 줄인다(최소 0.8배). 그래도 결과 카드가 들어가지 않으면 카드 간격을 14 → 10으로 줄인다. 글자 크기는 줄이지 않는다. 375×667(iPhone SE)에서 그릇 0.965배, 카드 간격 14.
+- 비눗방울: 담기 화면은 제목과 입력칸 사이 양옆, 결과 화면은 kcal 숫자 줄 양옆과 제목 위 오른쪽 가장자리(제목·숫자·카드와 겹치지 않음, 투명도 0.3).
+- 연출 좌표(칩 들어 올림·떨어짐·튕김, 물결, 김)는 실제로 배치된 입력칸·그릇 위치(`onGeometryChange`)로 계산한다.
+
+## 키보드
+
+- 화면 전체가 키보드 안전 영역을 무시한다. 하단 버튼은 키보드를 따라 올라가지 않고 키보드가 그 위를 덮는다.
+- 입력칸이 키보드에 가려질 때만 가려지지 않을 만큼 내용을 올린다(입력칸 아래 16pt). 393×852·375×667에서는 입력칸이 키보드보다 위라 올리지 않는다.
+- 입력칸 밖(배경·그릇)을 누르면 키보드가 내려간다. 키보드 확인(return)은 하단 "담기"와 같다(입력이 비면 아무것도 하지 않음).
+- 입력칸은 글자만 받는다(+ 버튼 없음, 좌우 여백 22). 음식을 적고 하단 "담기"를 누른다.
 
 ## 연출(기준값)
 
@@ -36,8 +54,7 @@
 
 - 동작 줄이기: 떨어짐·튕김·숫자 올라감·비눗방울·김 움직임 없이 교차 전환.
 - 연타: 단계가 담기일 때만 시작한다(분석이 두 번 돌지 않음).
-- 키보드: 키보드 높이만큼 하단 버튼을 올리고, 입력칸이 가려지면 화면을 올린다. 키보드 완료도 담기.
 
 ## 테스트
 
-`ONEULSIKTests/ExerciseGameTests.swift`: 계산 E01~E05, 분석 흐름 Y01~Y05(가짜 해석기, MealRecord 저장 없음 포함), 표시 이름·조사 X01~X04. 스크린샷은 `ExerciseGameSnapshotTests`(환경 변수 `ONEULSIK_SNAPSHOT_DIR`이 있을 때만, 예: `TEST_RUNNER_ONEULSIK_SNAPSHOT_DIR=<폴더> xcodebuild test -only-testing:ONEULSIKTests/ExerciseGameSnapshotTests`).
+`ONEULSIKTests/ExerciseGameTests.swift`: 계산 E01~E05, 분석 흐름 Y01~Y05(가짜 해석기, MealRecord 저장 없음 포함), 표시 이름·조사 X01~X04. 스크린샷은 `ExerciseGameSnapshotTests`(환경 변수 `ONEULSIK_SNAPSHOT_DIR`이 있을 때만, 예: `TEST_RUNNER_ONEULSIK_SNAPSHOT_DIR=<폴더> xcodebuild test -destination 'id=<시뮬레이터>' -only-testing:ONEULSIKTests/ExerciseGameSnapshotTests`). 파일 이름 앞에 화면 크기(pt)가 붙는다. `Docs/Screenshots/ExerciseGame/`에 393×852 전체와 375×667·430×932의 담기·결과 화면이 있다.
