@@ -862,9 +862,9 @@
       "expect": { "maxQuestions": 0, "foodID": "D101-018000000-0001", "count": 1, "amount": { "units": ["g"], "min": 499, "max": 501 } }
     },
     {
-      "id": "M160", "input": "동태찌개", "note": "#43 5차 4단계: 음식 DB 1인분 중량 200g(88kcal) → 찌개류 400g(내부 기준: 찌개류 외식 1인분 400g 준용)",
+      "id": "M160", "input": "동태찌개", "note": "#43 5차 4단계: 음식 DB 1인분 중량 200g(88kcal) → 찌개류 400g(내부 기준: 찌개류 외식 1인분 400g 준용) #45(사용자 결정): 외식 영양성분 자료집 제1권 48쪽 동태찌개 1인분 800g 368kcal에 맞춰 참고표 1인분 800g. 이전 기대: 399~401g, 172~180kcal, 음식 DB 1인분 중량 안내",
       "llm": { "food": "동태찌개", "portion": { "amount": 150 } },
-      "expect": { "maxQuestions": 0, "foodID": "D106-273000000-0001", "count": 1, "dishServing": true, "amount": { "units": ["g"], "min": 399, "max": 401 }, "kcal": { "min": 172, "max": 180 } }
+      "expect": { "maxQuestions": 0, "foodID": "D106-273000000-0001", "count": 1, "basis": "estimated", "dishServing": false, "amount": { "units": ["g"], "min": 799, "max": 801 }, "kcal": { "min": 345, "max": 359 } }
     },
     {
       "id": "M161", "input": "청국장찌개", "note": "#43 5차 4단계: 음식 DB 1인분 중량 200g(94kcal) → 찌개류 400g",
@@ -900,6 +900,36 @@
       "id": "M167", "input": "부대찌개", "note": "#43 5차 4단계: 대표 분량표 1인분 600g 그대로",
       "llm": { "food": "부대찌개", "portion": { "amount": 150 } },
       "expect": { "maxQuestions": 0, "basis": "representative", "count": 1, "amount": { "units": ["g"], "min": 599, "max": 601 }, "kcal": { "min": 730, "max": 746 } }
+    },
+    {
+      "id": "M168", "input": "육개장", "note": "#45: 자료집 제1권 14쪽 소고기육개장 700g 340kcal에 맞추려 했으나, 참고표가 급식 mL 자료(D505-245000000-0001)를 가리키면 같은 이름 g 자료(D105-245000000-0001)로 바뀌어(preferredReferenceFood) 데이터만으로는 안 됨. 지금 값 440g 132kcal 그대로(바뀌면 안 됨)",
+      "llm": { "food": "육개장", "portion": { "amount": 200 } },
+      "expect": { "maxQuestions": 0, "foodID": "D105-245000000-0001", "count": 1, "amount": { "units": ["g"], "min": 439, "max": 441 }, "kcal": { "min": 129, "max": 135 } }
+    },
+    {
+      "id": "M169", "input": "육개장 1인분", "note": "#45: M168과 같이 지금 값 그대로",
+      "llm": { "food": "육개장", "portion": { "amount": 200 } },
+      "expect": { "maxQuestions": 0, "foodID": "D105-245000000-0001", "units": ["인분"], "count": 1, "amount": { "units": ["g"], "min": 439, "max": 441 } }
+    },
+    {
+      "id": "M170", "input": "동태찌개 절반", "note": "#45: 자료집 제1권 48쪽 1인분 800g의 절반 400g",
+      "llm": { "food": "동태찌개", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "foodID": "D106-273000000-0001", "count": 0.5, "amount": { "units": ["g"], "min": 399, "max": 401 }, "kcal": { "min": 172, "max": 180 } }
+    },
+    {
+      "id": "M171", "input": "자장면 한그릇", "note": "#45: 자료집 제1권 60쪽 자장면 650g 797kcal. 참고표가 g 자료 자장면(D303-168000000-0001, 100g당 123kcal)을 가리킴. 이전: D103-168000000-0001 650g 572kcal",
+      "llm": { "food": "자장면", "portion": { "amount": 300 } },
+      "expect": { "maxQuestions": 0, "foodID": "D303-168000000-0001", "units": ["그릇"], "count": 1, "amount": { "units": ["g"], "min": 649, "max": 651 }, "kcal": { "min": 790, "max": 810 } }
+    },
+    {
+      "id": "M172", "input": "짜장면", "note": "#45: 짜장면도 같은 자료 650g 약 800kcal",
+      "llm": { "food": "짜장면", "portion": { "amount": 300 } },
+      "expect": { "maxQuestions": 0, "foodID": "D303-168000000-0001", "count": 1, "amount": { "units": ["g"], "min": 649, "max": 651 }, "kcal": { "min": 790, "max": 810 } }
+    },
+    {
+      "id": "M173", "input": "간짜장", "note": "#45: 자장면 참고표 변경이 간짜장에 새지 않아야 함(간자장 D103-141000000-0001 500g 625kcal 그대로)",
+      "llm": { "food": "간짜장", "portion": { "amount": 300 } },
+      "expect": { "maxQuestions": 0, "foodID": "D103-141000000-0001", "count": 1, "amount": { "units": ["g"], "min": 499, "max": 501 }, "kcal": { "min": 620, "max": 630 } }
     }
   ]
 }

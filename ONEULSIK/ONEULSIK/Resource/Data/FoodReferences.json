@@ -324,11 +324,12 @@
     "aliases": [
       "자장면"
     ],
-    "referenceID": "D403-197000000-0001",
-    "referenceName": "짜장면",
-    "amountUnit": "mL",
+    "referenceID": "D303-168000000-0001",
+    "referenceName": "자장면",
+    "amountUnit": "g",
     "source": "식품의약품안전처",
-    "sourceDate": "2026-08-28"
+    "sourceDate": "2026-08-28",
+    "basisNote": "2026-11-25 결정(#45, 사용자 결정: 자료집 값이 지금보다 높은 음식만 맞춘다): 식약처 「외식 영양성분 자료집」 제1권(2012, https://www.foodsafetykorea.go.kr/upload/mkisna/2012.pdf, SHA-256 45d3380c1ebc9836d5454dcb0d07a041d037417a4f90a6b0783c9c59626ffa5d) 60쪽 자장면 1인분 650g 797kcal(100g당 122.6kcal). 이전에는 mL 자료 짜장면(D403-197000000-0001)을 가리켜 같은 이름 g 자료 자장면(D103-168000000-0001, 100g당 88kcal)으로 바뀌어 650g 572kcal였다. 자료집과 100g당 열량이 맞는 g 자료 자장면(D303-168000000-0001, 100g당 123kcal, 차이 +0.3%)을 가리킨다. 분량은 대표 분량표 1그릇 650g 그대로."
   },
   {
     "name": "짬뽕",
@@ -744,5 +745,16 @@
     "allowsBrandedProduct": true,
     "estimatedPortions": { "인분": 400, "그릇": 400 },
     "basisNote": "2026-11-25 결정(#43 5차 4단계, 사용자 결정): 일반 음식 자료가 없어 같은 이름 제품 가운데 값에 모델 분량 150g이 붙어 80kcal였다. 이름이 정확히 짜글이인 제품 3개(100g당 49·53·164kcal)의 가운데인 제이원푸드(100g당 53kcal)를 쓰고, 1인분·1그릇은 찌개류 외식 1인분 400g을 준용한다(내부 기준)."
+  },
+  {
+    "name": "동태찌개",
+    "aliases": [],
+    "referenceID": "D106-273000000-0001",
+    "referenceName": "동태찌개",
+    "amountUnit": "g",
+    "source": "식품의약품안전처",
+    "sourceDate": "2026-08-28",
+    "estimatedPortions": { "인분": 800, "그릇": 800 },
+    "basisNote": "2026-11-25 결정(#45, 사용자 결정): 식약처 「외식 영양성분 자료집」 제1권(2012, https://www.foodsafetykorea.go.kr/upload/mkisna/2012.pdf, SHA-256 45d3380c1ebc9836d5454dcb0d07a041d037417a4f90a6b0783c9c59626ffa5d) 48쪽 동태찌개 1인분 800g 368kcal(100g당 46kcal). 지금 자료 동태찌개(D106-273000000-0001, 100g당 44kcal, 차이 -4.3%) 그대로 1인분·1그릇 800g(이전: 음식 DB 1인분 중량 찌개 400g 규칙 400g 176kcal)."
   }
 ]
