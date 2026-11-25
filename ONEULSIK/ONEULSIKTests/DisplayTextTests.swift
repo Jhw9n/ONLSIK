@@ -7,7 +7,7 @@ import Testing
 @MainActor
 @Suite("화면 문구")
 struct DisplayTextTests {
-    static let dataFiles = ["FoodReferences", "FoodModifiers", "DrinkReferences", "PackagedFoodReferences", "VolumeAsWeight"]
+    static let dataFiles = ["FoodReferences", "FoodModifiers", "DrinkReferences", "PackagedFoodReferences", "VolumeAsWeight", "DishServings"]
     /// 화면에 보이는 필드 이름. 데이터 파일에 새 화면용 필드를 추가하면 여기에 넣는다.
     static let displayKeys: Set<String> = ["displayText", "rawDisplayText"]
 

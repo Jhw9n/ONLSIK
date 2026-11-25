@@ -782,7 +782,10 @@ final class AIMealEntryService: MealEntryAnalyzing {
                 return MealEntryChoice(id: UUID().uuidString, title: "\(Self.amountText(quantity))인분", items: items,
                     selection: MealFoodSelection(input: input, food: food, isSimilar: selection.isSimilar,
                         isProductConfirmed: selection.isProductConfirmed),
-                    remainingFoods: remaining, subtitle: "약 \(Self.amountText(base * quantity))\(food.amountUnit)")
+                    remainingFoods: remaining,
+                    // 음식 DB mL 자료의 고체 음식은 숫자를 숨기고 국물·면은 g으로 보인다(표시만, MealAmountDisplay, #43).
+                    subtitle: MealAmountDisplay.amountText(base * quantity, unit: food.amountUnit, style: MealAmountDisplay.style(foodID: food.id,
+                        name: selection.input.name, servingUnit: "인분", usesMilliliters: food.amountUnit == "mL", isEntered: false)).map { "약 \($0)" })
             }
         ))
     }
@@ -912,6 +915,13 @@ final class AIMealEntryService: MealEntryAnalyzing {
                 if let analysis = try await resolveDrink(input, drink: drink, items: items, remaining: remaining) {
                     return analysis
                 }
+            }
+            // 업체 제품을 가리키는 참고표 항목(allowsBrandedProduct, #43): 업체명·설명 없는 입력은 지정 제품으로 바로 기록한다.
+            if !prefersProducts, input.brand.isEmpty, input.details.isEmpty,
+               let reference = FoodReferenceCatalog.entry(for: input.name), reference.allowsBranded,
+               let food = try await catalog.food(id: reference.referenceID), reference.matches(food) {
+                try Task.checkCancellation()
+                return try await resolveBrandedReference(input, reference: reference, food: food, items: items, remaining: remaining)
             }
             if let reference = preparedReference {
                 return try await resolveSelection(MealFoodSelection(input: input, food: reference.food), items: items, remaining: remaining)
@@ -1363,6 +1373,37 @@ final class AIMealEntryService: MealEntryAnalyzing {
         return try await resolve(remaining, items: items + [item])
     }
 
+    /// 업체 제품을 가리키는 참고표 항목의 기록(allowsBrandedProduct, 2026-11-24 #43).
+    /// 제품 질문·비슷한 음식 질문·같은 이름 제품의 가운데 제품 규칙(#41 E)을 거치지 않는다.
+    /// 분량: g·mL(제품 기준 단위와 같을 때)는 적은 양, 그 밖에는 estimatedPortions의 그 단위 값(수량 없는 입력은 1인분).
+    /// 참고표에 없는 단위는 수량 질문(무게는 묻지 않음). 카드·기록 이름은 입력 이름이고, 출처는 "{출처} · {업체명} {제품명} 영양값 기준".
+    private func resolveBrandedReference(_ input: MealFoodInput, reference: FoodReference, food: FoodCatalogItem,
+                                         items: [MealEntryItem], remaining: [MealFoodInput]) async throws -> MealEntryAnalysis {
+        let amount: Double
+        let origin: MealPortionBasis
+        if input.unit == "g" || input.unit == "mL" {
+            guard input.unit == food.amountUnit else { return amountQuestion(input, items: items, remaining: remaining) }
+            amount = 1
+            origin = .entered
+        } else if let portion = reference.estimatedAmount(for: input.unit, food: food) {
+            amount = portion
+            origin = .estimated
+        } else {
+            return amountQuestion(input, items: items, remaining: remaining)
+        }
+        let adjusted = FoodCatalogItem(id: food.id, name: input.name, servingUnit: input.unit,
+            servingGrams: food.amountUnit == "g" ? amount : 0, nutrition: food.nutrition(for: amount / food.baseAmount),
+            servingMilliliters: food.amountUnit == "mL" ? amount : 0, brand: "",
+            source: "\(food.source) · \([food.brand, food.name].filter { !$0.isEmpty }.joined(separator: " ")) 영양값 기준",
+            sourceDate: food.sourceDate, category: food.category)
+        // 영양 근거는 같은 이름 제품의 가운데 제품 규칙(#41 E)과 같은 database다(출처도 같은 "{업체명} {제품명}" 형식).
+        var item = MealEntryItem(food: adjusted, servingCount: input.quantity, portionBasis: origin, nutritionBasis: .database)
+        if input.omittedQuantity { item.quantityNote = MealEntryItem.assumedQuantityNote(unit: input.unit) }
+        guard item.isValid else { throw MealEntryError.invalidResult }
+        MealDebugLog.log("업체 제품 참고표: \(input.name) → \(food.id) \(food.recordedName), 1\(input.unit) \(amount)\(food.amountUnit)")
+        return try await resolve(remaining, items: items + [item])
+    }
+
     private func drinkItem(_ input: MealFoodInput, drink: DrinkReference, food: FoodCatalogItem) throws -> MealEntryItem {
         let container = drink.container(for: input.unit)
         guard input.unit == "mL" || container != nil else { throw MealEntryError.portionUnknown(input.name) }
@@ -1596,6 +1637,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
         let origin: MealPortionBasis
         var referencePortionUnit = ""
         var volumeNote: String?
+        var portionNote: String?
 
         if input.unit == "g" || input.unit == "mL" {
             guard input.unit == food.amountUnit else { throw MealEntryError.portionUnknown(input.name) }
@@ -1642,6 +1684,15 @@ final class AIMealEntryService: MealEntryAnalyzing {
             count = input.quantity
             unit = input.unit
             origin = .estimated
+        } else if DishServing.units.contains(input.unit), let serving = DishServing.serving(for: food),
+                  MealPortionEstimate(amountPerUnit: serving.amount, amountUnit: serving.unit).isPlausible(for: input.unit, foodName: input.name) {
+            // 대표 분량이 없는 일반 음식은 모델 분량 추정 전에 식약처 음식 DB의 1인분 중량을 1인분·1그릇으로 쓴다(#43, 개는 제외).
+            // 1인분 상한(1,000g 미만 등)을 넘는 여러 인분 포장 값은 쓰지 않고 모델 분량 추정으로 넘긴다.
+            basis = serving.amount
+            count = input.quantity
+            unit = input.unit
+            origin = .representative
+            portionNote = DishServing.displayText
         } else {
             guard food.category != "가공식품" || isOversizedPackage(food) else { throw MealEntryError.portionUnknown(input.name) }
             let estimate: MealPortionEstimate
@@ -1675,6 +1726,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
         adjusted.referencePortionUnit = referencePortionUnit
         var item = MealEntryItem(food: adjusted, servingCount: count, portionBasis: origin, nutritionBasis: selection.isSimilar ? .similarFood : .database)
         item.volumeNote = volumeNote
+        item.portionNote = portionNote
         guard item.isValid else { throw MealEntryError.invalidResult }
         return item
     }

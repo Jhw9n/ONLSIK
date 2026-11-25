@@ -42,6 +42,7 @@
 2. 제품을 원하는 입력인지 정합니다(`prefersProducts`: 브랜드, 봉·팩, 컵라면 등).
 3. `PreparedFoodReference.entry`: 조리 음식 참고값이 있으면 바로 선택합니다.
 4. `DrinkReferenceCatalog.entry`: 술 표(`DrinkReferences.json`) 이름이면 `resolveDrink`로 처리합니다.
+   - **업체 제품 참고표(2026-11-24 결정, #43)**: 참고표 항목에 `allowsBrandedProduct: true`가 있고, 입력에 업체명·추가 설명이 없고 제품을 원하는 입력이 아니면 `resolveBrandedReference`가 지정된 제품 레코드로 바로 기록합니다. 제품 질문·비슷한 음식 질문·같은 이름 제품의 가운데 제품 규칙(#41 E)을 거치지 않습니다. 분량은 g·mL(제품 기준 단위와 같을 때)는 적은 양, 그 밖에는 `estimatedPortions`의 그 단위 값(수량 없으면 1인분, 근거 `estimated`)이고, 참고표에 없는 단위는 수량 질문입니다. 카드 이름은 입력 이름, 저장 출처는 `{출처} · {업체명} {제품명} 영양값 기준`(가운데 제품 규칙과 같은 형식, 영양 근거 `database`)입니다. 이 필드가 없거나 false인 항목은 지금처럼 업체 제품에 매칭되지 않습니다(`FoodReference.matches`). 검색 화면의 대표 항목 순서(`FoodCatalogService.preferredID`)에는 쓰지 않습니다. 지금은 `마라탕`, `순두부찌개`(별칭 순찌), `짜글이`에 씁니다.
 5. 포장제품 표(`PackagedFoodReferences.json`) 후보는 제품을 원하는 입력일 때 질문합니다.
 6. "반찬"처럼 무엇인지 모르는 이름이면 모델 영양 추정으로 기록합니다(#41 전에는 "어떤 반찬을 드셨나요?" 질문).
 7. **참고표 referenceID**: 이름이 참고표 항목이고 추가 설명이 없으면 `catalog.food(id:)`로 그 자료를 바로 가져옵니다.
@@ -121,16 +122,17 @@
 그다음 아래 순서로 처음 맞는 출처를 씁니다.
 
 1. 조리 음식 참고값(`PreparedFoodReference`, `preparedItem`)
-2. 술 용기 표(`DrinkReferences.json`, `drinkItem`). 대표 DB 항목이 100g 기준(농진청 와인·청주 등)이면 1mL=1g으로 본다(`DrinkReference.matches`, 2026-11-23, #37).
+2. 술 용기 표(`DrinkReferences.json`, `drinkItem`). 대표 DB 항목이 100g 기준(농진청 와인·청주 등)이면 1mL=1g으로 본다(`DrinkReference.matches`, 2026-11-23, #37). 에너지드링크도 이 표에 있습니다(1캔·1개 250mL 내부 기준, 영양값은 같은 이름 제품 3개 중 가운데 제품, 2026-11-24, #43).
 3. 포장제품 표의 제품 총중량(`PackagedFoodReferences.json`)
-4. 가공식품 DB의 제품 총중량(`package_amount`, 개·봉·팩·병·캔, `packageItem`). 1개 총중량이 1,500g(mL)을 넘거나 1개 열량이 1,500kcal를 넘으면 업소용·대용량 포장으로 보고 총중량을 쓰지 않습니다. 대신 일반 음식과 같은 분량 흐름(8번 대표 분량표에서 입력 이름으로 찾은 분량 → 10번 AI 분량 추정 → 11번 "얼마나 드셨나요?" 선택지 질문)으로 가고, 영양값은 고른 제품의 100g(mL)당 값을 씁니다. 무게(g·mL)는 묻지 않습니다(`AIMealEntryService.usesPackageAmount`, `isOversizedPackage`, 2026-11-23, #37). 제품 확인 질문의 선택지 설명도 같은 기준이라, 넘는 제품은 총중량 대신 100g(mL) 기준 값을 보여줍니다.
+4. 가공식품 DB의 제품 총중량(`package_amount`, 개·봉·팩·병·캔, `packageItem`). 1개 총중량이 1,500g(mL)을 넘거나 1개 열량이 1,500kcal를 넘으면 업소용·대용량 포장으로 보고 총중량을 쓰지 않습니다. 대신 일반 음식과 같은 분량 흐름(8번 대표 분량표에서 입력 이름으로 찾은 분량 → 11번 AI 분량 추정 → 12번 "얼마나 드셨나요?" 선택지 질문)으로 가고, 영양값은 고른 제품의 100g(mL)당 값을 씁니다. 무게(g·mL)는 묻지 않습니다(`AIMealEntryService.usesPackageAmount`, `isOversizedPackage`, 2026-11-23, #37). 제품 확인 질문의 선택지 설명도 같은 기준이라, 넘는 제품은 총중량 대신 100g(mL) 기준 값을 보여줍니다.
 5. 사용자가 적은 g/mL(DB 기준 단위와 같을 때만)
 6. 소량·종지 반찬(`FoodPortion.smallSideGrams`)
 7. 사용자가 질문에 답한 분량(`portionOverride`)
 8. 대표 분량표(`FoodPortion.representative`, 국물·면 mL 포함)
 9. 참고표 `estimatedPortions`
-10. AI 분량 추정(`interpreter.portion`, `isPlausible` 범위 검사). 1단위(개·잔·병·인분 등) 추정이 1,500 이상이면 추정 실패로 봅니다(#41).
-11. 그래도 안 되면 `resolveSelection`의 `portionUnknown` 처리(무게는 묻지 않음, #39·#41)
+10. 식약처 음식 DB 1인분 중량(`DishServing`, `Resource/Data/DishServings.json`, 2026-11-24 결정, #43). 선택된 일반 음식 레코드(가공식품 제외)의 원본 `식품중량`을 1인분·1그릇으로 씁니다. 개는 쓰지 않습니다(만두처럼 1인분이 여러 개인 음식에서 `냉동만두 5개`가 1,100g이 됨, M15). 분량 근거는 대표 분량(`representative`)이고 카드에 "식약처 음식 DB 1인분 중량 기준"을 붙입니다(기록에는 저장하지 않음). 비슷한 음식 기준 기록(예: `순대국밥` → `국밥 순대국밥`)도 선택된 레코드의 값을 씁니다. 1인분 상한(`isPlausible`, 인분 1,000 미만·덮밥 등 200 이상)을 넘는 값(여러 인분 포장·피자 한 판 등)은 쓰지 않고 다음 단계로 갑니다. 생성 스크립트 `Scripts/build_dish_servings.py`는 `숫자+g/ml` 형태이고 DB 기준 단위와 같은 값만 담고, 영양 기준량과 같은 100은 1인분이 아닌 값이 많아(쌀밥·팟타이·마라탕 등) 뺍니다. 이름(공백 제거)이 `찌개`로 끝나는 레코드는 400 미만이면 400으로 합니다(g·mL 모두, 내부 기준: 찌개류 외식 1인분 400g 준용, 2026-11-25 사용자 결정, 48개). 대표 분량표·참고표 값이 있는 찌개(김치찌개·부대찌개·된장찌개 등)는 지금처럼 그 값이 먼저입니다. 대표 분량표·참고표 값과 20% 넘게 다른 음식은 `DishServingTests`(L04) 보고서에 남깁니다(고치지 않음).
+11. AI 분량 추정(`interpreter.portion`, `isPlausible` 범위 검사). 1단위(개·잔·병·인분 등) 추정이 1,500 이상이면 추정 실패로 봅니다(#41).
+12. 그래도 안 되면 `resolveSelection`의 `portionUnknown` 처리(무게는 묻지 않음, #39·#41)
     - 포장 중량 없는 가공식품: AI 1단위 추정 → 원문 수량으로, 수량이 없으면 1단위로 가정해 바로 기록(`unitPortionChoice`, #41 2차 B부터 수량 질문 없음).
     - 그 밖의 실패: `portionFallback` 순서로 기록합니다. 제품 포장량(`usesPackageAmount`: 총중량·총열량 상한 미만, #41 2차) → 대표 분량(g 자료, 국물·면 mL 자료, 같은 이름의 대표 분량표) → DB 영양 기준량(100g·100mL)을 1인분으로. 마지막 단계는 원문 수량이 없으면 묻지 않고 1인분으로 기록하고 안내하며(#41 2차 B), 원문 수량이 있으면 1인분 선택 질문입니다. 각 대체 분량은 분량 검사를 통과할 때만 씁니다.
     - 수량 질문이 남는 경우(술 표 음료에 개·인분 수량을 적음, 영양 추정의 분량 검사 실패 등) 영양 추정 경로는 답한 뒤 앞의 영양 추정을 다시 쓰고 분량만 다시 묻습니다(#41 2차 F).
@@ -141,6 +143,19 @@
 
 1. 대표 분량(`FoodCatalogItem.representativePortion` = `FoodPortion.representative(for:)`, g 기준만, 국물·면 mL 제외)
 2. 없으면 g/mL 직접 입력이 기본입니다.
+
+### 분량 표시(`MealAmountDisplay`, 2026-11-25 사용자 결정, #43)
+
+식약처 음식 DB의 mL 자료로 기록된 고체 음식은 mL가 부피라, 화면에 mL로 보이면 어색하고 g으로 바꾸면 무게가 실제와 달라집니다(실기기: 피자 4조각 800mL, 탕수육 절반 171.5mL, 돌솥비빔밥 575mL). **표시만** 바꾸고 저장 값·영양 계산·분량 근거는 그대로입니다.
+
+- 대상: 음식 DB 자료(식품코드가 D로 시작)이면서 mL 기준인 기록. 다음은 mL(또는 자료 단위)를 그대로 보입니다.
+  - 술·음료 표(`DrinkReferences.json`)의 자료이거나 그 이름
+  - 음식 DB가 아닌 자료(가공식품·원재료: 음료·유제품 등 제품 표시 용량)
+  - 마시는 용기 단위로 기록(`DrinkReferences.json`의 `plausibleMilliliters` 단위: 병·캔·잔·컵)
+  - 사용자가 g·mL로 양을 적은 기록(단위가 mL이거나 분량 근거 `entered`, 예: `탕수육 300mL`)
+- 국물·면(`VolumeAsWeight.json` 판정, `excludeNames` 제외): 같은 숫자를 g으로 보입니다(예: `0.5인분 · 약 200g`).
+- 그 밖의 음식: mL 숫자를 숨기고 수량·단위와 열량만 보입니다(예: `4조각 · 1,224kcal`).
+- 적용 위치: 식사 입력 결과 카드의 분량 안내(`MealEntryItem.basisDescription`), 분량을 찾지 못했을 때의 1인분 선택 질문 선택지 부제목(`AIMealEntryService.portionFallback`), 기록 목록(`MealRecord.servingDescription`, `MealDetailView`의 행). 양 조절 기능(수량 입력)은 그대로입니다. 테스트는 `AmountDisplayTests`(W01~W08)입니다.
 
 ## 4. 실제 해석기와 가짜 해석기의 실패 조건(#41 2차 A)
 

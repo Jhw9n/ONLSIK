@@ -134,9 +134,9 @@
       "expect": { "drink": true, "nameContains": ["아메리카노"], "units": ["잔"], "amount": { "units": ["mL", "g"], "min": 200, "max": 500 }, "kcal": { "min": 0, "max": 40 } }
     },
     {
-      "id": "M15", "input": "냉동만두 5개", "note": "어떤 항목이 선택됐는지는 보지 않음. 수식어를 떼지 않아도 되는 경우",
+      "id": "M15", "input": "냉동만두 5개", "note": "어떤 항목이 선택됐는지는 보지 않음. 수식어를 떼지 않아도 되는 경우. #43 4차 C(사용자 결정)부터 만두는 찐 고기만두(100g당 159kcal) 1개 30g이라 150g 약 239kcal. 이전 기대: 300~500kcal(군만두 자료 234kcal 기준)",
       "llm": { "food": "냉동만두", "portion": { "amount": 35 } },
-      "expect": { "amount": { "units": ["g"], "min": 150, "max": 250 }, "kcal": { "min": 300, "max": 500 } }
+      "expect": { "amount": { "units": ["g"], "min": 150, "max": 250 }, "kcal": { "min": 200, "max": 400 } }
     },
     {
       "id": "M16", "input": "신라면 1개", "note": "가공식품 차단 위험 확인. 1봉 120g",
@@ -274,14 +274,14 @@
       "expect": { "units": ["개"], "count": 3 }
     },
     {
-      "id": "M43", "input": "순두부찌개 1인분", "note": "대표 분량표 1인분 400g. kcal는 항목 기준단위(g/mL)에 따라 달라져 보지 않음. 2026-11-17 해결: 참고표가 가리키는 mL 항목 ‘순두부찌개 모듬’(같은 이름 g 항목 없음)에 대표 분량 1인분 400g이 400mL로 붙음(결정 B, 국물·면 1mL=1g, VolumeAsWeight.json). 카드에 국물·면 안내",
+      "id": "M43", "input": "순두부찌개 1인분", "note": "대표 분량표 1인분 400g. kcal는 항목 기준단위(g/mL)에 따라 달라져 보지 않음. 2026-11-17 해결: 참고표가 가리키는 mL 항목 ‘순두부찌개 모듬’(같은 이름 g 항목 없음)에 대표 분량 1인분 400g이 400mL로 붙음(결정 B, 국물·면 1mL=1g, VolumeAsWeight.json). 카드에 국물·면 안내 #43 5차 4단계(사용자 결정)부터 순두부찌개는 가공식품 가운데 제품(주식회사 나무에프앤에스, 100g당 51kcal) 1인분 400g. 이전 기대: 일반 음식(kind general)",
       "llm": { "food": "순두부찌개" },
-      "expect": { "maxQuestions": 0, "kind": "general", "nameContains": ["순두부찌개"], "units": ["인분"], "count": 1, "amount": { "units": ["g", "mL"], "min": 390, "max": 410 } }
+      "expect": { "maxQuestions": 0, "kind": "processed", "nameContains": ["순두부찌개"], "units": ["인분"], "count": 1, "amount": { "units": ["g", "mL"], "min": 390, "max": 410 } }
     },
     {
-      "id": "M44", "input": "순두부찌개", "note": "수량 없음 + 대표 분량 있음 → 1인분으로 가정해 기록 카드, 기본값 안내 표시. 2026-11-17 해결: M43과 같이 ‘순두부찌개 모듬’ mL 항목에 1인분 400mL가 붙음(결정 B, VolumeAsWeight.json). 기본값 안내와 국물·면 안내가 함께 붙음",
+      "id": "M44", "input": "순두부찌개", "note": "수량 없음 + 대표 분량 있음 → 1인분으로 가정해 기록 카드, 기본값 안내 표시. 2026-11-17 해결: M43과 같이 ‘순두부찌개 모듬’ mL 항목에 1인분 400mL가 붙음(결정 B, VolumeAsWeight.json). 기본값 안내와 국물·면 안내가 함께 붙음 #43 5차 4단계(사용자 결정)부터 순두부찌개는 가공식품 가운데 제품(주식회사 나무에프앤에스, 100g당 51kcal) 1인분 400g. 이전 기대: 일반 음식(kind general)",
       "llm": { "food": "순두부찌개" },
-      "expect": { "maxQuestions": 0, "assumedQuantity": true, "kind": "general", "nameContains": ["순두부찌개"], "units": ["인분"], "count": 1, "amount": { "units": ["g", "mL"], "min": 390, "max": 410 } }
+      "expect": { "maxQuestions": 0, "assumedQuantity": true, "kind": "processed", "nameContains": ["순두부찌개"], "units": ["인분"], "count": 1, "amount": { "units": ["g", "mL"], "min": 390, "max": 410 } }
     },
     {
       "id": "M45", "input": "김치찌개", "note": "수량 없음 + 대표 분량 있음(1인분 400g)",
@@ -299,9 +299,9 @@
       "expect": { "maxQuestions": 0, "assumedQuantity": true, "kind": "general", "nameContains": ["밥"], "units": ["공기"], "count": 1, "amount": { "units": ["g"], "min": 205, "max": 215 } }
     },
     {
-      "id": "M48", "input": "제육볶음", "note": "수량 없음 + 대표 분량 없음 → LLM 1인분 분량(portion 200g)으로 기록. 2026-11-24(#41 2차 B 사용자 결정)부터 수량이 없으면 묻지 않고 1단위로 가정해 기록하고 안내를 붙인다. 이전 기대: 수량 질문(asksAmount), 기본값 안내 없음",
+      "id": "M48", "input": "제육볶음", "note": "수량 없음 + 대표 분량 없음 → LLM 1인분 분량(portion 200g)으로 기록. 2026-11-24(#41 2차 B 사용자 결정)부터 수량이 없으면 묻지 않고 1단위로 가정해 기록하고 안내를 붙인다. 이전 기대: 수량 질문(asksAmount), 기본값 안내 없음. 2026-11-24(#43)부터 선택된 레코드(돼지고기볶음(제육볶음))의 식약처 음식 DB 1인분 중량 250g을 대표 분량으로 씀. 이전 기대: 분량 근거 aiEstimated(가짜 해석기 200g)",
       "llm": { "food": "제육볶음", "portion": { "amount": 200 } }, "choose": "1인분",
-      "expect": { "maxQuestions": 0, "questionsExclude": ["얼마나 드셨나요"], "assumedQuantity": true, "basis": "aiEstimated", "units": ["인분"], "count": 1 }
+      "expect": { "maxQuestions": 0, "questionsExclude": ["얼마나 드셨나요"], "assumedQuantity": true, "basis": "representative", "dishServing": true, "units": ["인분"], "count": 1 }
     },
     {
       "id": "M49", "input": "된장찌개 절반", "note": "실기기(2026-11-16): 모델이 이름에 ‘절반’을 붙여 돌려줘 ‘된장찌개 절반’과 가까운 음식 질문이 나오고 절반이 사라짐. 모델 응답 재현",
@@ -309,9 +309,9 @@
       "expect": { "maxQuestions": 0, "kind": "general", "nameContains": ["된장찌개"], "units": ["인분"], "count": 0.5 }
     },
     {
-      "id": "M50", "input": "순두부찌개 절반", "note": "실기기(2026-11-16): 모델이 이름에 ‘절반’을 붙여 돌려줘 ‘순두부찌개 김치’ 유사 음식 질문이 나옴. 모델 응답 재현. 2026-11-17부터 분량 근거는 AI 추정이 아니라 대표 분량(국물·면 1mL=1g, 결정 B)",
+      "id": "M50", "input": "순두부찌개 절반", "note": "실기기(2026-11-16): 모델이 이름에 ‘절반’을 붙여 돌려줘 ‘순두부찌개 김치’ 유사 음식 질문이 나옴. 모델 응답 재현. 2026-11-17부터 분량 근거는 AI 추정이 아니라 대표 분량(국물·면 1mL=1g, 결정 B) #43 5차 4단계(사용자 결정)부터 순두부찌개는 가공식품 가운데 제품(주식회사 나무에프앤에스, 100g당 51kcal) 1인분 400g. 이전 기대: 일반 음식(kind general)",
       "llm": { "food": "순두부찌개 절반", "portion": { "amount": 400 } },
-      "expect": { "maxQuestions": 0, "kind": "general", "nameContains": ["순두부찌개"], "units": ["인분"], "count": 0.5 }
+      "expect": { "maxQuestions": 0, "kind": "processed", "nameContains": ["순두부찌개"], "units": ["인분"], "count": 0.5 }
     },
     {
       "id": "M51", "input": "공기밥 하나", "note": "모델이 이름에 ‘하나’를 붙여 돌려준 경우 재현(M37과 같은 결과)",
@@ -675,6 +675,231 @@
       "id": "M122", "input": "초코케이크", "note": "#41 2차 300개 점검: 수량 없는 입력을 1단위로 가정한 뒤 AI 분량 추정이 실패하면(가짜 해석기) 대체 분량의 제품 포장량 단계가 총열량 상한을 보지 않아 700g 2,450kcal 제품 1개로 기록됐다. 지금은 포장 총중량 규칙(총중량 1,500g·총열량 1,500kcal 미만)을 넘는 포장은 1단위로 쓰지 않음",
       "llm": { "food": "초코케이크" },
       "expect": { "maxQuestions": 1, "questionsExclude": ["얼마나 드셨나요", "열량이 높게"], "kcal": { "min": 1, "max": 1000 } }
+    },
+    {
+      "id": "M123", "input": "칼국수", "note": "#43: 실기기(fe1afd1) 모델 분량 추정 250g 193kcal. 지금은 식약처 음식 DB 원본 식품중량 700g(D103-174000000-0001)을 1인분 대표 분량으로 씀. 가짜 해석기 분량 250g은 쓰이지 않아야 함",
+      "llm": { "food": "칼국수", "portion": { "amount": 250 } },
+      "expect": { "maxQuestions": 0, "foodID": "D103-174000000-0001", "basis": "representative", "dishServing": true, "count": 1, "amount": { "units": ["g"], "min": 699, "max": 701 }, "kcal": { "min": 530, "max": 548 } }
+    },
+    {
+      "id": "M124", "input": "쌀국수", "note": "#43: 실기기 모델 분량 350g 186kcal. 원본 식품중량 600g(D303-162000000-0001)",
+      "llm": { "food": "쌀국수", "portion": { "amount": 350 } },
+      "expect": { "maxQuestions": 0, "foodID": "D303-162000000-0001", "basis": "representative", "dishServing": true, "count": 1, "amount": { "units": ["g"], "min": 599, "max": 601 }, "kcal": { "min": 312, "max": 324 } }
+    },
+    {
+      "id": "M125", "input": "육개장", "note": "#43: 실기기 모델 분량 450g 135kcal. 원본 식품중량 440g(D105-245000000-0001)",
+      "llm": { "food": "육개장", "portion": { "amount": 200 } },
+      "expect": { "maxQuestions": 0, "foodID": "D105-245000000-0001", "basis": "representative", "dishServing": true, "count": 1, "amount": { "units": ["g"], "min": 439, "max": 441 }, "kcal": { "min": 129, "max": 135 } }
+    },
+    {
+      "id": "M126", "input": "된장찌개", "note": "#43: 실기기 모델 분량 450g 207kcal. 원본 식품중량 200g(D106-275000000-0001)이라 지금보다 작아짐. #43 3차 A(사용자 결정)부터 참고표 내부 기준 1인분 400g이 음식 DB 1인분 중량보다 먼저 쓰임. 이전 기대: 200g 90~94kcal, 분량 근거 representative, 음식 DB 1인분 중량 안내",
+      "llm": { "food": "된장찌개", "portion": { "amount": 450 } },
+      "expect": { "maxQuestions": 0, "foodID": "D106-275000000-0001", "basis": "estimated", "dishServing": false, "count": 1, "amount": { "units": ["g"], "min": 399, "max": 401 }, "kcal": { "min": 180, "max": 188 } }
+    },
+    {
+      "id": "M127", "input": "미역국", "note": "#43: 실기기 모델 분량 400g 48kcal. 원본 식품중량도 400g(D105-223000000-0001). 가짜 해석기에는 250g을 줘서 원본 값이 쓰이는지 확인",
+      "llm": { "food": "미역국", "portion": { "amount": 250 } },
+      "expect": { "maxQuestions": 0, "foodID": "D105-223000000-0001", "basis": "representative", "dishServing": true, "count": 1, "amount": { "units": ["g"], "min": 399, "max": 401 }, "kcal": { "min": 46, "max": 50 } }
+    },
+    {
+      "id": "M128", "input": "마라탕", "note": "#43: 원본 식품중량이 영양 기준량과 같은 100g(D306-278000000-0002)이라 1인분 정보가 아닌 값으로 보고 데이터 파일에서 뺐다. 지금처럼 모델 분량 추정(가짜 해석기 500g, 실기기 500g 330kcal)을 씀 #43 4차 B(사용자 결정)부터 마라탕은 참고표(allowsBrandedProduct)의 가공식품 P123-207020400-0006 (주)프레시지 포장량 512g. 이전 기대: D306-278000000-0002, 분량 근거 aiEstimated, 499~501g, 음식 DB 1인분 중량 안내 없음",
+      "llm": { "food": "마라탕", "portion": { "amount": 500 } },
+      "expect": { "maxQuestions": 0, "foodID": "P123-207020400-0006", "basis": "estimated", "dishServing": false, "count": 1, "amount": { "units": ["g"], "min": 511, "max": 513 } }
+    },
+    {
+      "id": "M129", "input": "순대국밥", "note": "#43: 실기기 '국밥 순대국밥' 비슷한 음식 기준 450g 338kcal. 선택된 레코드(D101-004310000-0001)의 원본 식품중량 900g을 씀",
+      "llm": { "food": "순대국밥", "portion": { "amount": 450 } },
+      "expect": { "maxQuestions": 0, "foodID": "D101-004310000-0001", "basis": "representative", "dishServing": true, "count": 1, "amount": { "units": ["g"], "min": 899, "max": 901 }, "kcal": { "min": 660, "max": 690 } }
+    },
+    {
+      "id": "M130", "input": "에너지드링크", "note": "#43 D: 실기기 가운데 제품(P109-401040100-1455, 100mL당 66kcal, 포장량 없음)에 모델 분량 500mL 330kcal. 지금은 술·음료 표의 1캔 250mL(내부 기준), 영양값은 같은 제품",
+      "llm": { "food": "에너지드링크", "portion": { "amount": 500, "unit": "mL" } },
+      "expect": { "maxQuestions": 0, "foodID": "P109-401040100-1455", "units": ["캔"], "count": 1, "assumedQuantity": true, "amount": { "units": ["mL"], "min": 249, "max": 251 }, "kcal": { "min": 163, "max": 167 } }
+    },
+    {
+      "id": "M131", "input": "된장찌개", "note": "#43 3차 A: 실기기(b77c7af) 음식 DB 1인분 중량 200g 92kcal. 참고표 내부 기준 1인분 400g(찌개류 외식 1인분 준용)이 음식 DB 1인분 중량보다 먼저 쓰여야 함. 가짜 해석기 분량 450g은 쓰이지 않아야 함",
+      "llm": { "food": "된장찌개", "portion": { "amount": 450 } },
+      "expect": { "maxQuestions": 0, "foodID": "D106-275000000-0001", "basis": "estimated", "dishServing": false, "units": ["인분"], "count": 1, "amount": { "units": ["g"], "min": 399, "max": 401 }, "kcal": { "min": 180, "max": 188 } }
+    },
+    {
+      "id": "M132", "input": "된찌", "note": "#43 3차 A: 된장찌개 별칭도 참고표 1인분 400g",
+      "llm": { "food": "된찌", "portion": { "amount": 450 } },
+      "expect": { "maxQuestions": 0, "foodID": "D106-275000000-0001", "basis": "estimated", "count": 1, "amount": { "units": ["g"], "min": 399, "max": 401 } }
+    },
+    {
+      "id": "M133", "input": "냉동만두 5개", "note": "#43 3차 C: 실기기 모델이 1개 150g으로 추정해 750g 약 1,755kcal(열량 확인 질문). 참고표 만두 1개 30g(내부 기준)이 쓰여야 함 #43 4차 C(사용자 결정): 만두를 찐 고기만두(만두 고기만두)로 바꿔 이전 기대 자료 D103-150030000-0001·345~357kcal → D103-150010000-0001·234~243kcal #43 5차 1단계(사용자 결정): 냉동만두 항목을 따로 둬 비슷한 음식 질문 없음. 이전 기대: 질문 1회 이하",
+      "llm": { "food": "냉동만두", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "questionsExclude": ["열량이 높게"], "foodID": "D103-150010000-0001", "units": ["개"], "count": 5, "amount": { "units": ["g"], "min": 149, "max": 151 }, "kcal": { "min": 234, "max": 243 } }
+    },
+    {
+      "id": "M134", "input": "물만두 10개", "note": "#43 3차 C: 1개 30g(내부 기준), g 기준 '만두 물만두' #43 5차 1단계(사용자 결정): 물만두 1개 15g(1인분 120g ÷ 약 8개). 이전 기대: 299~301g, 579~591kcal",
+      "llm": { "food": "물만두", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "foodID": "D103-150190000-0001", "units": ["개"], "count": 10, "amount": { "units": ["g"], "min": 149, "max": 151 }, "kcal": { "min": 289, "max": 296 } }
+    },
+    {
+      "id": "M135", "input": "만두 5개", "note": "#43 3차 C: 1개 30g #43 4차 C: 이전 기대 자료 D103-150030000-0001(만두 군만두) → D103-150010000-0001(만두 고기만두)",
+      "llm": { "food": "만두", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "foodID": "D103-150010000-0001", "units": ["개"], "count": 5, "amount": { "units": ["g"], "min": 149, "max": 151 } }
+    },
+    {
+      "id": "M136", "input": "군만두 6개", "note": "#43 3차 C: 1개 30g. 이전에는 mL 항목 군만두(D403)로 갔다",
+      "llm": { "food": "군만두", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "foodID": "D103-150030000-0001", "units": ["개"], "count": 6, "amount": { "units": ["g"], "min": 179, "max": 181 } }
+    },
+    {
+      "id": "M137", "input": "고기만두 3개", "note": "#43 3차 C: 1개 30g, g 기준 '만두 고기만두'",
+      "llm": { "food": "고기만두", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "foodID": "D103-150010000-0001", "units": ["개"], "count": 3, "amount": { "units": ["g"], "min": 89, "max": 91 } }
+    },
+    {
+      "id": "M138", "input": "김치만두 3개", "note": "#43 3차 C: 1개 30g, g 기준 '만두 김치만두'",
+      "llm": { "food": "김치만두", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "foodID": "D103-150060000-0001", "units": ["개"], "count": 3, "amount": { "units": ["g"], "min": 89, "max": 91 } }
+    },
+    {
+      "id": "M139", "input": "군만두 1인분", "note": "#43 3차 C: 인분은 대표 분량표 군만두 1인분 250g 그대로",
+      "llm": { "food": "군만두", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "basis": "representative", "units": ["인분"], "count": 1, "amount": { "units": ["g"], "min": 249, "max": 251 } }
+    },
+    {
+      "id": "M140", "input": "고기만두", "note": "#43 3차 C: 수량 없는 입력이 1개 30g으로 가정되지 않아야 함(인분 220g, 이 항목의 음식 DB 1인분 중량)",
+      "llm": { "food": "고기만두", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "foodID": "D103-150010000-0001", "units": ["인분"], "count": 1, "assumedQuantity": true, "amount": { "units": ["g"], "min": 219, "max": 221 } }
+    },
+    {
+      "id": "M141", "input": "만두", "note": "#43 3차 C: 수량 없는 만두는 1개 30g이 아니라 대표 분량표 군만두 1인분 250g('만두 군만두' 자료) #43 4차 C(사용자 결정): 만두는 찐 고기만두. 이전 기대: 만두 군만두 대표 분량표 1인분 250g(representative) → 만두 고기만두 참고표 1인분 220g(estimated) 약 350kcal",
+      "llm": { "food": "만두", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "foodID": "D103-150010000-0001", "basis": "estimated", "units": ["인분"], "count": 1, "assumedQuantity": true, "amount": { "units": ["g"], "min": 219, "max": 221 }, "kcal": { "min": 346, "max": 354 } }
+    },
+    {
+      "id": "M142", "input": "마라탕", "note": "#43 4차 B(사용자 결정): 마라탕은 가공식품 기준. 참고표(allowsBrandedProduct)가 가리키는 P123-207020400-0006 (주)프레시지(100g당 181kcal)의 포장량 512g을 1인분으로. 실기기(f19db94)는 일반 음식 66kcal 모델 500g 330kcal",
+      "llm": { "food": "마라탕", "portion": { "amount": 500 } },
+      "expect": { "maxQuestions": 0, "foodID": "P123-207020400-0006", "nameContains": ["마라탕"], "basis": "estimated", "units": ["인분"], "count": 1, "assumedQuantity": true, "sourceContains": "(주)프레시지 마라탕 영양값 기준", "amount": { "units": ["g"], "min": 511, "max": 513 }, "kcal": { "min": 920, "max": 934 } }
+    },
+    {
+      "id": "M143", "input": "마라탕 1인분", "note": "#43 4차 B: 1인분 512g",
+      "llm": { "food": "마라탕", "portion": { "amount": 500 } },
+      "expect": { "maxQuestions": 0, "foodID": "P123-207020400-0006", "units": ["인분"], "count": 1, "sourceContains": "(주)프레시지 마라탕 영양값 기준", "amount": { "units": ["g"], "min": 511, "max": 513 } }
+    },
+    {
+      "id": "M144", "input": "마라탕 반", "note": "#43 4차 B: 0.5인분 256g",
+      "llm": { "food": "마라탕", "portion": { "amount": 500 } },
+      "expect": { "maxQuestions": 0, "foodID": "P123-207020400-0006", "count": 0.5, "amount": { "units": ["g"], "min": 255, "max": 257 }, "kcal": { "min": 460, "max": 467 } }
+    },
+    {
+      "id": "M145", "input": "마라샹궈 반", "note": "#43 4차 B: 업체 제품 참고표 규칙이 마라샹궈(#41 E 같은 이름 제품의 가운데 제품)에 새지 않아야 함. 모델 1인분 500g",
+      "llm": { "food": "마라샹궈 반", "portion": { "amount": 500 } },
+      "expect": { "maxQuestions": 0, "foodID": "P123-207020300-1957", "count": 0.5, "sourceContains": "마라샹궈 영양값 기준", "sourceExcludes": ["프레시지"] }
+    },
+    {
+      "id": "M146", "input": "만두", "note": "#43 4차 C(사용자 결정): 종류를 적지 않은 만두는 찐 고기만두(만두 고기만두) 1인분 220g",
+      "llm": { "food": "만두", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "foodID": "D103-150010000-0001", "units": ["인분"], "count": 1, "amount": { "units": ["g"], "min": 219, "max": 221 }, "kcal": { "min": 346, "max": 354 } }
+    },
+    {
+      "id": "M147", "input": "찐만두 6개", "note": "#43 4차 C: 찐만두는 만두와 같은 자료, 1개 30g",
+      "llm": { "food": "찐만두", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "foodID": "D103-150010000-0001", "nameContains": ["찐만두"], "units": ["개"], "count": 6, "amount": { "units": ["g"], "min": 179, "max": 181 }, "kcal": { "min": 283, "max": 290 } }
+    },
+    {
+      "id": "M148", "input": "만두 1인분", "note": "#43 4차 C: 1인분 220g",
+      "llm": { "food": "만두", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "foodID": "D103-150010000-0001", "units": ["인분"], "count": 1, "amount": { "units": ["g"], "min": 219, "max": 221 } }
+    },
+    {
+      "id": "M149", "input": "찐만두", "note": "#43 4차 C: 수량 없는 찐만두 1인분 220g",
+      "llm": { "food": "찐만두", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "foodID": "D103-150010000-0001", "nameContains": ["찐만두"], "units": ["인분"], "count": 1, "assumedQuantity": true, "amount": { "units": ["g"], "min": 219, "max": 221 } }
+    },
+    {
+      "id": "M150", "input": "냉동만두", "note": "#43 4차 C: 수식어를 뗀 만두 경로. 비슷한 음식 질문 첫 선택지가 만두 고기만두이고 1인분 220g #43 5차 1단계(사용자 결정): 냉동만두 항목을 따로 둬 비슷한 음식 질문 없음. 이전 기대: 질문 1회 이하",
+      "llm": { "food": "냉동만두", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "foodID": "D103-150010000-0001", "units": ["인분"], "count": 1, "amount": { "units": ["g"], "min": 219, "max": 221 } }
+    },
+    {
+      "id": "M151", "input": "물만두", "note": "#43 5차 1단계: 수량 없는 물만두는 대표 분량표 물만두 1인분 120g(1개 15g으로 바꿔도 인분은 그대로)",
+      "llm": { "food": "물만두", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "foodID": "D103-150190000-0001", "units": ["인분"], "count": 1, "assumedQuantity": true, "amount": { "units": ["g"], "min": 119, "max": 121 }, "kcal": { "min": 231, "max": 237 } }
+    },
+    {
+      "id": "M152", "input": "물만두 1인분", "note": "#43 5차 1단계: 물만두 1인분 120g",
+      "llm": { "food": "물만두", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "foodID": "D103-150190000-0001", "units": ["인분"], "count": 1, "amount": { "units": ["g"], "min": 119, "max": 121 } }
+    },
+    {
+      "id": "M153", "input": "돌솥비빔밥", "note": "#43 5차 3단계: mL 자료 돌솥 비빔밥(D401, 575mL 581kcal) 대신 g 자료 비빔밥 돌솥(D101-018130000-0001). 대표 분량표 1인분 500g",
+      "llm": { "food": "돌솥비빔밥", "portion": { "amount": 300 } },
+      "expect": { "maxQuestions": 0, "foodID": "D101-018130000-0001", "units": ["인분"], "count": 1, "amount": { "units": ["g"], "min": 499, "max": 501 }, "kcal": { "min": 728, "max": 742 } }
+    },
+    {
+      "id": "M154", "input": "육회비빔밥", "note": "#43 5차 3단계: mL 자료(D401, 700mL 805kcal) 대신 g 자료 비빔밥 육회(D101-018430000-0001). 대표 분량표 1인분 450g",
+      "llm": { "food": "육회비빔밥", "portion": { "amount": 300 } },
+      "expect": { "maxQuestions": 0, "foodID": "D101-018430000-0001", "count": 1, "amount": { "units": ["g"], "min": 449, "max": 451 }, "kcal": { "min": 655, "max": 668 } }
+    },
+    {
+      "id": "M155", "input": "오징어덮밥", "note": "#43 5차 3단계: mL 자료(D501, 420mL 395kcal) 대신 g 자료 덮밥 오징어(D101-010390000-0001). 음식 DB 1인분 중량 360g",
+      "llm": { "food": "오징어덮밥", "portion": { "amount": 300 } },
+      "expect": { "maxQuestions": 0, "foodID": "D101-010390000-0001", "count": 1, "amount": { "units": ["g"], "min": 359, "max": 361 }, "kcal": { "min": 481, "max": 491 } }
+    },
+    {
+      "id": "M156", "input": "콩나물국밥", "note": "#43 5차 3단계: 참고표가 가리키던 mL 자료(D401, 830mL 498kcal) 대신 g 자료 국밥 콩나물(D101-004500000-0001). 음식 DB 1인분 중량 780g",
+      "llm": { "food": "콩나물국밥", "portion": { "amount": 300 } },
+      "expect": { "maxQuestions": 0, "foodID": "D101-004500000-0001", "count": 1, "amount": { "units": ["g"], "min": 779, "max": 781 }, "kcal": { "min": 401, "max": 410 } }
+    },
+    {
+      "id": "M157", "input": "해물파전", "note": "#43 5차 3단계: mL 자료(D409, 153mL 162kcal) 대신 g 자료 파전 해물(D109-441110000-0001). 대표 분량표 1인분 150g",
+      "llm": { "food": "해물파전", "portion": { "amount": 300 } },
+      "expect": { "maxQuestions": 0, "foodID": "D109-441110000-0001", "count": 1, "amount": { "units": ["g"], "min": 149, "max": 151 }, "kcal": { "min": 253, "max": 260 } }
+    },
+    {
+      "id": "M158", "input": "계란후라이", "note": "#43 5차 3단계: mL 자료 달걀후라이(D609, 60mL 107kcal) 대신 g 자료 달걀부침(달걀후라이)(D109-417000000-0001). 음식 DB 1인분 중량 60g",
+      "llm": { "food": "계란후라이", "portion": { "amount": 300 } },
+      "expect": { "maxQuestions": 0, "foodID": "D109-417000000-0001", "count": 1, "amount": { "units": ["g"], "min": 59, "max": 61 }, "kcal": { "min": 123, "max": 127 } }
+    },
+    {
+      "id": "M159", "input": "비빔밥", "note": "#43 5차 3단계: 비빔밥은 이미 참고표가 g 자료(D101-018000000-0001)를 가리켜 대표 분량표 500g. 바뀌지 않아야 함",
+      "llm": { "food": "비빔밥", "portion": { "amount": 300 } },
+      "expect": { "maxQuestions": 0, "foodID": "D101-018000000-0001", "count": 1, "amount": { "units": ["g"], "min": 499, "max": 501 } }
+    },
+    {
+      "id": "M160", "input": "동태찌개", "note": "#43 5차 4단계: 음식 DB 1인분 중량 200g(88kcal) → 찌개류 400g(내부 기준: 찌개류 외식 1인분 400g 준용)",
+      "llm": { "food": "동태찌개", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "foodID": "D106-273000000-0001", "count": 1, "dishServing": true, "amount": { "units": ["g"], "min": 399, "max": 401 }, "kcal": { "min": 172, "max": 180 } }
+    },
+    {
+      "id": "M161", "input": "청국장찌개", "note": "#43 5차 4단계: 음식 DB 1인분 중량 200g(94kcal) → 찌개류 400g",
+      "llm": { "food": "청국장찌개", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "foodID": "D106-297000000-0001", "count": 1, "amount": { "units": ["g"], "min": 399, "max": 401 }, "kcal": { "min": 184, "max": 192 } }
+    },
+    {
+      "id": "M162", "input": "순두부찌개", "note": "#43 5차 4단계(사용자 결정): 급식 mL 자료(순두부찌개 모듬, 100mL당 25kcal, 400mL 100kcal) → 가공식품 가운데 제품 주식회사 나무에프앤에스(100g당 51kcal) 1인분 400g",
+      "llm": { "food": "순두부찌개", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "foodID": "P123-208020300-1519", "units": ["인분"], "count": 1, "sourceContains": "주식회사 나무에프앤에스 순두부찌개 영양값 기준", "amount": { "units": ["g"], "min": 399, "max": 401 }, "kcal": { "min": 200, "max": 208 } }
+    },
+    {
+      "id": "M163", "input": "순두부찌개 절반", "note": "#43 5차 4단계: 0.5인분 200g(이전 200mL 50kcal)",
+      "llm": { "food": "순두부찌개", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "foodID": "P123-208020300-1519", "count": 0.5, "amount": { "units": ["g"], "min": 199, "max": 201 }, "kcal": { "min": 100, "max": 104 } }
+    },
+    {
+      "id": "M164", "input": "순찌", "note": "#43 5차 4단계: 순두부찌개 별칭도 같은 제품 400g",
+      "llm": { "food": "순찌", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "foodID": "P123-208020300-1519", "count": 1, "amount": { "units": ["g"], "min": 399, "max": 401 } }
+    },
+    {
+      "id": "M165", "input": "짜글이", "note": "#43 5차 4단계(사용자 결정): 같은 이름 제품 가운데(제이원푸드, 100g당 53kcal)에 모델 분량 150g 80kcal → 참고표 1인분 400g(찌개류 외식 1인분 준용)",
+      "llm": { "food": "짜글이", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "foodID": "P123-208020300-0885", "units": ["인분"], "count": 1, "sourceContains": "제이원푸드 짜글이 영양값 기준", "amount": { "units": ["g"], "min": 399, "max": 401 }, "kcal": { "min": 208, "max": 216 } }
+    },
+    {
+      "id": "M166", "input": "김치찌개", "note": "#43 5차 4단계: 대표 분량표 1인분 400g 그대로(찌개 규칙과 관계없음)",
+      "llm": { "food": "김치찌개", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "basis": "representative", "count": 1, "amount": { "units": ["g"], "min": 399, "max": 401 }, "kcal": { "min": 240, "max": 248 } }
+    },
+    {
+      "id": "M167", "input": "부대찌개", "note": "#43 5차 4단계: 대표 분량표 1인분 600g 그대로",
+      "llm": { "food": "부대찌개", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "basis": "representative", "count": 1, "amount": { "units": ["g"], "min": 599, "max": 601 }, "kcal": { "min": 730, "max": 746 } }
     }
   ]
 }
