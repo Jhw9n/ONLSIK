@@ -274,14 +274,14 @@
       "expect": { "units": ["개"], "count": 3 }
     },
     {
-      "id": "M43", "input": "순두부찌개 1인분", "note": "대표 분량표 1인분 400g. kcal는 항목 기준단위(g/mL)에 따라 달라져 보지 않음. 2026-11-17 해결: 참고표가 가리키는 mL 항목 ‘순두부찌개 모듬’(같은 이름 g 항목 없음)에 대표 분량 1인분 400g이 400mL로 붙음(결정 B, 국물·면 1mL=1g, VolumeAsWeight.json). 카드에 국물·면 안내",
+      "id": "M43", "input": "순두부찌개 1인분", "note": "대표 분량표 1인분 400g. kcal는 항목 기준단위(g/mL)에 따라 달라져 보지 않음. 2026-11-17 해결: 참고표가 가리키는 mL 항목 ‘순두부찌개 모듬’(같은 이름 g 항목 없음)에 대표 분량 1인분 400g이 400mL로 붙음(결정 B, 국물·면 1mL=1g, VolumeAsWeight.json). 카드에 국물·면 안내 #43 5차 4단계(사용자 결정)부터 순두부찌개는 가공식품 가운데 제품(주식회사 나무에프앤에스, 100g당 51kcal) 1인분 400g. 이전 기대: 일반 음식(kind general)",
       "llm": { "food": "순두부찌개" },
-      "expect": { "maxQuestions": 0, "kind": "general", "nameContains": ["순두부찌개"], "units": ["인분"], "count": 1, "amount": { "units": ["g", "mL"], "min": 390, "max": 410 } }
+      "expect": { "maxQuestions": 0, "kind": "processed", "nameContains": ["순두부찌개"], "units": ["인분"], "count": 1, "amount": { "units": ["g", "mL"], "min": 390, "max": 410 } }
     },
     {
-      "id": "M44", "input": "순두부찌개", "note": "수량 없음 + 대표 분량 있음 → 1인분으로 가정해 기록 카드, 기본값 안내 표시. 2026-11-17 해결: M43과 같이 ‘순두부찌개 모듬’ mL 항목에 1인분 400mL가 붙음(결정 B, VolumeAsWeight.json). 기본값 안내와 국물·면 안내가 함께 붙음",
+      "id": "M44", "input": "순두부찌개", "note": "수량 없음 + 대표 분량 있음 → 1인분으로 가정해 기록 카드, 기본값 안내 표시. 2026-11-17 해결: M43과 같이 ‘순두부찌개 모듬’ mL 항목에 1인분 400mL가 붙음(결정 B, VolumeAsWeight.json). 기본값 안내와 국물·면 안내가 함께 붙음 #43 5차 4단계(사용자 결정)부터 순두부찌개는 가공식품 가운데 제품(주식회사 나무에프앤에스, 100g당 51kcal) 1인분 400g. 이전 기대: 일반 음식(kind general)",
       "llm": { "food": "순두부찌개" },
-      "expect": { "maxQuestions": 0, "assumedQuantity": true, "kind": "general", "nameContains": ["순두부찌개"], "units": ["인분"], "count": 1, "amount": { "units": ["g", "mL"], "min": 390, "max": 410 } }
+      "expect": { "maxQuestions": 0, "assumedQuantity": true, "kind": "processed", "nameContains": ["순두부찌개"], "units": ["인분"], "count": 1, "amount": { "units": ["g", "mL"], "min": 390, "max": 410 } }
     },
     {
       "id": "M45", "input": "김치찌개", "note": "수량 없음 + 대표 분량 있음(1인분 400g)",
@@ -309,9 +309,9 @@
       "expect": { "maxQuestions": 0, "kind": "general", "nameContains": ["된장찌개"], "units": ["인분"], "count": 0.5 }
     },
     {
-      "id": "M50", "input": "순두부찌개 절반", "note": "실기기(2026-11-16): 모델이 이름에 ‘절반’을 붙여 돌려줘 ‘순두부찌개 김치’ 유사 음식 질문이 나옴. 모델 응답 재현. 2026-11-17부터 분량 근거는 AI 추정이 아니라 대표 분량(국물·면 1mL=1g, 결정 B)",
+      "id": "M50", "input": "순두부찌개 절반", "note": "실기기(2026-11-16): 모델이 이름에 ‘절반’을 붙여 돌려줘 ‘순두부찌개 김치’ 유사 음식 질문이 나옴. 모델 응답 재현. 2026-11-17부터 분량 근거는 AI 추정이 아니라 대표 분량(국물·면 1mL=1g, 결정 B) #43 5차 4단계(사용자 결정)부터 순두부찌개는 가공식품 가운데 제품(주식회사 나무에프앤에스, 100g당 51kcal) 1인분 400g. 이전 기대: 일반 음식(kind general)",
       "llm": { "food": "순두부찌개 절반", "portion": { "amount": 400 } },
-      "expect": { "maxQuestions": 0, "kind": "general", "nameContains": ["순두부찌개"], "units": ["인분"], "count": 0.5 }
+      "expect": { "maxQuestions": 0, "kind": "processed", "nameContains": ["순두부찌개"], "units": ["인분"], "count": 0.5 }
     },
     {
       "id": "M51", "input": "공기밥 하나", "note": "모델이 이름에 ‘하나’를 붙여 돌려준 경우 재현(M37과 같은 결과)",
@@ -860,6 +860,46 @@
       "id": "M159", "input": "비빔밥", "note": "#43 5차 3단계: 비빔밥은 이미 참고표가 g 자료(D101-018000000-0001)를 가리켜 대표 분량표 500g. 바뀌지 않아야 함",
       "llm": { "food": "비빔밥", "portion": { "amount": 300 } },
       "expect": { "maxQuestions": 0, "foodID": "D101-018000000-0001", "count": 1, "amount": { "units": ["g"], "min": 499, "max": 501 } }
+    },
+    {
+      "id": "M160", "input": "동태찌개", "note": "#43 5차 4단계: 음식 DB 1인분 중량 200g(88kcal) → 찌개류 400g(내부 기준: 찌개류 외식 1인분 400g 준용)",
+      "llm": { "food": "동태찌개", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "foodID": "D106-273000000-0001", "count": 1, "dishServing": true, "amount": { "units": ["g"], "min": 399, "max": 401 }, "kcal": { "min": 172, "max": 180 } }
+    },
+    {
+      "id": "M161", "input": "청국장찌개", "note": "#43 5차 4단계: 음식 DB 1인분 중량 200g(94kcal) → 찌개류 400g",
+      "llm": { "food": "청국장찌개", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "foodID": "D106-297000000-0001", "count": 1, "amount": { "units": ["g"], "min": 399, "max": 401 }, "kcal": { "min": 184, "max": 192 } }
+    },
+    {
+      "id": "M162", "input": "순두부찌개", "note": "#43 5차 4단계(사용자 결정): 급식 mL 자료(순두부찌개 모듬, 100mL당 25kcal, 400mL 100kcal) → 가공식품 가운데 제품 주식회사 나무에프앤에스(100g당 51kcal) 1인분 400g",
+      "llm": { "food": "순두부찌개", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "foodID": "P123-208020300-1519", "units": ["인분"], "count": 1, "sourceContains": "주식회사 나무에프앤에스 순두부찌개 영양값 기준", "amount": { "units": ["g"], "min": 399, "max": 401 }, "kcal": { "min": 200, "max": 208 } }
+    },
+    {
+      "id": "M163", "input": "순두부찌개 절반", "note": "#43 5차 4단계: 0.5인분 200g(이전 200mL 50kcal)",
+      "llm": { "food": "순두부찌개", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "foodID": "P123-208020300-1519", "count": 0.5, "amount": { "units": ["g"], "min": 199, "max": 201 }, "kcal": { "min": 100, "max": 104 } }
+    },
+    {
+      "id": "M164", "input": "순찌", "note": "#43 5차 4단계: 순두부찌개 별칭도 같은 제품 400g",
+      "llm": { "food": "순찌", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "foodID": "P123-208020300-1519", "count": 1, "amount": { "units": ["g"], "min": 399, "max": 401 } }
+    },
+    {
+      "id": "M165", "input": "짜글이", "note": "#43 5차 4단계(사용자 결정): 같은 이름 제품 가운데(제이원푸드, 100g당 53kcal)에 모델 분량 150g 80kcal → 참고표 1인분 400g(찌개류 외식 1인분 준용)",
+      "llm": { "food": "짜글이", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "foodID": "P123-208020300-0885", "units": ["인분"], "count": 1, "sourceContains": "제이원푸드 짜글이 영양값 기준", "amount": { "units": ["g"], "min": 399, "max": 401 }, "kcal": { "min": 208, "max": 216 } }
+    },
+    {
+      "id": "M166", "input": "김치찌개", "note": "#43 5차 4단계: 대표 분량표 1인분 400g 그대로(찌개 규칙과 관계없음)",
+      "llm": { "food": "김치찌개", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "basis": "representative", "count": 1, "amount": { "units": ["g"], "min": 399, "max": 401 }, "kcal": { "min": 240, "max": 248 } }
+    },
+    {
+      "id": "M167", "input": "부대찌개", "note": "#43 5차 4단계: 대표 분량표 1인분 600g 그대로",
+      "llm": { "food": "부대찌개", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "basis": "representative", "count": 1, "amount": { "units": ["g"], "min": 599, "max": 601 }, "kcal": { "min": 730, "max": 746 } }
     }
   ]
 }
