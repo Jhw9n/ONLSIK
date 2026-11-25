@@ -336,6 +336,20 @@ struct ExerciseGameSnapshotTests {
                failures: failures)
     }
 
+    /// 홈 "AI 건강 피드백" 섹션의 주간 리포트 버튼(96×30)이 보이는 홈(파일 이름 ..._home_weekly_report_button.png)
+    @Test("홈 주간 리포트 버튼 스크린샷")
+    func homeWeeklyReportButton() async throws {
+        let container = try ModelContainer(for: UserProfile.self, MealRecord.self, WeightRecord.self,
+                                           configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let profile = UserProfile(kakaoUserID: 1, nickname: "전시", weightTenthsKG: 650, hasCompletedOnboarding: true)
+        container.mainContext.insert(profile)
+        let home = HomeView(profile: profile, mealRecordStore: MealRecordStore(modelContext: container.mainContext),
+                            weightRecordStore: WeightRecordStore(modelContext: container.mainContext),
+                            aiReportState: .available(message: "이번 주는 단백질을 조금 더 챙겨 보세요."))
+            .modelContainer(container)
+        try await capture(home, name: "home_weekly_report_button")
+    }
+
     @Test("화면 스크린샷")
     func screens() async throws {
         let result = ExerciseGameResult(displayName: "마라탕 1인분", kcal: 926.7)
@@ -589,6 +603,11 @@ struct Placeholder {
         check("글자 지움·포커스", expectVisible: false)
         try await tapOutside(window)
         try await wait(upTo: .seconds(3)) { focusedField(in: window) == nil }
+        // 전체 테스트를 병렬로 돌리면 합성 탭이 가끔 늦게·안 처리돼 한 번 더 누른다(기대값과 무관한 준비 동작).
+        if focusedField(in: window) != nil {
+            try await tapOutside(window)
+            try await wait(upTo: .seconds(3)) { focusedField(in: window) == nil }
+        }
         try await Task.sleep(for: .milliseconds(300))
         check("포커스 풀림·빈 칸", expectVisible: true)
         window.isHidden = true
@@ -622,6 +641,11 @@ struct Placeholder {
         check("다 지움·포커스", expectVisible: false)
         try await tapOutside(window)
         try await wait(upTo: .seconds(3)) { focusedField(in: window) == nil }
+        // 전체 테스트를 병렬로 돌리면 합성 탭이 가끔 늦게·안 처리돼 한 번 더 누른다(기대값과 무관한 준비 동작).
+        if focusedField(in: window) != nil {
+            try await tapOutside(window)
+            try await wait(upTo: .seconds(3)) { focusedField(in: window) == nil }
+        }
         try await Task.sleep(for: .milliseconds(300))
         check("포커스 풀림·빈 칸", expectVisible: true)
         window.isHidden = true
@@ -823,6 +847,12 @@ struct Retry {
         return count
     }
 
+    /// 준비 탭: 전체 테스트를 병렬로 돌리면 창의 첫 탭이 늦게 처리될 수 있어, 아무 동작이 없는 헤더 오른쪽 빈 곳을 한 번 누른다.
+    private func warmUp(_ window: UIWindow) async throws {
+        try await TouchSynthesizer.tap(CGPoint(x: window.bounds.width - 40, y: window.safeAreaInsets.top + 28), in: window)
+        try await Task.sleep(for: .milliseconds(300))
+    }
+
     /// 하단 버튼(안전 영역 아래 4, 높이 52) 가운데
     private func bottomButton(_ window: UIWindow) -> CGPoint {
         CGPoint(x: window.bounds.midX, y: window.bounds.height - window.safeAreaInsets.bottom - 4 - 26)
@@ -833,9 +863,15 @@ struct Retry {
         let counter = CloseCounter()
         let window = try present(counter)
         try await Task.sleep(for: .milliseconds(1500))
+        try await warmUp(window)
         let resultBefore = isResultScreen(window)
         try await TouchSynthesizer.tap(bottomButton(window), in: window)
         try await wait(upTo: .seconds(3)) { isInputScreen(window) && !isResultScreen(window) }
+        // 병렬 실행 때 합성 탭이 처리되지 않았으면 한 번 더 누른다(결과 화면 그대로일 때만).
+        if isResultScreen(window) {
+            try await TouchSynthesizer.tap(bottomButton(window), in: window)
+            try await wait(upTo: .seconds(3)) { isInputScreen(window) && !isResultScreen(window) }
+        }
         try await Task.sleep(for: .milliseconds(600))
         let inputAfter = isInputScreen(window) && !isResultScreen(window)
         let text = textField(in: window)?.text ?? "(입력칸 없음)"
@@ -886,9 +922,15 @@ struct Retry {
         let analyzer = ExerciseGameAnalyzer(analyzer: recording, timeout: .seconds(180))
         let window = try present(analyzer: analyzer, counter)
         try await Task.sleep(for: .milliseconds(1500))
+        try await warmUp(window)
         var failures: [Failure] = []
         try await TouchSynthesizer.tap(bottomButton(window), in: window)
         try await wait(upTo: .seconds(3)) { isInputScreen(window) && !isResultScreen(window) }
+        // 병렬 실행 때 합성 탭이 처리되지 않았으면 한 번 더 누른다(결과 화면 그대로일 때만).
+        if isResultScreen(window) {
+            try await TouchSynthesizer.tap(bottomButton(window), in: window)
+            try await wait(upTo: .seconds(3)) { isInputScreen(window) && !isResultScreen(window) }
+        }
         try await Task.sleep(for: .milliseconds(500))
         try await TouchSynthesizer.tap(CGPoint(x: window.bounds.midX, y: window.safeAreaInsets.top + 324), in: window)
         try await wait(upTo: .seconds(3)) { focusedField(in: window) != nil }

@@ -174,6 +174,8 @@ struct ExerciseGameView: View {
         }
         .onAppear { applySnapshot() }
         .onDisappear { analysisTask?.cancel() }
+        // 스와이프 뒤로가기는 뒤로가기 버튼이 보이는 입력 상태에서만(연출·분석 중과 결과 화면에서는 막음)
+        .popGestureDisabled(!backButtonVisible)
     }
 
     /// 뒤로가기를 보일지: 입력 상태에서만. 칩이 떨어지는 연출·분석 중과 결과 화면에서는 숨기고 막는다

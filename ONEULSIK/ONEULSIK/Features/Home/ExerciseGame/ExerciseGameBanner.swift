@@ -10,7 +10,7 @@ enum ExerciseGameFeature {
 /// 미니 그릇 위에 김(Mini Steam 36×21, 배너 기준 x 28, y 23)이 올라온다. 김 아래 끝은 국물 타원 윗면(배너 y 39)에서 시작한다. 김은 overlay라 배너 높이·글자 위치에 영향이 없고,
 /// 배너가 화면에 안 보이거나 운동 환산 화면이 떠 있거나 앱이 활성 상태가 아니면 멈춘다(동작 줄이기면 움직이지 않는 김).
 struct ExerciseGameBanner: View {
-    /// 운동 환산 화면(fullScreenCover)이 떠 있는지. 떠 있으면 김을 멈춘다.
+    /// 운동 환산 화면이 스택(NavigationStack)에 있는지. 있으면 김을 멈춘다.
     var isCovered: Bool = false
     let action: () -> Void
 

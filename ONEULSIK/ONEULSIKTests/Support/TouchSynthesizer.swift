@@ -17,6 +17,45 @@ enum TouchSynthesizer {
         try enqueue(try makeHIDEvent(point: screenPoint, touching: false), contextID: contextID)
     }
 
+    /// 창 좌표 from에서 눌러 to까지 손가락을 끌고 뗀다(steps번 나눠 이동, 전체 duration초). 가장자리 스와이프 테스트에 쓴다.
+    static func drag(from: CGPoint, to: CGPoint, in window: UIWindow, duration: Double = 0.3, steps: Int = 12) async throws {
+        let start = window.convert(from, to: nil)
+        let end = window.convert(to, to: nil)
+        let contextID = try contextID(of: window)
+        let interval = max(0.005, duration / Double(max(steps, 1)))
+        try enqueue(try makeHIDEvent(point: start, touching: true), contextID: contextID)
+        for step in 1...max(steps, 1) {
+            try await Task.sleep(for: .seconds(interval))
+            let t = CGFloat(step) / CGFloat(max(steps, 1))
+            let point = CGPoint(x: start.x + (end.x - start.x) * t, y: start.y + (end.y - start.y) * t)
+            try enqueue(try makeHIDEvent(point: point, touching: true, moving: true), contextID: contextID)
+        }
+        try await Task.sleep(for: .milliseconds(20))
+        try enqueue(try makeHIDEvent(point: end, touching: false), contextID: contextID)
+    }
+
+    /// 끄는 중간에 멈춰 화면을 찍을 수 있게, 누름·이동·뗌을 나눠 보낸다.
+    static func beginDrag(at point: CGPoint, in window: UIWindow) throws {
+        try enqueue(try makeHIDEvent(point: window.convert(point, to: nil), touching: true), contextID: try contextID(of: window))
+    }
+
+    static func moveDrag(from: CGPoint, to: CGPoint, in window: UIWindow, duration: Double = 0.3, steps: Int = 12) async throws {
+        let start = window.convert(from, to: nil)
+        let end = window.convert(to, to: nil)
+        let contextID = try contextID(of: window)
+        let interval = max(0.005, duration / Double(max(steps, 1)))
+        for step in 1...max(steps, 1) {
+            try await Task.sleep(for: .seconds(interval))
+            let t = CGFloat(step) / CGFloat(max(steps, 1))
+            let point = CGPoint(x: start.x + (end.x - start.x) * t, y: start.y + (end.y - start.y) * t)
+            try enqueue(try makeHIDEvent(point: point, touching: true, moving: true), contextID: contextID)
+        }
+    }
+
+    static func endDrag(at point: CGPoint, in window: UIWindow) throws {
+        try enqueue(try makeHIDEvent(point: window.convert(point, to: nil), touching: false), contextID: try contextID(of: window))
+    }
+
     /// 창의 렌더 컨텍스트 ID. 이벤트에 붙여야 UIKit이 이 창으로 보낸다.
     private static func contextID(of window: UIWindow) throws -> UInt32 {
         guard let value = window.value(forKey: "_contextId") as? NSNumber else { throw Failure.unavailable("_contextId") }
@@ -52,7 +91,7 @@ enum TouchSynthesizer {
     }
 
     /// 손(hand) 이벤트 안에 손가락 하나를 담는다. 화면 내장 디스플레이 표시(DisplayIntegrated)를 켜야 UIKit이 터치로 받는다.
-    private static func makeHIDEvent(point: CGPoint, touching: Bool) throws -> UnsafeMutableRawPointer {
+    private static func makeHIDEvent(point: CGPoint, touching: Bool, moving: Bool = false) throws -> UnsafeMutableRawPointer {
         let createDigitizer = try symbol("IOHIDEventCreateDigitizerEvent", as: CreateDigitizer.self)
         let createFinger = try symbol("IOHIDEventCreateDigitizerFingerEventWithQuality", as: CreateFinger.self)
         let append = try symbol("IOHIDEventAppendEvent", as: AppendEvent.self)
@@ -61,7 +100,8 @@ enum TouchSynthesizer {
         let time = mach_absolute_time()
         let displayIntegrated: UInt32 = (11 << 16) | 25
         let options: UInt32 = 0xF000_0000
-        let rangeAndTouch: UInt32 = 0x1 | 0x2
+        // 누름·뗌은 범위·접촉 변화(0x1 | 0x2), 끄는 중에는 위치 변화(0x4)
+        let rangeAndTouch: UInt32 = moving ? 0x4 : (0x1 | 0x2)
         guard let hand = createDigitizer(kCFAllocatorDefault, time, 3, 0, 0, rangeAndTouch, 0, 0, 0, 0, 0, 0, touching, touching, 0),
               let finger = createFinger(kCFAllocatorDefault, time, 1, 2, rangeAndTouch, Double(point.x), Double(point.y), 0, 0, 0,
                                         5, 5, 1, 1, 1, touching, touching, 0) else {

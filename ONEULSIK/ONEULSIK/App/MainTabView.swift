@@ -11,8 +11,45 @@ struct MainTabView: View {
 
     @State private var selectedTab = MainTab.home
     @State private var homeScrollToTopTrigger = 0
+    /// 탭 위로 여는 화면(주간 리포트·운동 환산·식사 기록·나의 정보 수정·설정)의 스택
+    @State private var router: AppRouter
+
+    init(
+        profile: UserProfile,
+        mealRecordStore: MealRecordStore,
+        onboardingStore: OnboardingStore,
+        weightRecordStore: WeightRecordStore,
+        onDeleteAccount: @escaping () async -> Bool,
+        onLogout: @escaping () -> Void,
+        router: AppRouter? = nil
+    ) {
+        self.profile = profile
+        self.mealRecordStore = mealRecordStore
+        self.onboardingStore = onboardingStore
+        self.weightRecordStore = weightRecordStore
+        self.onDeleteAccount = onDeleteAccount
+        self.onLogout = onLogout
+        // 테스트에서 스택을 들여다보려고 라우터를 넘길 수 있다(앱에서는 새로 만든다).
+        _router = State(initialValue: router ?? AppRouter())
+    }
 
     var body: some View {
+        // 탭과 탭바를 통째로 NavigationStack 하나로 감싼다. push한 화면은 탭바 없이 전체 화면이고,
+        // 뒤로 밀면 탭바가 있는 이전 화면이 아래에서 따라온다. 각 탭 안에는 NavigationStack을 따로 두지 않는다.
+        NavigationStack(path: $router.path) {
+            tabs
+                .toolbar(.hidden, for: .navigationBar)
+                .background { PopGestureEnabler(router: router) }
+                .navigationDestination(for: AppRouteEntry.self) { entry in
+                    entry.makeView()
+                        .toolbar(.hidden, for: .navigationBar)
+                        .environment(\.appRouteEntryID, entry.id)
+                }
+        }
+        .environment(\.appRouter, router)
+    }
+
+    private var tabs: some View {
         TabView(selection: $selectedTab) {
             HomeView(
                 profile: profile,

@@ -75,6 +75,7 @@ struct WeeklyReportView: View {
                         .foregroundStyle(Color("black02"))
                         .frame(width: 24, height: 24)
                         .frame(width: 48, height: 48)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("뒤로가기")

@@ -63,6 +63,7 @@ struct OnboardingScaffold<Content: View>: View {
                     .font(.system(size: 20, weight: .medium))
                     .foregroundStyle(Color("black01"))
                     .frame(width: 48, height: 48)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel("이전 화면으로 돌아가기")

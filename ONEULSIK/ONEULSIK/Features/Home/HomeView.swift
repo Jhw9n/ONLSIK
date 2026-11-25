@@ -4,12 +4,10 @@ import SwiftUI
 struct HomeView: View {
     @State private var viewModel: HomeViewModel
     @State private var isShowingNotificationNotice = false
-    @State private var isShowingWeeklyReport = false
     @State private var reportDismissScrollToTopTrigger = 0
     @State private var aiReportState: AIWeeklyReportState
     @State private var reportGenerationTask: Task<Void, Never>?
     @State private var reportGenerationID: UUID?
-    @State private var isShowingExerciseGame = false
 
     private let profile: UserProfile
     private let weightRecordStore: WeightRecordStore?
@@ -17,6 +15,7 @@ struct HomeView: View {
     private let usesAutomaticAIAvailability: Bool
     private let aiReportAvailabilityService = AIWeeklyReportAvailabilityService()
     private let aiWeeklyReportService = AIWeeklyReportService()
+    @Environment(\.appRouter) private var router
 
     init(
         profile: UserProfile,
@@ -42,7 +41,9 @@ struct HomeView: View {
     }
 
     var body: some View {
-        GeometryReader { geometry in
+        // 홈 내용은 NoBounceScrollView 안의 별도 UIHostingController라, 라우터를 여기서 꺼내 넘긴다.
+        let router = self.router
+        return GeometryReader { geometry in
             NoBounceScrollView(
                 scrollToTopTrigger: scrollToTopTrigger,
                 immediateScrollToTopTrigger: reportDismissScrollToTopTrigger
@@ -56,17 +57,15 @@ struct HomeView: View {
                     }
 
                     if ExerciseGameFeature.isBannerEnabled {
-                        // 운동 환산 화면이 떠 있는 동안 배너 김을 멈춘다.
-                        ExerciseGameBanner(isCovered: isShowingExerciseGame) {
-                            withoutAnimation {
-                                isShowingExerciseGame = true
-                            }
+                        // 운동 환산 화면이 스택에 있는 동안 배너 김을 멈춘다.
+                        ExerciseGameBanner(isCovered: router.contains(.exerciseGame)) {
+                            openExerciseGame(router)
                         }
                         .padding(.horizontal, 16)
                         .padding(.top, 30)
                     }
 
-                    reportSection
+                    reportSection(router)
                     .padding(.top, 30)
 
                     HomeSection(title: "주간 그래프") {
@@ -92,40 +91,25 @@ struct HomeView: View {
         } message: {
             Text("알림 기능은 준비 중이에요.")
         }
-        .fullScreenCover(
-            isPresented: $isShowingWeeklyReport,
-            onDismiss: {
-                reportDismissScrollToTopTrigger += 1
-            }
-        ) {
-            WeeklyReportView(
-                viewModel: viewModel,
-                summary: weeklyReportSummary,
-                onBack: {
-                    withoutAnimation {
-                        isShowingWeeklyReport = false
-                    }
-                }
-            )
-            .transaction { transaction in
-                transaction.disablesAnimations = true
-            }
+    }
+
+    /// 주간 리포트를 push한다. 버튼이든 스와이프든 빠지면 홈을 맨 위로 스크롤한다(reportDismissScrollToTopTrigger).
+    private func openWeeklyReport(_ router: AppRouter) {
+        router.push(.weeklyReport, onPop: { reportDismissScrollToTopTrigger += 1 }) { [viewModel, summary = weeklyReportSummary] in
+            WeeklyReportView(viewModel: viewModel, summary: summary, onBack: { router.pop(.weeklyReport) })
         }
-        .fullScreenCover(isPresented: $isShowingExerciseGame) {
-            let weight = exerciseWeight
+    }
+
+    /// 운동 환산을 push한다. 체중은 여는 순간 값을 넘기고, 결과는 저장하지 않는다.
+    private func openExerciseGame(_ router: AppRouter) {
+        let weight = exerciseWeight
+        router.push(.exerciseGame) {
             ExerciseGameView(
                 weightKG: weight.kg,
                 usesFallbackWeight: weight.isFallback,
                 analyzer: ExerciseGameAnalyzer(),
-                onClose: {
-                    withoutAnimation {
-                        isShowingExerciseGame = false
-                    }
-                }
+                onClose: { router.pop(.exerciseGame) }
             )
-            .transaction { transaction in
-                transaction.disablesAnimations = true
-            }
         }
     }
 
@@ -136,16 +120,14 @@ struct HomeView: View {
     }
 
     @ViewBuilder
-    private var reportSection: some View {
+    private func reportSection(_ router: AppRouter) -> some View {
         switch aiReportState {
         case .available(let message):
             HomeSection(
                 title: "AI 건강 피드백",
                 actionTitle: "주간 리포트",
                 action: {
-                    withoutAnimation {
-                        isShowingWeeklyReport = true
-                    }
+                    openWeeklyReport(router)
                 }
             ) {
                 AIWeeklyReportCard(message: message)
@@ -247,11 +229,16 @@ struct HomeView: View {
         return message
     }
 
-    private func withoutAnimation(_ updates: () -> Void) {
-        var transaction = Transaction()
-        transaction.disablesAnimations = true
-        withTransaction(transaction, updates)
-    }
+}
+
+/// 홈 섹션 오른쪽 캡슐 버튼(주간 리포트) 크기. Figma 개발 페이지 '홈'(2002:432) 기준.
+private enum HomeSectionActionMetrics {
+    static let size = CGSize(width: 96, height: 30)
+    static let titleFontSize: CGFloat = 12
+    static let iconSize: CGFloat = 12
+    static let spacing: CGFloat = 4
+    /// 버튼이 커져도 섹션 제목 줄 높이는 전 버튼 높이(26) 그대로 둬, 제목과 아래 카드 사이 간격(14)이 바뀌지 않게 한다.
+    static let rowHeight: CGFloat = 26
 }
 
 private struct HomeSection<Content: View>: View {
@@ -289,21 +276,22 @@ private struct HomeSection<Content: View>: View {
 
                 if let actionTitle, let action {
                     Button(action: action) {
-                        HStack(spacing: 4) {
+                        HStack(spacing: HomeSectionActionMetrics.spacing) {
                             if isActionLoading {
                                 ProgressView()
                                     .controlSize(.mini)
                                     .tint(Color.black01)
+                                    .frame(width: HomeSectionActionMetrics.iconSize, height: HomeSectionActionMetrics.iconSize)
                             } else {
                                 Image(systemName: "sparkles")
-                                    .font(.system(size: 11, weight: .semibold))
+                                    .font(.system(size: HomeSectionActionMetrics.iconSize, weight: .semibold))
                             }
 
                             Text(actionTitle)
-                                .font(.pretendardBold(10))
+                                .font(.pretendardBold(HomeSectionActionMetrics.titleFontSize))
                         }
                         .foregroundStyle(Color.black01)
-                        .frame(width: 82, height: 26)
+                        .frame(width: HomeSectionActionMetrics.size.width, height: HomeSectionActionMetrics.size.height)
                         .background(Color.white, in: Capsule())
                         .overlay {
                             MeshGradient(
@@ -340,6 +328,8 @@ private struct HomeSection<Content: View>: View {
                     }
                     .buttonStyle(.plain)
                     .disabled(isActionLoading || isActionDisabled)
+                    // 그려지는 크기는 30이지만 줄 높이는 26으로 두고 위아래 2씩 넘치게 해 제목·카드 위치를 그대로 둔다.
+                    .padding(.vertical, (HomeSectionActionMetrics.rowHeight - HomeSectionActionMetrics.size.height) / 2)
                 }
             }
 

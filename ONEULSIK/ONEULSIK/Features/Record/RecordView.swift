@@ -4,9 +4,9 @@ import SwiftUI
 struct RecordView: View {
     @State private var viewModel: RecordViewModel
     @State private var detailMealType: MealType?
-    @State private var searchMealType: MealType?
 
     private let mealRecordStore: MealRecordStore
+    @Environment(\.appRouter) private var router
 
     init(profile: UserProfile, mealRecordStore: MealRecordStore) {
         self.mealRecordStore = mealRecordStore
@@ -52,13 +52,21 @@ struct RecordView: View {
             .presentationDragIndicator(.hidden)
             .presentationCornerRadius(20)
         }
-        .fullScreenCover(item: $searchMealType, onDismiss: viewModel.reload) { mealType in
+    }
+
+    /// 식사 기록을 push한다. 버튼이든 스와이프든 빠지면 기록 화면을 새로 읽는다(전의 onDismiss).
+    private func openMealEntry(_ mealType: MealType) {
+        let viewModel = self.viewModel
+        let mealRecordStore = self.mealRecordStore
+        let profile = viewModel.profile
+        let recordedAt = viewModel.selectedDate
+        router.push(.mealEntry, onPop: { viewModel.reload() }) {
             MealEntryPresentation(
-                profile: viewModel.profile,
+                profile: profile,
                 mealType: mealType,
-                recordedAt: viewModel.selectedDate,
+                recordedAt: recordedAt,
                 mealRecordStore: mealRecordStore,
-                onSaved: viewModel.reload
+                onSaved: { viewModel.reload() }
             )
         }
     }
@@ -247,7 +255,7 @@ struct RecordView: View {
             .accessibilityHint("\(mealType.title) 기록 상세 보기")
 
             Button {
-                searchMealType = mealType
+                openMealEntry(mealType)
             } label: {
                 Image(systemName: "plus")
                     .font(.system(size: 11, weight: .bold))
@@ -487,6 +495,7 @@ private struct RecordViewPreview: View {
     private let container: ModelContainer
     private let profile: UserProfile
     private let mealRecordStore: MealRecordStore
+    @Environment(\.appRouter) private var router
 
     init() {
         let configuration = ModelConfiguration(isStoredInMemoryOnly: true)

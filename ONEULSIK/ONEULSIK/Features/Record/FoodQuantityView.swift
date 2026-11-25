@@ -49,6 +49,7 @@ struct FoodQuantityView: View {
                     Image(systemName: "xmark")
                         .font(.system(size: 18, weight: .medium))
                         .frame(width: 48, height: 48)
+                        .contentShape(Rectangle())
                 }
                 .accessibilityLabel("닫기")
                 Spacer()

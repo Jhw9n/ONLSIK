@@ -72,6 +72,8 @@ struct SettingsView: View {
                     .tint(Color.green03)
             }
         }
+        // 탈퇴 처리 중에는 스와이프 뒤로가기를 막는다(그때는 뒤로가기 버튼도 가려진다).
+        .popGestureDisabled(isDeletingAccount)
     }
 
     private var header: some View {
@@ -86,6 +88,7 @@ struct SettingsView: View {
                         .font(.system(size: 18, weight: .medium))
                         .foregroundStyle(Color.black01)
                         .frame(width: 48, height: 48)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("뒤로가기")

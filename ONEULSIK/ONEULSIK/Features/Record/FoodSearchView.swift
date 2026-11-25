@@ -9,8 +9,8 @@ struct FoodSearchView: View {
     var availabilityMessage: String? = nil
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.appRouter) private var router
     @State private var query = ""
-    @State private var selectedFood: FoodCatalogItem?
     @State private var shouldDismissAfterSaving = false
     @State private var searchResults: [FoodCatalogItem] = []
     @State private var isSearching = true
@@ -96,18 +96,22 @@ struct FoodSearchView: View {
         .task(id: query) {
             await updateSearchResults()
         }
-        .fullScreenCover(item: $selectedFood, onDismiss: finishQuantitySelection) { food in
+    }
+
+    /// 수량 선택을 push한다. 확정해 저장하면 수량 선택이 빠진 뒤 검색도 닫는다(전의 onDismiss: finishQuantitySelection).
+    private func openQuantitySelection(_ food: FoodCatalogItem) {
+        let router = self.router
+        router.push(.foodQuantity, onPop: { finishQuantitySelection() }) {
             FoodQuantityPresentation(
                 food: food,
                 onCancel: {
                     shouldDismissAfterSaving = false
-                    selectedFood = nil
+                    router.pop(.foodQuantity)
                 },
                 onComplete: { selection in
                     save(food: food, selection: selection)
                 }
             )
-            .presentationBackground(.clear)
         }
     }
 
@@ -174,7 +178,7 @@ struct FoodSearchView: View {
             .fixedSize()
 
             Button {
-                selectedFood = food
+                openQuantitySelection(food)
             } label: {
                 Image(systemName: "plus")
                     .font(.system(size: 11, weight: .bold))
@@ -249,7 +253,7 @@ struct FoodSearchView: View {
                 kakaoUserID: profile.kakaoUserID
             )
             shouldDismissAfterSaving = true
-            selectedFood = nil
+            router.pop(.foodQuantity)
         } catch {
             return
         }

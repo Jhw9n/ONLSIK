@@ -3,12 +3,11 @@ import SwiftUI
 
 struct ProfileView: View {
     @State private var viewModel: ProfileViewModel
-    @State private var editingField: ProfileField?
-    @State private var isShowingSettings = false
 
     private let onboardingStore: OnboardingStore
     private let onDeleteAccount: () async -> Bool
     private let onLogout: () -> Void
+    @Environment(\.appRouter) private var router
 
     init(
         profile: UserProfile,
@@ -55,25 +54,27 @@ struct ProfileView: View {
         .onAppear {
             viewModel.reload()
         }
-        .fullScreenCover(item: $editingField) { field in
-            editView(for: field)
-                .transaction { transaction in
-                    transaction.disablesAnimations = true
-                }
-        }
-        .fullScreenCover(isPresented: $isShowingSettings) {
+    }
+
+    /// 설정을 push한다. 로그아웃은 스택을 비우고 지금처럼 로그인 화면으로 간다.
+    private func openSettings() {
+        let router = self.router
+        router.push(.settings) { [onLogout, onDeleteAccount] in
             SettingsView(
-                onBack: {
-                    withoutAnimation {
-                        isShowingSettings = false
-                    }
+                onBack: { router.pop(.settings) },
+                onLogout: {
+                    router.popToRoot()
+                    onLogout()
                 },
-                onLogout: onLogout,
                 onDeleteAccount: onDeleteAccount
             )
-            .transaction { transaction in
-                transaction.disablesAnimations = true
-            }
+        }
+    }
+
+    /// 나의 정보 수정 항목 화면을 push한다. 저장·뒤로가기 모두 pop, 저장하면 값을 다시 읽는다.
+    private func openEditor(_ field: ProfileField) {
+        router.push(.profileEdit(field.rawValue)) {
+            editView(for: field)
         }
     }
 
@@ -86,9 +87,7 @@ struct ProfileView: View {
             Spacer()
 
             Button {
-                withoutAnimation {
-                    isShowingSettings = true
-                }
+                openSettings()
             } label: {
                 Image("profileSetting")
                     .resizable()
@@ -149,9 +148,7 @@ struct ProfileView: View {
         isHighlighted: Bool = false
     ) -> some View {
         Button {
-            withoutAnimation {
-                editingField = field
-            }
+            openEditor(field)
         } label: {
             HStack(spacing: 10) {
                 Text(field.title)
@@ -261,22 +258,17 @@ struct ProfileView: View {
     }
 
     private func closeEditor() {
-        withoutAnimation {
-            editingField = nil
-        }
+        popEditor()
     }
 
     private func finishEditing() {
         viewModel.reload()
-        withoutAnimation {
-            editingField = nil
-        }
+        popEditor()
     }
 
-    private func withoutAnimation(_ updates: () -> Void) {
-        var transaction = Transaction()
-        transaction.disablesAnimations = true
-        withTransaction(transaction, updates)
+    /// 맨 위가 항목 화면이면 내린다.
+    private func popEditor() {
+        if case .profileEdit = router.path.last?.route { router.pop() }
     }
 }
 
