@@ -47,6 +47,8 @@ struct ExerciseGameView: View {
     /// 실패한 입력. 입력을 바꾸면 실패 안내를 숨긴다.
     @State private var failedText = ""
     @State private var analysisTask: Task<ExerciseGameResult, Error>?
+    /// 담기 연출(runSequence) 작업. 다시 담기에서 취소한다.
+    @State private var sequenceTask: Task<Void, Never>?
     @State private var analysisFinished = false
 
     // 결과 상태
@@ -174,8 +176,18 @@ struct ExerciseGameView: View {
         .onDisappear { analysisTask?.cancel() }
     }
 
+    /// 뒤로가기를 보일지: 입력 상태와 결과 상태. 칩이 떨어지는 연출·분석 중에는 숨기고 막는다.
+    /// (결과 화면 하단 버튼이 "다시 담기"라 결과에서 게임을 닫는 방법은 뒤로가기다.)
+    static func showsBackButton(isInputStage: Bool, isResultStage: Bool, showsResult: Bool) -> Bool {
+        (isInputStage && !showsResult) || (isResultStage && showsResult)
+    }
+
+    private var backButtonVisible: Bool {
+        Self.showsBackButton(isInputStage: stage == .input, isResultStage: stage == .result, showsResult: showsResult)
+    }
+
     /// 뒤로가기 헤더(높이 56). 버튼 모양은 WeeklyReportView 헤더와 같고, 어두운 배경이라 아이콘은 Figma 2313:534의 흰색(#FFFFFF).
-    /// 입력 상태에서만 버튼이 보이고(연출·결과에서는 숨김) 자리는 늘 유지해 제목이 위아래로 움직이지 않는다.
+    /// 입력·결과 상태에서 버튼이 보이고(연출 중에는 숨김) 자리는 늘 유지해 제목이 위아래로 움직이지 않는다.
     private var header: some View {
         HStack {
             // 화면 전체에 키보드를 내리는 배경 탭(onTapGesture)이 깔려 있어, contentShape가 없으면 아이콘 위를 눌러도
@@ -193,9 +205,9 @@ struct ExerciseGameView: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("뒤로가기")
-            .opacity(stage == .input && !showsResult ? 1 : 0)
-            .allowsHitTesting(stage == .input && !showsResult)
-            .accessibilityHidden(!(stage == .input && !showsResult))
+            .opacity(backButtonVisible ? 1 : 0)
+            .allowsHitTesting(backButtonVisible)
+            .accessibilityHidden(!backButtonVisible)
 
             Spacer()
         }
@@ -546,10 +558,11 @@ struct ExerciseGameView: View {
                     .foregroundStyle(Color(hex: 0x8A8F9A))
                     .transition(.opacity)
             }
+            // 결과 화면은 "다시 담기": 게임을 닫지 않고 처음 연 것과 같은 입력 상태로 돌아간다(닫기는 왼쪽 위 뒤로가기).
             OnboardingBottomButton(
-                title: showsResult ? "닫기" : "담기",
+                title: showsResult ? "다시 담기" : "담기",
                 isEnabled: showsResult || canStart,
-                action: showsResult ? onClose : start,
+                action: { if showsResult { resetToStart() } else { start() } },
                 disabledForegroundColor: Color.gray02
             )
         }
@@ -584,7 +597,45 @@ struct ExerciseGameView: View {
             _ = try? await task.value
             analysisFinished = true
         }
-        Task { await runSequence(task) }
+        sequenceTask = Task { await runSequence(task) }
+    }
+
+    /// 다시 담기: 화면을 처음 연 것과 같은 입력 상태로 되돌린다(글자·그릇·칩·결과·실패 안내, 진행 중인 분석·연출 취소).
+    /// 체중은 처음 받은 값 그대로, 저장은 하지 않는다. 결과가 나타날 때처럼 짧은 투명도 전환(동작 줄이기면 바로).
+    private func resetToStart() {
+        analysisTask?.cancel()
+        sequenceTask?.cancel()
+        analysisTask = nil
+        sequenceTask = nil
+        analysisFinished = false
+        isInputFocused = false
+        var transaction = Transaction(animation: reduceMotion ? nil : .easeInOut(duration: 0.3))
+        transaction.disablesAnimations = reduceMotion
+        withTransaction(transaction) {
+            text = ""
+            stage = .input
+            contentLift = 0
+            isInputCollapsed = false
+            chipVisible = false
+            chipText = ""
+            resetChip()
+            trailLag = .zero
+            titleDimmed = false
+            bowlSquash = 1
+            rippleScale = 0.3
+            rippleOpacity = 0
+            fillProgress = 0
+            glowOpacity = 0.28
+            showsSteam = false
+            showsWaiting = false
+            showsFailure = false
+            failedText = ""
+            result = nil
+            showsResult = false
+            countedKcal = 0
+            cardProgress = Array(repeating: 0, count: exercises.count)
+            cardVisible = Array(repeating: false, count: exercises.count)
+        }
     }
 
     private func runSequence(_ task: Task<ExerciseGameResult, Error>) async {
@@ -704,6 +755,8 @@ struct ExerciseGameView: View {
         Haptics.success()
         UIAccessibility.post(notification: .screenChanged, argument: "\(outcome.title) \(Int(outcome.kcal.rounded()))킬로칼로리")
         await pause(0.15)
+        // 그 사이 다시 담기를 눌렀으면 카드 연출을 이어 가지 않는다.
+        guard !Task.isCancelled, showsResult else { return }
         withAnimation(.easeOut(duration: 0.6)) { countedKcal = outcome.kcal }
         for index in exercises.indices {
             withAnimation(reduceMotion ? .easeInOut(duration: 0.3) : .spring(duration: 0.45, bounce: 0.2).delay(Double(index) * 0.08)) {

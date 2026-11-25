@@ -302,7 +302,7 @@ struct ExerciseGameSnapshotTests {
         window.rootViewController = UIHostingController(rootView: game(.empty))
         window.makeKeyAndVisible()
         try await Task.sleep(for: .seconds(1.2))
-        try await TouchSynthesizer.tap(CGPoint(x: window.bounds.midX, y: window.safeAreaInsets.top + 308), in: window)
+        try await TouchSynthesizer.tap(CGPoint(x: window.bounds.midX, y: window.safeAreaInsets.top + 324), in: window)
         func field(in view: UIView) -> UITextField? {
             if let field = view as? UITextField, field.isFirstResponder { return field }
             for subview in view.subviews { if let found = field(in: subview) { return found } }
@@ -456,8 +456,8 @@ struct BackButton {
         let counter = CloseCounter()
         let window = try present(counter)
         try await Task.sleep(for: .milliseconds(1200))
-        // 입력칸(가로 가운데, 안전 영역 위 + 282~334) 가운데를 눌러 포커스를 준다.
-        try await TouchSynthesizer.tap(CGPoint(x: window.bounds.midX, y: window.safeAreaInsets.top + 308), in: window)
+        // 입력칸(가로 가운데, 안전 영역 위 + 298~350) 가운데를 눌러 포커스를 준다.
+        try await TouchSynthesizer.tap(CGPoint(x: window.bounds.midX, y: window.safeAreaInsets.top + 324), in: window)
         try await wait(upTo: .seconds(3)) { firstResponderField(in: window) != nil }
         // 키보드가 올라오는 애니메이션이 끝날 때까지
         try await Task.sleep(for: .milliseconds(800))
@@ -520,10 +520,10 @@ struct Placeholder {
         return nil
     }
 
-    /// 입력칸(243×52, 가로 가운데, 안전 영역 위 + 282)의 안쪽(둥근 모서리 경계를 빼려고 좌우 30·위아래 10 안)에서
+    /// 입력칸(243×52, 가로 가운데, 안전 영역 위 + 298)의 안쪽(둥근 모서리 경계를 빼려고 좌우 30·위아래 10 안)에서
     /// 안내 문구 색(#9AA0AB, 푸른 회색)에 가까운 픽셀 수. 입력 글자(#1D1D1D)의 가장자리는 무채색이라 세지 않는다.
     private func placeholderPixels(_ window: UIWindow) -> Int {
-        let rect = CGRect(x: window.bounds.midX - 121.5 + 30, y: window.safeAreaInsets.top + 282 + 10, width: 243 - 60, height: 52 - 20)
+        let rect = CGRect(x: window.bounds.midX - 121.5 + 30, y: window.safeAreaInsets.top + 298 + 10, width: 243 - 60, height: 52 - 20)
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
         // 8비트 RGBA로 그린다(기본값은 넓은 색 영역이면 16비트라 아래처럼 바이트로 읽을 수 없다).
@@ -551,7 +551,7 @@ struct Placeholder {
     private func visible(_ pixels: Int) -> Bool { pixels > 40 }
 
     private func tapInput(_ window: UIWindow) async throws {
-        try await TouchSynthesizer.tap(CGPoint(x: window.bounds.midX, y: window.safeAreaInsets.top + 308), in: window)
+        try await TouchSynthesizer.tap(CGPoint(x: window.bounds.midX, y: window.safeAreaInsets.top + 324), in: window)
     }
 
     /// 입력칸 밖(그릇 쪽 빈 곳)을 눌러 포커스를 푼다.
@@ -678,7 +678,7 @@ struct SubmitKey {
         try await TouchSynthesizer.tap(CGPoint(x: window.bounds.midX, y: window.safeAreaInsets.top + 440), in: window)
         try await Task.sleep(for: .milliseconds(300))
         var failures: [Failure] = []
-        try await TouchSynthesizer.tap(CGPoint(x: window.bounds.midX, y: window.safeAreaInsets.top + 308), in: window)
+        try await TouchSynthesizer.tap(CGPoint(x: window.bounds.midX, y: window.safeAreaInsets.top + 324), in: window)
         try await wait(upTo: .seconds(3)) { focusedField(in: window) != nil }
         guard let field = focusedField(in: window) else {
             window.isHidden = true
@@ -708,6 +708,203 @@ struct SubmitKey {
                expected: "완료 키: 포커스 해제·분석 0번·글자 그대로, 담기: 분석 1번",
                actual: "완료 키 뒤 포커스 \(focusedAfter ? "남음" : "없음")·분석 \(callsAfterDone)번·글자 ‘\(textAfterDone)’, 담기 뒤 분석 \(callsAfterButton)번",
                failures: failures)
+    }
+}
+}
+
+/// 결과 화면(#49): 하단 "다시 담기"는 게임을 닫지 않고 처음 연 것과 같은 입력 상태로 돌아가고, 닫기는 왼쪽 위 뒤로가기다.
+extension ExerciseGameTouchTests {
+@MainActor
+@Suite("운동 환산 다시 담기")
+struct Retry {
+    private final class CloseCounter { var count = 0 }
+    private static let result = ExerciseGameResult(displayName: "먹고 싶은 음식 1인분", kcal: 927)
+
+    /// 실제 분석(가짜 해석기)을 그대로 하면서 받은 글자를 적어 두는 분석기
+    final class RecordingAnalyzer: MealEntryAnalyzing {
+        let base: any MealEntryAnalyzing
+        var inputs: [String] = []
+        init(_ base: any MealEntryAnalyzing) { self.base = base }
+        func analyze(_ text: String) async throws -> MealEntryAnalysis {
+            inputs.append(text)
+            return try await base.analyze(text)
+        }
+        func resolve(_ choice: MealEntryChoice) async throws -> MealEntryAnalysis {
+            try await base.resolve(choice)
+        }
+    }
+
+    private func present(analyzer: ExerciseGameAnalyzer? = nil, _ counter: CloseCounter) throws -> UIWindow {
+        let scene = try #require(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
+        let window = UIWindow(windowScene: scene)
+        window.windowLevel = .alert + 1
+        window.rootViewController = UIHostingController(rootView: ExerciseGameView(
+            weightKG: 65, usesFallbackWeight: true, analyzer: analyzer ?? ExerciseGameAnalyzer(), snapshot: .result(Self.result), onClose: { counter.count += 1 }))
+        window.makeKeyAndVisible()
+        return window
+    }
+
+    private func wait(upTo timeout: Duration, until condition: () -> Bool) async throws {
+        let clock = ContinuousClock()
+        let deadline = clock.now + timeout
+        while !condition(), clock.now < deadline { try await Task.sleep(for: .milliseconds(50)) }
+    }
+
+    private func textField(in view: UIView) -> UITextField? {
+        if let field = view as? UITextField { return field }
+        for subview in view.subviews { if let found = textField(in: subview) { return found } }
+        return nil
+    }
+
+    private func focusedField(in view: UIView) -> UITextField? {
+        if let field = view as? UITextField, field.isFirstResponder { return field }
+        for subview in view.subviews { if let found = focusedField(in: subview) { return found } }
+        return nil
+    }
+
+    /// 창의 한 영역을 8비트로 그려 픽셀 밝기 평균(0~255)과 거의 흰 픽셀 비율을 잰다.
+    private func brightness(_ window: UIWindow, _ rect: CGRect) -> (mean: Double, white: Double) {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.preferredRange = .standard
+        let image = UIGraphicsImageRenderer(size: rect.size, format: format).image { context in
+            context.cgContext.translateBy(x: -rect.minX, y: -rect.minY)
+            window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+        }
+        guard let cgImage = image.cgImage, cgImage.bitsPerComponent == 8,
+              let data = cgImage.dataProvider?.data, let bytes = CFDataGetBytePtr(data) else { return (0, 0) }
+        let bytesPerPixel = cgImage.bitsPerPixel / 8
+        var total = 0, white = 0, count = 0
+        for y in 0..<cgImage.height {
+            for x in 0..<cgImage.width {
+                let i = y * cgImage.bytesPerRow + x * bytesPerPixel
+                let sum = Int(bytes[i]) + Int(bytes[i + 1]) + Int(bytes[i + 2])
+                total += sum
+                if sum > 720 { white += 1 }
+                count += 1
+            }
+        }
+        return (Double(total) / Double(max(count, 1) * 3), Double(white) / Double(max(count, 1)))
+    }
+
+    /// 입력 화면: 입력칸(243×52, 안전 영역 위 + 298) 가운데 띠가 거의 흰색
+    private func isInputScreen(_ window: UIWindow) -> Bool {
+        let band = CGRect(x: window.bounds.midX - 90, y: window.safeAreaInsets.top + 316, width: 180, height: 16)
+        return brightness(window, band).white > 0.6
+    }
+
+    /// 결과 화면: 입력칸이 없고, 그릇 몸통 자리(안전 영역 위 + 520 근처)가 밝은 그릇 대신 어두운 카드
+    private func isResultScreen(_ window: UIWindow) -> Bool {
+        let bowlBody = CGRect(x: window.bounds.midX - 30, y: window.safeAreaInsets.top + 515, width: 60, height: 20)
+        return !isInputScreen(window) && brightness(window, bowlBody).mean < 110
+    }
+
+    /// 입력칸 안쪽의 안내 문구 색(#9AA0AB) 픽셀 수(안내 문구 테스트 J02와 같은 방법)
+    private func placeholderPixels(_ window: UIWindow) -> Int {
+        let rect = CGRect(x: window.bounds.midX - 121.5 + 30, y: window.safeAreaInsets.top + 298 + 10, width: 243 - 60, height: 52 - 20)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.preferredRange = .standard
+        let image = UIGraphicsImageRenderer(size: rect.size, format: format).image { context in
+            context.cgContext.translateBy(x: -rect.minX, y: -rect.minY)
+            window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+        }
+        guard let cgImage = image.cgImage, cgImage.bitsPerComponent == 8,
+              let data = cgImage.dataProvider?.data, let bytes = CFDataGetBytePtr(data) else { return -1 }
+        let bytesPerPixel = cgImage.bitsPerPixel / 8
+        var count = 0
+        for y in 0..<cgImage.height {
+            for x in 0..<cgImage.width {
+                let i = y * cgImage.bytesPerRow + x * bytesPerPixel
+                let values = [Int(bytes[i]), Int(bytes[i + 1]), Int(bytes[i + 2])].sorted()
+                if values[0] >= 130, values[2] <= 195, (10...30).contains(values[2] - values[0]) { count += 1 }
+            }
+        }
+        return count
+    }
+
+    /// 하단 버튼(안전 영역 아래 4, 높이 52) 가운데
+    private func bottomButton(_ window: UIWindow) -> CGPoint {
+        CGPoint(x: window.bounds.midX, y: window.bounds.height - window.safeAreaInsets.bottom - 4 - 26)
+    }
+
+    @Test("결과에서 다시 담기 → 처음 입력 상태, 게임은 닫히지 않음")
+    func retryResetsToInput() async throws {
+        let counter = CloseCounter()
+        let window = try present(counter)
+        try await Task.sleep(for: .milliseconds(1500))
+        let resultBefore = isResultScreen(window)
+        try await TouchSynthesizer.tap(bottomButton(window), in: window)
+        try await wait(upTo: .seconds(3)) { isInputScreen(window) && !isResultScreen(window) }
+        try await Task.sleep(for: .milliseconds(600))
+        let inputAfter = isInputScreen(window) && !isResultScreen(window)
+        let text = textField(in: window)?.text ?? "(입력칸 없음)"
+        let pixels = placeholderPixels(window)
+        let focused = focusedField(in: window) != nil
+        window.isHidden = true
+        var failures: [Failure] = []
+        if !resultBefore { failures.append(Failure(type: .displayText, message: "시험 준비 실패: 결과 화면이 아님")) }
+        if !inputAfter { failures.append(Failure(type: .displayText, message: "다시 담기 뒤 입력 화면으로 돌아가지 않음")) }
+        if !text.isEmpty { failures.append(Failure(type: .displayText, message: "다시 담기 뒤 글자가 남음(‘\(text)’)")) }
+        if pixels <= 40 { failures.append(Failure(type: .displayText, message: "다시 담기 뒤 안내 문구가 안 보임(픽셀 \(pixels))")) }
+        if focused { failures.append(Failure(type: .displayText, message: "다시 담기 뒤 입력칸에 포커스가 잡힘")) }
+        if counter.count != 0 { failures.append(Failure(type: .displayText, message: "다시 담기로 게임이 닫힘(onClose \(counter.count)번)")) }
+        report(suite: "운동 환산 다시 담기", id: "C01", input: "결과 화면 → 하단 ‘다시 담기’ 탭",
+               expected: "입력 화면, 글자 없음, 안내 문구 보임, 포커스 없음, onClose 0번",
+               actual: "입력 화면 \(inputAfter ? "예" : "아니오"), 글자 ‘\(text)’, 안내 문구 픽셀 \(pixels), 포커스 \(focused ? "있음" : "없음"), onClose \(counter.count)번",
+               failures: failures)
+    }
+
+    @Test("결과에서 뒤로가기 → 게임 닫힘")
+    func backFromResultCloses() async throws {
+        let counter = CloseCounter()
+        let window = try present(counter)
+        try await Task.sleep(for: .milliseconds(1500))
+        // 뒤로가기 버튼(창 기준 x 4~52, 안전 영역 위 + 4~52) 아이콘에서 떨어진 오른쪽 아래 모서리 근처
+        try await TouchSynthesizer.tap(CGPoint(x: 48, y: window.safeAreaInsets.top + 48), in: window)
+        try await wait(upTo: .seconds(3)) { counter.count > 0 }
+        try await Task.sleep(for: .milliseconds(200))
+        window.isHidden = true
+        report(suite: "운동 환산 다시 담기", id: "C02", input: "결과 화면 → 왼쪽 위 뒤로가기(오른쪽 아래 모서리 근처) 탭",
+               expected: "onClose 1번", actual: "onClose \(counter.count)번",
+               failures: counter.count == 1 ? [] : [Failure(type: .displayText, message: "결과 화면에서 뒤로가기를 눌러도 닫히지 않음(onClose \(counter.count)번)")])
+    }
+
+    @Test("다시 담기 뒤 새 음식을 담으면 결과까지 감(가짜 분석기)")
+    func retryThenAnalyze() async throws {
+        let counter = CloseCounter()
+        var script = MealCase.LLM(food: "마라탕", brand: nil, portion: .init(amount: 200, unit: nil), pick: nil, estimate: nil)
+        script.foods = nil
+        let recording = RecordingAnalyzer(AIMealEntryService(interpreter: FakeMealFoodInterpreter(script: script), catalog: FoodCatalogService()))
+        let analyzer = ExerciseGameAnalyzer(analyzer: recording, timeout: .seconds(180))
+        let window = try present(analyzer: analyzer, counter)
+        try await Task.sleep(for: .milliseconds(1500))
+        var failures: [Failure] = []
+        try await TouchSynthesizer.tap(bottomButton(window), in: window)
+        try await wait(upTo: .seconds(3)) { isInputScreen(window) && !isResultScreen(window) }
+        try await Task.sleep(for: .milliseconds(500))
+        try await TouchSynthesizer.tap(CGPoint(x: window.bounds.midX, y: window.safeAreaInsets.top + 324), in: window)
+        try await wait(upTo: .seconds(3)) { focusedField(in: window) != nil }
+        if let field = focusedField(in: window) {
+            field.insertText("마라탕")
+            try await Task.sleep(for: .milliseconds(300))
+            field.insertText("\n")   // 완료 키: 키보드만 내림
+        } else {
+            failures.append(Failure(type: .displayText, message: "다시 담기 뒤 입력칸을 눌러도 포커스가 가지 않음"))
+        }
+        try await wait(upTo: .seconds(2)) { focusedField(in: window) == nil }
+        try await Task.sleep(for: .milliseconds(400))
+        try await TouchSynthesizer.tap(bottomButton(window), in: window)
+        try await wait(upTo: .seconds(30)) { !recording.inputs.isEmpty && isResultScreen(window) }
+        try await Task.sleep(for: .milliseconds(500))
+        let reachedResult = isResultScreen(window)
+        window.isHidden = true
+        if recording.inputs != ["마라탕"] { failures.append(Failure(type: .displayText, message: "분석기에 넘어간 글자가 다름(\(recording.inputs))")) }
+        if !reachedResult { failures.append(Failure(type: .displayText, message: "새 음식 결과 화면까지 가지 않음")) }
+        if counter.count != 0 { failures.append(Failure(type: .displayText, message: "중간에 게임이 닫힘(onClose \(counter.count)번)")) }
+        report(suite: "운동 환산 다시 담기", id: "C03", input: "결과 → 다시 담기 → ‘마라탕’ 입력 → 완료 키 → 담기(가짜 해석기)",
+               expected: "분석기에 ‘마라탕’ 1번, 결과 화면",
+               actual: "분석기 입력 \(recording.inputs), 결과 화면 \(reachedResult ? "예" : "아니오")", failures: failures)
     }
 }
 }
