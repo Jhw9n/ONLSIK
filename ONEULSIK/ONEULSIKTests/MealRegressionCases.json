@@ -727,14 +727,14 @@
       "expect": { "maxQuestions": 0, "foodID": "D106-275000000-0001", "basis": "estimated", "count": 1, "amount": { "units": ["g"], "min": 399, "max": 401 } }
     },
     {
-      "id": "M133", "input": "냉동만두 5개", "note": "#43 3차 C: 실기기 모델이 1개 150g으로 추정해 750g 약 1,755kcal(열량 확인 질문). 참고표 만두 1개 30g(내부 기준)이 쓰여야 함 #43 4차 C(사용자 결정): 만두를 찐 고기만두(만두 고기만두)로 바꿔 이전 기대 자료 D103-150030000-0001·345~357kcal → D103-150010000-0001·234~243kcal",
+      "id": "M133", "input": "냉동만두 5개", "note": "#43 3차 C: 실기기 모델이 1개 150g으로 추정해 750g 약 1,755kcal(열량 확인 질문). 참고표 만두 1개 30g(내부 기준)이 쓰여야 함 #43 4차 C(사용자 결정): 만두를 찐 고기만두(만두 고기만두)로 바꿔 이전 기대 자료 D103-150030000-0001·345~357kcal → D103-150010000-0001·234~243kcal #43 5차 1단계(사용자 결정): 냉동만두 항목을 따로 둬 비슷한 음식 질문 없음. 이전 기대: 질문 1회 이하",
       "llm": { "food": "냉동만두", "portion": { "amount": 150 } },
-      "expect": { "maxQuestions": 1, "questionsExclude": ["열량이 높게"], "foodID": "D103-150010000-0001", "units": ["개"], "count": 5, "amount": { "units": ["g"], "min": 149, "max": 151 }, "kcal": { "min": 234, "max": 243 } }
+      "expect": { "maxQuestions": 0, "questionsExclude": ["열량이 높게"], "foodID": "D103-150010000-0001", "units": ["개"], "count": 5, "amount": { "units": ["g"], "min": 149, "max": 151 }, "kcal": { "min": 234, "max": 243 } }
     },
     {
-      "id": "M134", "input": "물만두 10개", "note": "#43 3차 C: 1개 30g(내부 기준), g 기준 '만두 물만두'",
+      "id": "M134", "input": "물만두 10개", "note": "#43 3차 C: 1개 30g(내부 기준), g 기준 '만두 물만두' #43 5차 1단계(사용자 결정): 물만두 1개 15g(1인분 120g ÷ 약 8개). 이전 기대: 299~301g, 579~591kcal",
       "llm": { "food": "물만두", "portion": { "amount": 150 } },
-      "expect": { "maxQuestions": 0, "foodID": "D103-150190000-0001", "units": ["개"], "count": 10, "amount": { "units": ["g"], "min": 299, "max": 301 }, "kcal": { "min": 579, "max": 591 } }
+      "expect": { "maxQuestions": 0, "foodID": "D103-150190000-0001", "units": ["개"], "count": 10, "amount": { "units": ["g"], "min": 149, "max": 151 }, "kcal": { "min": 289, "max": 296 } }
     },
     {
       "id": "M135", "input": "만두 5개", "note": "#43 3차 C: 1개 30g #43 4차 C: 이전 기대 자료 D103-150030000-0001(만두 군만두) → D103-150010000-0001(만두 고기만두)",
@@ -812,9 +812,19 @@
       "expect": { "maxQuestions": 0, "foodID": "D103-150010000-0001", "nameContains": ["찐만두"], "units": ["인분"], "count": 1, "assumedQuantity": true, "amount": { "units": ["g"], "min": 219, "max": 221 } }
     },
     {
-      "id": "M150", "input": "냉동만두", "note": "#43 4차 C: 수식어를 뗀 만두 경로. 비슷한 음식 질문 첫 선택지가 만두 고기만두이고 1인분 220g",
+      "id": "M150", "input": "냉동만두", "note": "#43 4차 C: 수식어를 뗀 만두 경로. 비슷한 음식 질문 첫 선택지가 만두 고기만두이고 1인분 220g #43 5차 1단계(사용자 결정): 냉동만두 항목을 따로 둬 비슷한 음식 질문 없음. 이전 기대: 질문 1회 이하",
       "llm": { "food": "냉동만두", "portion": { "amount": 150 } },
-      "expect": { "maxQuestions": 1, "foodID": "D103-150010000-0001", "units": ["인분"], "count": 1, "amount": { "units": ["g"], "min": 219, "max": 221 } }
+      "expect": { "maxQuestions": 0, "foodID": "D103-150010000-0001", "units": ["인분"], "count": 1, "amount": { "units": ["g"], "min": 219, "max": 221 } }
+    },
+    {
+      "id": "M151", "input": "물만두", "note": "#43 5차 1단계: 수량 없는 물만두는 대표 분량표 물만두 1인분 120g(1개 15g으로 바꿔도 인분은 그대로)",
+      "llm": { "food": "물만두", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "foodID": "D103-150190000-0001", "units": ["인분"], "count": 1, "assumedQuantity": true, "amount": { "units": ["g"], "min": 119, "max": 121 }, "kcal": { "min": 231, "max": 237 } }
+    },
+    {
+      "id": "M152", "input": "물만두 1인분", "note": "#43 5차 1단계: 물만두 1인분 120g",
+      "llm": { "food": "물만두", "portion": { "amount": 150 } },
+      "expect": { "maxQuestions": 0, "foodID": "D103-150190000-0001", "units": ["인분"], "count": 1, "amount": { "units": ["g"], "min": 119, "max": 121 } }
     }
   ]
 }
