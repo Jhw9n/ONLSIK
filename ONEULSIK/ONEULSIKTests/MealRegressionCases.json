@@ -825,6 +825,41 @@
       "id": "M152", "input": "물만두 1인분", "note": "#43 5차 1단계: 물만두 1인분 120g",
       "llm": { "food": "물만두", "portion": { "amount": 150 } },
       "expect": { "maxQuestions": 0, "foodID": "D103-150190000-0001", "units": ["인분"], "count": 1, "amount": { "units": ["g"], "min": 119, "max": 121 } }
+    },
+    {
+      "id": "M153", "input": "돌솥비빔밥", "note": "#43 5차 3단계: mL 자료 돌솥 비빔밥(D401, 575mL 581kcal) 대신 g 자료 비빔밥 돌솥(D101-018130000-0001). 대표 분량표 1인분 500g",
+      "llm": { "food": "돌솥비빔밥", "portion": { "amount": 300 } },
+      "expect": { "maxQuestions": 0, "foodID": "D101-018130000-0001", "units": ["인분"], "count": 1, "amount": { "units": ["g"], "min": 499, "max": 501 }, "kcal": { "min": 728, "max": 742 } }
+    },
+    {
+      "id": "M154", "input": "육회비빔밥", "note": "#43 5차 3단계: mL 자료(D401, 700mL 805kcal) 대신 g 자료 비빔밥 육회(D101-018430000-0001). 대표 분량표 1인분 450g",
+      "llm": { "food": "육회비빔밥", "portion": { "amount": 300 } },
+      "expect": { "maxQuestions": 0, "foodID": "D101-018430000-0001", "count": 1, "amount": { "units": ["g"], "min": 449, "max": 451 }, "kcal": { "min": 655, "max": 668 } }
+    },
+    {
+      "id": "M155", "input": "오징어덮밥", "note": "#43 5차 3단계: mL 자료(D501, 420mL 395kcal) 대신 g 자료 덮밥 오징어(D101-010390000-0001). 음식 DB 1인분 중량 360g",
+      "llm": { "food": "오징어덮밥", "portion": { "amount": 300 } },
+      "expect": { "maxQuestions": 0, "foodID": "D101-010390000-0001", "count": 1, "amount": { "units": ["g"], "min": 359, "max": 361 }, "kcal": { "min": 481, "max": 491 } }
+    },
+    {
+      "id": "M156", "input": "콩나물국밥", "note": "#43 5차 3단계: 참고표가 가리키던 mL 자료(D401, 830mL 498kcal) 대신 g 자료 국밥 콩나물(D101-004500000-0001). 음식 DB 1인분 중량 780g",
+      "llm": { "food": "콩나물국밥", "portion": { "amount": 300 } },
+      "expect": { "maxQuestions": 0, "foodID": "D101-004500000-0001", "count": 1, "amount": { "units": ["g"], "min": 779, "max": 781 }, "kcal": { "min": 401, "max": 410 } }
+    },
+    {
+      "id": "M157", "input": "해물파전", "note": "#43 5차 3단계: mL 자료(D409, 153mL 162kcal) 대신 g 자료 파전 해물(D109-441110000-0001). 대표 분량표 1인분 150g",
+      "llm": { "food": "해물파전", "portion": { "amount": 300 } },
+      "expect": { "maxQuestions": 0, "foodID": "D109-441110000-0001", "count": 1, "amount": { "units": ["g"], "min": 149, "max": 151 }, "kcal": { "min": 253, "max": 260 } }
+    },
+    {
+      "id": "M158", "input": "계란후라이", "note": "#43 5차 3단계: mL 자료 달걀후라이(D609, 60mL 107kcal) 대신 g 자료 달걀부침(달걀후라이)(D109-417000000-0001). 음식 DB 1인분 중량 60g",
+      "llm": { "food": "계란후라이", "portion": { "amount": 300 } },
+      "expect": { "maxQuestions": 0, "foodID": "D109-417000000-0001", "count": 1, "amount": { "units": ["g"], "min": 59, "max": 61 }, "kcal": { "min": 123, "max": 127 } }
+    },
+    {
+      "id": "M159", "input": "비빔밥", "note": "#43 5차 3단계: 비빔밥은 이미 참고표가 g 자료(D101-018000000-0001)를 가리켜 대표 분량표 500g. 바뀌지 않아야 함",
+      "llm": { "food": "비빔밥", "portion": { "amount": 300 } },
+      "expect": { "maxQuestions": 0, "foodID": "D101-018000000-0001", "count": 1, "amount": { "units": ["g"], "min": 499, "max": 501 } }
     }
   ]
 }
