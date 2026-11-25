@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 import SwiftData
 import SwiftUI
 import Testing
@@ -157,6 +158,23 @@ struct ExerciseGameTests {
         report(suite: "운동 환산", id: id, input: input, expected: expected, actual: actual, failures: failures)
     }
 
+    @Test("배너 김 멈춤 조건")
+    func bannerSteamPause() {
+        // (화면에 보임, 운동 환산 화면이 떠 있음, 앱 활성) → 멈춤
+        let cases: [(Bool, Bool, Bool, Bool)] = [
+            (true, false, true, false),   // 보이고 덮이지 않음 → 움직임
+            (false, false, true, true),   // 스크롤·탭 전환으로 안 보임
+            (true, true, true, true),     // 운동 환산 화면이 떠 있음
+            (true, false, false, true),   // 앱이 활성 상태가 아님
+        ]
+        let failures = cases.compactMap { onScreen, covered, active, paused in
+            ExerciseGameBanner.isSteamPaused(isOnScreen: onScreen, isCovered: covered, isActive: active) == paused ? nil
+                : Failure(type: .displayText, message: "보임 \(onScreen) 덮임 \(covered) 활성 \(active) → 기대 멈춤 \(paused)")
+        }
+        report(suite: "운동 환산", id: "B01", input: "보임·덮임·활성 조합 4개", expected: "보이고 덮이지 않고 활성일 때만 움직임",
+               actual: failures.isEmpty ? "4개 모두 기대대로" : "\(failures.count)개 다름", failures: failures)
+    }
+
     @Test("조사 은/는")
     func particle() {
         let cases = [("마라탕 1인분", "마라탕 1인분은"), ("치킨 반마리", "치킨 반마리는"), ("마라탕 외 1개", "마라탕 외 1개는"),
@@ -173,7 +191,8 @@ struct ExerciseGameTests {
 /// 운동 환산 화면 스크린샷(#49). ONEULSIK_SNAPSHOT_DIR이 있을 때만 실행한다(평소 run_tests.sh에서는 건너뜀).
 /// 테스트 호스트 앱의 창에 실제 화면을 띄워 drawHierarchy로 그린다(입력칸도 그려진다). 애니메이션 중간은 고정 상태(ExerciseGameSnapshot)로 만든다.
 @MainActor
-@Suite("운동 환산 스크린샷", .enabled(if: ProcessInfo.processInfo.environment["ONEULSIK_SNAPSHOT_DIR"] != nil))
+// 창을 띄워 그리는 테스트라 서로 겹치지 않게 차례로 돌린다.
+@Suite("운동 환산 스크린샷", .serialized, .enabled(if: ProcessInfo.processInfo.environment["ONEULSIK_SNAPSHOT_DIR"] != nil))
 struct ExerciseGameSnapshotTests {
     private static let directory = ProcessInfo.processInfo.environment["ONEULSIK_SNAPSHOT_DIR"].map { URL(fileURLWithPath: $0) }
 
@@ -198,6 +217,81 @@ struct ExerciseGameSnapshotTests {
         ExerciseGameView(weightKG: 65, usesFallbackWeight: true, analyzer: ExerciseGameAnalyzer(), snapshot: snapshot, onClose: {})
     }
 
+    /// 배너 김이 움직이는지 픽셀로 본다. 덮이지 않음 → 움직임, 덮임(운동 환산 화면이 뜬 상태) → 멈춤, 다시 덮이지 않음 → 다시 움직임.
+    @Test("배너 김 멈춤·재개")
+    func bannerSteamResumes() async throws {
+        guard let scene = UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).first else { return }
+        let state = BannerCoverState()
+        let window = UIWindow(windowScene: scene)
+        window.windowLevel = .alert + 1
+        window.rootViewController = UIHostingController(rootView: BannerHarness(state: state))
+        window.makeKeyAndVisible()
+        // 김 영역(배너 왼쪽 위, 화면 위 16 + 배너 안 y 0~40)
+        let region = CGRect(x: 16 + 20, y: window.safeAreaInsets.top + 16, width: 60, height: 40)
+        func capture() -> Data? {
+            // 렌더러 bounds를 (0,0)에서 시작하게 하고 직접 옮긴다(bounds: region이면 원점이 두 번 옮겨진다).
+            let image = UIGraphicsImageRenderer(size: region.size).image { context in
+                context.cgContext.translateBy(x: -region.minX, y: -region.minY)
+                window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+            }
+            return image.pngData()
+        }
+        func moving() async throws -> Bool {
+            let first = capture()
+            try await Task.sleep(for: .milliseconds(450))
+            let second = capture()
+            return second != first
+        }
+        try await Task.sleep(for: .seconds(1.5))
+        let before = try await moving()
+        state.covered = true
+        try await Task.sleep(for: .milliseconds(400))
+        let whileCovered = try await moving()
+        state.covered = false
+        try await Task.sleep(for: .milliseconds(400))
+        let after = try await moving()
+        window.isHidden = true
+        var failures: [Failure] = []
+        if !before { failures.append(Failure(type: .displayText, message: "처음에 김이 움직이지 않음")) }
+        if whileCovered { failures.append(Failure(type: .displayText, message: "덮인 동안 김이 움직임")) }
+        if !after { failures.append(Failure(type: .displayText, message: "덮개를 닫은 뒤 김이 다시 움직이지 않음")) }
+        report(suite: "운동 환산 스크린샷", id: "B02", input: "배너 김 영역 픽셀(0.45초 간격)",
+               expected: "움직임 → 덮인 동안 멈춤 → 닫은 뒤 다시 움직임",
+               actual: "처음 \(before ? "움직임" : "멈춤"), 덮인 동안 \(whileCovered ? "움직임" : "멈춤"), 닫은 뒤 \(after ? "움직임" : "멈춤")",
+               failures: failures)
+    }
+
+    /// 실제 홈(HomeView, 배너가 UIKit 스크롤 NoBounceScrollView 안의 별도 UIHostingController에 있음)에서 김이 움직이는지 본다.
+    /// 홈에서 움직이는 것은 배너 김뿐이라 0.45초 간격으로 찍은 창 전체가 달라지면 김이 움직이는 것이다.
+    @Test("홈 배너 김이 홈 스크롤 안에서 움직임")
+    func homeBannerSteamMoves() async throws {
+        guard let scene = UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).first else { return }
+        let container = try ModelContainer(for: UserProfile.self, MealRecord.self, WeightRecord.self,
+                                           configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let profile = UserProfile(kakaoUserID: 1, nickname: "전시", weightTenthsKG: 650, hasCompletedOnboarding: true)
+        container.mainContext.insert(profile)
+        let home = HomeView(profile: profile, mealRecordStore: MealRecordStore(modelContext: container.mainContext),
+                            weightRecordStore: WeightRecordStore(modelContext: container.mainContext), aiReportState: .unavailable)
+            .modelContainer(container)
+        let window = UIWindow(windowScene: scene)
+        window.windowLevel = .alert + 1
+        window.rootViewController = UIHostingController(rootView: home)
+        window.makeKeyAndVisible()
+        func capture() -> Data? {
+            UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+                window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+            }.pngData()
+        }
+        try await Task.sleep(for: .seconds(1.5))
+        let first = capture()
+        try await Task.sleep(for: .milliseconds(450))
+        let moving = capture() != first
+        window.isHidden = true
+        report(suite: "운동 환산 스크린샷", id: "B03", input: "HomeView 창 전체(0.45초 간격)", expected: "배너 김이 움직임",
+               actual: moving ? "움직임" : "멈춤",
+               failures: moving ? [] : [Failure(type: .displayText, message: "홈 스크롤 안에서 배너 김이 움직이지 않음")])
+    }
+
     @Test("화면 스크린샷")
     func screens() async throws {
         let result = ExerciseGameResult(displayName: "마라탕 1인분", kcal: 926.7)
@@ -216,5 +310,29 @@ struct ExerciseGameSnapshotTests {
                             weightRecordStore: WeightRecordStore(modelContext: container.mainContext), aiReportState: .unavailable)
             .modelContainer(container)
         try await capture(home, name: "1_home_banner")
+    }
+}
+
+@Observable
+@MainActor
+final class BannerCoverState {
+    var covered = false
+}
+
+private struct BannerHarness: View {
+    let state: BannerCoverState
+
+    // 홈처럼 UIKit 스크롤(NoBounceScrollView) 안에 배너를 둔다.
+    var body: some View {
+        NoBounceScrollView {
+            VStack {
+                ExerciseGameBanner(isCovered: state.covered) {}
+                    .padding(.horizontal, 16)
+                    .padding(.top, 16)
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .background(Color.white)
     }
 }

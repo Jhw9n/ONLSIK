@@ -152,24 +152,51 @@ struct BowlBodyShape: Shape {
     }
 }
 
-/// 김: 흰색 S자 선 3줄. 0.2초 시간차로 올라왔다 사라지기를 반복한다.
-private struct BowlSteamView: View {
+/// 김의 크기·모양. 큰 그릇(운동 환산 화면 2번)과 홈 배너 미니 그릇이 같은 리듬(주기 1.6초, 줄마다 0.2초 시간차)을 쓴다.
+struct SteamStyle {
+    /// 줄 하나의 크기
+    var lineSize: CGSize
+    /// 줄 사이 거리(가운데 기준)
+    var centerSpacing: CGFloat
+    var lineWidth: CGFloat
+    var blur: CGFloat
+    var maxOpacity: Double
+    /// 한 주기 동안 올라가는 거리
+    var rise: CGFloat
+    /// 주기 시작 때 아래로 내려가 있는 거리
+    var startOffset: CGFloat
+    /// 가운데 줄을 위로 올리는 양
+    var middleLift: CGFloat = 0
+
+    /// 운동 환산 화면 그릇(값은 #49 첫 구현 그대로)
+    static let large = SteamStyle(lineSize: CGSize(width: 14, height: 44), centerSpacing: 32, lineWidth: 5, blur: 3,
+                                  maxOpacity: 0.22, rise: 22, startOffset: 10)
+    /// 홈 배너 미니 그릇(Figma 2337:543 Mini Steam 36×21: 줄 7.2×21, 간격 12, 가운데 줄 2.4 위)
+    static let mini = SteamStyle(lineSize: CGSize(width: 7.2, height: 21), centerSpacing: 12, lineWidth: 2, blur: 1,
+                                 maxOpacity: 0.45, rise: 6, startOffset: 3, middleLift: 2.4)
+}
+
+/// 김: 흰색 S자 선 3줄. 0.2초 시간차로 올라왔다 사라지기를 반복한다(30fps 제한).
+/// 동작 줄이기면 움직이지 않는 김을 보이고, paused면 TimelineView를 멈춘다(화면에 안 보일 때 등).
+struct BowlSteamView: View {
     var reduceMotion: Bool
+    var isPaused: Bool = false
+    var style: SteamStyle = .large
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1 / 30, paused: reduceMotion)) { context in
+        TimelineView(.animation(minimumInterval: 1 / 30, paused: reduceMotion || isPaused)) { context in
             let time = context.date.timeIntervalSinceReferenceDate
-            HStack(spacing: 18) {
+            HStack(spacing: style.centerSpacing - style.lineSize.width) {
                 ForEach(0..<3, id: \.self) { index in
                     let cycle = 1.6
                     let phase = reduceMotion ? 0.5 : ((time - Double(index) * 0.2).truncatingRemainder(dividingBy: cycle) + cycle)
                         .truncatingRemainder(dividingBy: cycle) / cycle
                     SteamCurve()
-                        .stroke(Color.white, style: StrokeStyle(lineWidth: 5, lineCap: .round))
-                        .frame(width: 14, height: 44)
-                        .blur(radius: 3)
-                        .opacity(0.22 * sin(Double.pi * phase))
-                        .offset(y: reduceMotion ? 0 : 10 - 22 * phase)
+                        .stroke(Color.white, style: StrokeStyle(lineWidth: style.lineWidth, lineCap: .round))
+                        .frame(width: style.lineSize.width, height: style.lineSize.height)
+                        .blur(radius: style.blur)
+                        .opacity(style.maxOpacity * sin(Double.pi * phase))
+                        .offset(y: (reduceMotion ? 0 : style.startOffset - style.rise * phase) - (index == 1 ? style.middleLift : 0))
                 }
             }
         }
@@ -178,24 +205,26 @@ private struct BowlSteamView: View {
 
 private struct SteamCurve: Shape {
     func path(in rect: CGRect) -> Path {
+        // 곡선이 줄 폭 밖으로 살짝 나가는 양(폭 14에서 2, 폭에 비례)
+        let overshoot = rect.width * 2 / 14
         var path = Path()
         path.move(to: CGPoint(x: rect.midX, y: rect.maxY))
         path.addCurve(to: CGPoint(x: rect.midX, y: rect.midY),
-                      control1: CGPoint(x: rect.minX - 2, y: rect.maxY - rect.height * 0.15),
-                      control2: CGPoint(x: rect.minX - 2, y: rect.midY + rect.height * 0.15))
+                      control1: CGPoint(x: rect.minX - overshoot, y: rect.maxY - rect.height * 0.15),
+                      control2: CGPoint(x: rect.minX - overshoot, y: rect.midY + rect.height * 0.15))
         path.addCurve(to: CGPoint(x: rect.midX, y: rect.minY),
-                      control1: CGPoint(x: rect.maxX + 2, y: rect.midY - rect.height * 0.15),
-                      control2: CGPoint(x: rect.maxX + 2, y: rect.minY + rect.height * 0.15))
+                      control1: CGPoint(x: rect.maxX + overshoot, y: rect.midY - rect.height * 0.15),
+                      control2: CGPoint(x: rect.maxX + overshoot, y: rect.minY + rect.height * 0.15))
         return path
     }
 }
 
-/// 홈 배너의 작은 그릇(56pt): 흰 몸통 반원 + 안쪽 초록 타원, 흰 테두리 2pt
+/// 홈 배너의 작은 그릇(56pt): 몸통 반원(#FFFFFF → #B9C3D6 세로 그라데이션, Figma 2314:610) + 안쪽 초록 타원, 흰 테두리 2pt
 struct ExerciseBowlBadge: View {
     var body: some View {
         ZStack(alignment: .top) {
             BowlBodyShape()
-                .fill(Color.white)
+                .fill(LinearGradient(colors: [.white, Color(hex: 0xB9C3D6)], startPoint: .top, endPoint: .bottom))
                 .frame(width: 52, height: 26)
                 .offset(y: 16)
             Ellipse()

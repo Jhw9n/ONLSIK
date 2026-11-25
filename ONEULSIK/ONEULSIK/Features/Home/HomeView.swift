@@ -56,7 +56,8 @@ struct HomeView: View {
                     }
 
                     if ExerciseGameFeature.isBannerEnabled {
-                        ExerciseGameBanner {
+                        // 운동 환산 화면이 떠 있는 동안 배너 김을 멈춘다.
+                        ExerciseGameBanner(isCovered: isShowingExerciseGame) {
                             withoutAnimation {
                                 isShowingExerciseGame = true
                             }

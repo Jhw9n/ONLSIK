@@ -80,6 +80,29 @@ Figma 프레임은 375×812이고 맨 위 50pt가 상태바다. 아래 값은 �
 - 동작 줄이기: 떨어짐·튕김·숫자 올라감·비눗방울·김 움직임 없이 교차 전환.
 - 연타: 단계가 담기일 때만 시작한다(분석이 두 번 돌지 않음).
 
+## 홈 배너(2026-11-25 Figma 개발 페이지 0 · 홈 배너 2314:606 반영)
+
+배너 크기(343×96)·글자 위치는 그대로이고 아래만 바꿨다.
+
+- 작은 그릇 몸통: 위 #FFFFFF → 아래 #B9C3D6 세로 그라데이션. 안쪽 국물 타원은 그대로.
+- 제목: Pretendard ExtraBold 16. 오른쪽 화살표: 20×20 안의 5×10 꺾쇠, 흰색 선 1.8pt(둥근 끝).
+- 김(Mini Steam): 배너 기준 x 28, y 13에 36×21 overlay(배너 높이·글자 위치에 영향 없음, 배너 모서리로 잘림). 큰 그릇 김(`BowlSteamView`)을 `SteamStyle`로 일반화해 같이 쓴다. 큰 그릇 값(`.large`)은 전과 같다.
+
+| 값 | 큰 그릇 `.large` | 배너 `.mini` |
+| --- | --- | --- |
+| 줄 크기 | 14×44 | 7.2×21 |
+| 줄 간격(중심) | 32 | 12 |
+| 선 굵기·흐림 | 5·3 | 2·1 |
+| 최대 투명도 | 0.22 | 0.45 |
+| 올라가는 거리 | 22 | 6 |
+
+  세 줄 모두 1.6초 주기, 줄마다 0.2초 시간차, 흰색 둥근 끝. TimelineView는 초당 30번까지만 그린다.
+- 김을 멈추는 때: 배너가 화면에 안 보일 때, 운동 환산 화면(fullScreenCover)이 떠 있을 때(`HomeView`가 `isCovered: isShowingExerciseGame`을 넘김), 앱이 활성 상태가 아닐 때. 동작 줄이기면 움직이지 않는 김을 보여 준다.
+  - 홈 내용은 UIKit 스크롤(`NoBounceScrollView`) 안의 별도 UIHostingController라 SwiftUI `onAppear`로는 스크롤로 가려지는 것을 알 수 없다. 배너 뒤에 빈 UIView(`VisibilityProbe`)를 두고 가장 가까운 UIScrollView의 contentOffset과 자기 크기 변화를 보며 창 안에 보이는지 잰다.
+  - 같은 이유로 `scenePhase`가 전달되지 않을 수 있어 앱 활성 여부는 `UIApplication.didBecomeActive/willResignActive` 알림으로 잰다.
+- 테스트: B01(보임·덮임·활성 조합 4개로 멈춤 조건), B02(스크린샷 묶음, 홈과 같은 UIKit 스크롤 안의 배너에서 김 영역 픽셀이 움직임 → 덮인 동안 멈춤 → 덮개를 닫은 뒤 다시 움직임), B03(스크린샷 묶음, 실제 `HomeView` 창에서 김이 움직임). B02·B03은 시뮬레이터 결과이고, 실제로 배너를 눌러 운동 환산 화면을 열고 닫는 탭은 자동화하지 않았다(덮개 값을 바꿔 확인). 실제 기기에서는 확인하지 않았다.
+- 스크린샷: `393x852_1_home_banner.png`(홈 전체), `393x852_1b_banner_zoom.png`(배너 확대, 3배 해상도). 둘 다 시뮬레이터 결과다.
+
 ## 테스트
 
-`ONEULSIKTests/ExerciseGameTests.swift`: 계산 E01~E05, 분석 흐름 Y01~Y05(가짜 해석기, MealRecord 저장 없음 포함), 표시 이름·조사 X01~X04. 스크린샷은 `ExerciseGameSnapshotTests`(환경 변수 `ONEULSIK_SNAPSHOT_DIR`이 있을 때만, 예: `TEST_RUNNER_ONEULSIK_SNAPSHOT_DIR=<폴더> xcodebuild test -destination 'id=<시뮬레이터>' -only-testing:ONEULSIKTests/ExerciseGameSnapshotTests`). 파일 이름 앞에 화면 크기(pt)가 붙는다. `Docs/Screenshots/ExerciseGame/`의 스크린샷은 **시뮬레이터 결과**다(iOS 27 시뮬레이터 iPhone 15 Pro 393×852, iPhone SE 3세대 375×667, iPhone 15 Pro Max 430×932, 테스트 호스트 앱 창을 drawHierarchy로 그림). 세 크기 모두 1(빈 입력)·1(입력, 키보드 내림)·2(연출 중간)·3(결과)이 있고, 393×852에는 홈 배너·채워진 그릇·실패 안내도 있다. 연출 중간은 고정 상태로 만든 장면이다. 흐름 테스트의 분석기는 전체 테스트를 병렬로 돌릴 때 시뮬레이터가 느려져도 걸리지 않게 시간 제한을 180초로 둔다(앱은 60초).
+`ONEULSIKTests/ExerciseGameTests.swift`: 계산 E01~E05, 분석 흐름 Y01~Y05(가짜 해석기, MealRecord 저장 없음 포함), 표시 이름·조사 X01~X04. 스크린샷은 `ExerciseGameSnapshotTests`(환경 변수 `ONEULSIK_SNAPSHOT_DIR`이 있을 때만, 예: `TEST_RUNNER_ONEULSIK_SNAPSHOT_DIR=<폴더> xcodebuild test -destination 'id=<시뮬레이터>' -only-testing:ONEULSIKTests/ExerciseGameSnapshotTests`). 파일 이름 앞에 화면 크기(pt)가 붙는다. `Docs/Screenshots/ExerciseGame/`의 스크린샷은 **시뮬레이터 결과**다(iOS 27 시뮬레이터 iPhone 15 Pro 393×852, iPhone SE 3세대 375×667, iPhone 15 Pro Max 430×932, 테스트 호스트 앱 창을 drawHierarchy로 그림). 세 크기 모두 1(빈 입력)·1(입력, 키보드 내림)·2(연출 중간)·3(결과)이 있고, 393×852에는 홈 배너·배너 확대·채워진 그릇·실패 안내도 있다. 연출 중간은 고정 상태로 만든 장면이다. 흐름 테스트의 분석기는 전체 테스트를 병렬로 돌릴 때 시뮬레이터가 느려져도 걸리지 않게 시간 제한을 180초로 둔다(앱은 60초).
