@@ -55,14 +55,20 @@ struct MealEntryItem: Identifiable {
     var quantityUnit: String { usesWeight ? food.amountUnit : food.servingUnit }
     var quantity: Double { usesWeight ? food.baseAmount * count : count }
     var quantityStep: Double { usesWeight ? 10 : 0.5 }
+    /// 분량 숫자 표시 방식(MealAmountDisplay, #43): 음식 DB mL 자료의 고체 음식은 숨기고, 국물·면은 g으로 보인다.
+    var amountDisplayStyle: MealAmountDisplay.Style {
+        MealAmountDisplay.style(foodID: food.id, name: food.name, servingUnit: food.servingUnit,
+                                usesMilliliters: food.amountUnit == "mL", isEntered: portionBasis == .entered)
+    }
     var basisDescription: String? {
         guard food.baseAmount > 0, !usesWeight else { return nil }
-        let amount = "약 \((food.baseAmount * count).formatted(.number.precision(.fractionLength(0...1))))\(food.amountUnit)"
+        let amount = MealAmountDisplay.amountText(food.baseAmount * count, unit: food.amountUnit, style: amountDisplayStyle).map { "약 \($0)" }
         let reference = portionBasis == .representative && !food.referencePortionUnit.isEmpty
             && food.referencePortionUnit != food.servingUnit ? "대표 분량 1\(food.referencePortionUnit) 기준" : nil
         // 기본값 안내는 처음 가정한 수량 그대로일 때만 보여준다(± 버튼으로 바꾸면 숨김).
         let note = abs(scale - 1) < 0.000_001 ? quantityNote : nil
-        return [amount, reference, portionNote, portionBasis.label, volumeNote, note].compactMap { $0 }.joined(separator: " · ")
+        let parts = [amount, reference, portionNote, portionBasis.label, volumeNote, note].compactMap { $0 }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
     /// 수량을 적지 않아 1단위로 가정했을 때의 화면 문구. 예: "수량이 없어서 1인분으로 가정했어요"

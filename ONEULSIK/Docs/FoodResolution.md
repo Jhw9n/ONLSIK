@@ -144,6 +144,19 @@
 1. 대표 분량(`FoodCatalogItem.representativePortion` = `FoodPortion.representative(for:)`, g 기준만, 국물·면 mL 제외)
 2. 없으면 g/mL 직접 입력이 기본입니다.
 
+### 분량 표시(`MealAmountDisplay`, 2026-11-25 사용자 결정, #43)
+
+식약처 음식 DB의 mL 자료로 기록된 고체 음식은 mL가 부피라, 화면에 mL로 보이면 어색하고 g으로 바꾸면 무게가 실제와 달라집니다(실기기: 피자 4조각 800mL, 탕수육 절반 171.5mL, 돌솥비빔밥 575mL). **표시만** 바꾸고 저장 값·영양 계산·분량 근거는 그대로입니다.
+
+- 대상: 음식 DB 자료(식품코드가 D로 시작)이면서 mL 기준인 기록. 다음은 mL(또는 자료 단위)를 그대로 보입니다.
+  - 술·음료 표(`DrinkReferences.json`)의 자료이거나 그 이름
+  - 음식 DB가 아닌 자료(가공식품·원재료: 음료·유제품 등 제품 표시 용량)
+  - 마시는 용기 단위로 기록(`DrinkReferences.json`의 `plausibleMilliliters` 단위: 병·캔·잔·컵)
+  - 사용자가 g·mL로 양을 적은 기록(단위가 mL이거나 분량 근거 `entered`, 예: `탕수육 300mL`)
+- 국물·면(`VolumeAsWeight.json` 판정, `excludeNames` 제외): 같은 숫자를 g으로 보입니다(예: `0.5인분 · 약 200g`).
+- 그 밖의 음식: mL 숫자를 숨기고 수량·단위와 열량만 보입니다(예: `4조각 · 1,224kcal`).
+- 적용 위치: 식사 입력 결과 카드의 분량 안내(`MealEntryItem.basisDescription`), 분량을 찾지 못했을 때의 1인분 선택 질문 선택지 부제목(`AIMealEntryService.portionFallback`), 기록 목록(`MealRecord.servingDescription`, `MealDetailView`의 행). 양 조절 기능(수량 입력)은 그대로입니다. 테스트는 `AmountDisplayTests`(W01~W08)입니다.
+
 ## 4. 실제 해석기와 가짜 해석기의 실패 조건(#41 2차 A)
 
 회귀 테스트의 가짜 해석기(`FakeMealFoodInterpreter`)는 실제 해석기(`AppleMealFoodInterpreter`)와 같은 조건에서 nil·예외를 냅니다. 2026-11-24 전에는 실제 해석기에만 "기준 음식이 입력에 있어야 함" 조건이 있어 테스트는 통과하고 실기기는 오류 화면이 났습니다.

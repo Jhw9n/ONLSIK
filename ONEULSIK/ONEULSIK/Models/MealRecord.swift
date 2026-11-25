@@ -98,6 +98,16 @@ extension MealRecord {
         guard servingGrams > 0 || servingMilliliters > 0 else { return "\(count)\(servingUnit)" }
         let unit = servingMilliliters > 0 ? "mL" : "g"
         if servingUnit == unit { return "\(amount)\(unit)" }
+        // 음식 DB mL 자료의 고체 음식은 숫자를 숨기고 국물·면은 g으로 보인다(표시만, MealAmountDisplay, #43).
+        if servingMilliliters > 0 {
+            let style = MealAmountDisplay.style(foodID: foodID, name: foodName, servingUnit: servingUnit, usesMilliliters: true,
+                                                isEntered: portionBasisRawValue == MealPortionBasis.entered.rawValue)
+            switch style {
+            case .hidden: return "\(count)\(servingUnit)"
+            case .grams: return "\(count)\(servingUnit) (\(amount)g)"
+            case .asIs: break
+            }
+        }
         return "\(count)\(servingUnit) (\(amount)\(unit))"
     }
 

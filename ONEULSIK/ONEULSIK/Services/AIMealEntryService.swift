@@ -782,7 +782,10 @@ final class AIMealEntryService: MealEntryAnalyzing {
                 return MealEntryChoice(id: UUID().uuidString, title: "\(Self.amountText(quantity))인분", items: items,
                     selection: MealFoodSelection(input: input, food: food, isSimilar: selection.isSimilar,
                         isProductConfirmed: selection.isProductConfirmed),
-                    remainingFoods: remaining, subtitle: "약 \(Self.amountText(base * quantity))\(food.amountUnit)")
+                    remainingFoods: remaining,
+                    // 음식 DB mL 자료의 고체 음식은 숫자를 숨기고 국물·면은 g으로 보인다(표시만, MealAmountDisplay, #43).
+                    subtitle: MealAmountDisplay.amountText(base * quantity, unit: food.amountUnit, style: MealAmountDisplay.style(foodID: food.id,
+                        name: selection.input.name, servingUnit: "인분", usesMilliliters: food.amountUnit == "mL", isEntered: false)).map { "약 \($0)" })
             }
         ))
     }
