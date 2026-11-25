@@ -77,18 +77,18 @@ struct ExerciseGameView: View {
     private enum Metrics {
         /// 뒤로가기 헤더(header-page-iOS) 높이. 입력 상태에서만 버튼이 보이고 자리는 늘 유지한다.
         static let headerHeight: CGFloat = 56
-        /// 제목 첫 줄 윗변(헤더 아래 24). 결과 화면 제목(음식 이름 줄)도 같은 값
-        static let titleTop: CGFloat = 80
-        /// 1·2번 제목 한 줄 높이(30pt × 130%)와 두 줄 사이 간격: 첫 줄 80, 둘째 줄 121
+        /// 제목 첫 줄 윗변(헤더 아래 30). 결과 화면 제목(음식 이름 줄)도 같은 값
+        static let titleTop: CGFloat = 86
+        /// 1·2번 제목 한 줄 높이(30pt × 130%)와 두 줄 사이 간격: 첫 줄 86, 둘째 줄 127
         static let titleLineHeight: CGFloat = 39
         static let titleLineGap: CGFloat = 2
-        /// 부제 윗변(둘째 줄 아래 160 + 8)
-        static let subtitleTop: CGFloat = 168
+        /// 부제 윗변(둘째 줄 아래 166 + 8)
+        static let subtitleTop: CGFloat = 174
         /// 입력칸(Bowl Input 243×52, 가로 가운데, 375 기준 x 66) 윗변. 모서리 반지름은 높이의 절반
-        static let inputTop: CGFloat = 282
+        static let inputTop: CGFloat = 298
         static let inputSize = CGSize(width: 243, height: 52)
         /// 그릇 묶음 윗변
-        static let bowlTop: CGFloat = 370
+        static let bowlTop: CGFloat = 386
         /// 그릇 기본 배율: ExerciseBowlView 기준 320×230 → 297.92×214.13. 그릇 안 모든 도형·김·물결·입구가 같은 비율로 줄어든다.
         static let bowlBaseScale: CGFloat = 0.931
         /// 작은 화면에서 그릇 위 간격(입력칸 아래에서)을 줄일 때 최소값
@@ -99,12 +99,12 @@ struct ExerciseGameView: View {
         static var bowlBlockHeight: CGFloat { ExerciseBowlView.size.height * bowlBaseScale + bowlLabelSpace }
         /// 작은 화면에서 더 줄일 때 최소 배율. 기본 크기(297.92×214.13)에 곱한다(원래 320×230 기준으로는 0.745).
         static let bowlMinScale: CGFloat = 0.8
-        /// 결과: "927"(48 Bold) 윗변 123, "kcal"(24 Bold)은 같은 기준선
-        static let resultKcalTop: CGFloat = 123
+        /// 결과: "927"(48 Bold) 윗변 129, "kcal"(24 Bold)은 같은 기준선
+        static let resultKcalTop: CGFloat = 129
         /// 결과: 카드 묶음 윗변
-        static let resultCardsTop: CGFloat = 225
-        /// 결과: kcal 줄 아래(185)에서 8 띄운 카드 최소 위치(작은 화면에서 줄일 때)
-        static let resultMinCardsTop: CGFloat = 193
+        static let resultCardsTop: CGFloat = 231
+        /// 결과: kcal 줄 아래(191)에서 8 띄운 카드 최소 위치(작은 화면에서 줄일 때)
+        static let resultMinCardsTop: CGFloat = 199
         static let cardHeight: CGFloat = 98
         static let cardSpacing: CGFloat = 14
         static let cardMinSpacing: CGFloat = 10
@@ -228,7 +228,7 @@ struct ExerciseGameView: View {
         .ignoresSafeArea()
     }
 
-    /// 비눗방울(Figma 2313:534): 54pt (20, 182), 22pt (318, 204), 40pt (306, 578). 가로는 폭 375 기준 비율.
+    /// 비눗방울(Figma 2313:534): 54pt (20, 188), 22pt (318, 210), 40pt (306, 594). 가로는 폭 375 기준 비율.
     /// 결과 화면(2314:554)에는 비눗방울이 없어 숨긴다.
     private func bubbles(_ size: CGSize) -> some View {
         let sx = size.width / 375
@@ -236,11 +236,11 @@ struct ExerciseGameView: View {
             let time = context.date.timeIntervalSinceReferenceDate
             ZStack(alignment: .topLeading) {
                 bubble(size: 54, tint: Color.exerciseLightGreen, time: time, period: 4.6, phase: 0)
-                    .position(x: (20 + 27) * sx, y: 182 + 27)
+                    .position(x: (20 + 27) * sx, y: 188 + 27)
                 bubble(size: 40, tint: Color(hex: 0x3FC6A8), time: time, period: 5.4, phase: 1.7)
-                    .position(x: (306 + 20) * sx, y: 578 + 20)
+                    .position(x: (306 + 20) * sx, y: 594 + 20)
                 bubble(size: 22, tint: .white, time: time, period: 3.9, phase: 3.1)
-                    .position(x: (318 + 11) * sx, y: 204 + 11)
+                    .position(x: (318 + 11) * sx, y: 210 + 11)
             }
             .frame(width: size.width, height: size.height, alignment: .topLeading)
             .opacity(showsResult ? 0 : 1)
@@ -264,7 +264,7 @@ struct ExerciseGameView: View {
 
     // MARK: - 화면 A·B
 
-    /// 헤더(56) → 제목 80·121, 부제 168 → 입력칸 282(243×52) → 그릇 370(297.92×214.13).
+    /// 헤더(56) → 제목 86·127, 부제 174 → 입력칸 298(243×52) → 그릇 386(297.92×214.13).
     /// 작은 화면에서 그릇 묶음이 하단 버튼에 닿으면 먼저 그릇 위 간격을 줄이고(최소 8), 그래도 부족하면 그릇을 줄인다(기본 크기의 최소 0.8배).
     private func inputContent(_ size: CGSize) -> some View {
         let contentHeight = size.height - bottomBlockHeight(result: false)
@@ -453,8 +453,8 @@ struct ExerciseGameView: View {
 
     // MARK: - 화면 C
 
-    /// 제목 72, "927 kcal" 115, 카드 묶음 221(Figma 2314:554). 카드 폭은 좌우 16 여백 안을 채운다.
-    /// 작은 화면에서 카드 묶음이 안내 문구·버튼에 닿으면 카드 위 간격을 줄이고(최소 185), 그래도 부족하면 카드 간격을 14 → 10.
+    /// 제목 86, "927 kcal" 129, 카드 묶음 231(Figma 2314:554). 카드 폭은 좌우 16 여백 안을 채운다.
+    /// 작은 화면에서 카드 묶음이 안내 문구·버튼에 닿으면 카드 위 간격을 줄이고(최소 199), 그래도 부족하면 카드 간격을 14 → 10.
     private func resultContent(_ result: ExerciseGameResult, size: CGSize) -> some View {
         let contentHeight = size.height - bottomBlockHeight(result: true)
         let cardCount = CGFloat(exercises.count)
