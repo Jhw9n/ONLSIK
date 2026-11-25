@@ -7,7 +7,7 @@ enum ExerciseGameFeature {
 }
 
 /// 홈의 "먹고 싶은 음식 담아보기" 배너(343×96, Figma "개발" 페이지 0 · 홈 배너 2314:609). 누르면 운동 환산 화면을 연다.
-/// 미니 그릇 위에 김(Mini Steam 36×21, 배너 기준 x 28, y 13)이 올라온다. 김은 overlay라 배너 높이·글자 위치에 영향이 없고,
+/// 미니 그릇 위에 김(Mini Steam 36×21, 배너 기준 x 28, y 17)이 올라온다. 김 아래 끝은 국물 타원 윗면(배너 y 33)에서 시작한다. 김은 overlay라 배너 높이·글자 위치에 영향이 없고,
 /// 배너가 화면에 안 보이거나 운동 환산 화면이 떠 있거나 앱이 활성 상태가 아니면 멈춘다(동작 줄이기면 움직이지 않는 김).
 struct ExerciseGameBanner: View {
     /// 운동 환산 화면(fullScreenCover)이 떠 있는지. 떠 있으면 김을 멈춘다.
@@ -32,9 +32,9 @@ struct ExerciseGameBanner: View {
         Button(action: action) {
             HStack(spacing: 14) {
                 ExerciseBowlBadge()
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 8) {
                     Text("먹고 싶은 음식 담아보기")
-                        .font(.pretendardExtraBold(16))
+                        .font(.pretendardBold(16))
                         .foregroundStyle(Color.white)
                     Text("운동으로 얼마나 빼야 할지 알려드려요")
                         .font(.pretendardSemiBold(12))
@@ -51,7 +51,7 @@ struct ExerciseGameBanner: View {
             .overlay(alignment: .topLeading) {
                 BowlSteamView(reduceMotion: reduceMotion, isPaused: isSteamPaused, style: .mini)
                     .frame(width: 36, height: 21)
-                    .offset(x: 28, y: 13)
+                    .offset(x: 28, y: 17)
                     .allowsHitTesting(false)
                     .accessibilityHidden(true)
             }

@@ -336,3 +336,95 @@ private struct BannerHarness: View {
         .background(Color.white)
     }
 }
+
+/// 운동 환산 화면 1번의 뒤로가기 버튼(48×48)을 실제 터치로 누른다(#49). 테스트 호스트 앱 창에 화면을 띄우고
+/// TouchSynthesizer로 UITouch를 보내 onClose가 불리는지 본다. 창을 띄우므로 차례로 돌린다.
+@MainActor
+@Suite("운동 환산 뒤로가기", .serialized)
+struct ExerciseGameBackButtonTests {
+    private final class CloseCounter { var count = 0 }
+
+    private func present(_ counter: CloseCounter) throws -> UIWindow {
+        let scene = try #require(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
+        let window = UIWindow(windowScene: scene)
+        window.windowLevel = .alert + 1
+        window.rootViewController = UIHostingController(rootView: ExerciseGameView(
+            weightKG: 65, usesFallbackWeight: true, analyzer: ExerciseGameAnalyzer(), onClose: { counter.count += 1 }))
+        window.makeKeyAndVisible()
+        return window
+    }
+
+    /// 전체 테스트를 병렬로 돌리면 메인 스레드가 바빠 탭 처리가 늦어질 수 있어 조건이 될 때까지 기다린다(최대 timeout).
+    private func wait(upTo timeout: Duration, until condition: () -> Bool) async throws {
+        let clock = ContinuousClock()
+        let deadline = clock.now + timeout
+        while !condition(), clock.now < deadline { try await Task.sleep(for: .milliseconds(50)) }
+    }
+
+    private func firstResponderField(in view: UIView) -> UITextField? {
+        if let field = view as? UITextField, field.isFirstResponder { return field }
+        for subview in view.subviews { if let found = firstResponderField(in: subview) { return found } }
+        return nil
+    }
+
+    /// 버튼(창 기준 x 4~52, y 안전 영역 위 + 4~52) 안 네 모서리 근처(가장자리에서 4pt)와 아이콘 가운데
+    private func points(_ window: UIWindow) -> [(String, CGPoint)] {
+        let top = window.safeAreaInsets.top + 4
+        return [("아이콘 가운데", CGPoint(x: 28, y: top + 24)),
+                ("왼쪽 위", CGPoint(x: 8, y: top + 4)), ("오른쪽 위", CGPoint(x: 48, y: top + 4)),
+                ("왼쪽 아래", CGPoint(x: 8, y: top + 44)), ("오른쪽 아래", CGPoint(x: 48, y: top + 44))]
+    }
+
+    @Test("뒤로가기 48×48 어디를 눌러도 닫힘")
+    func backButtonEdges() async throws {
+        var results: [String] = []
+        var failures: [Failure] = []
+        // 준비: 전체 테스트를 병렬로 돌리면 첫 창의 첫 탭이 늦게 처리될 수 있어, 버튼과 먼 빈 곳(배경)을 한 번 눌러 터치 경로를 데운다.
+        let probe = try present(CloseCounter())
+        let cases = points(probe)
+        try await Task.sleep(for: .milliseconds(1500))
+        try await TouchSynthesizer.tap(CGPoint(x: probe.bounds.midX, y: probe.bounds.midY), in: probe)
+        try await Task.sleep(for: .milliseconds(500))
+        probe.isHidden = true
+        for (name, point) in cases {
+            let counter = CloseCounter()
+            let window = try present(counter)
+            try await Task.sleep(for: .milliseconds(1200))
+            try await TouchSynthesizer.tap(point, in: window)
+            try await wait(upTo: .seconds(3)) { counter.count > 0 }
+            try await Task.sleep(for: .milliseconds(200))
+            window.isHidden = true
+            results.append("\(name) \(counter.count == 1 ? "닫힘" : "안 닫힘")")
+            if counter.count != 1 { failures.append(Failure(type: .displayText, message: "\(name)(\(Int(point.x)), \(Int(point.y)))을 눌러도 닫히지 않음")) }
+        }
+        report(suite: "운동 환산 뒤로가기", id: "H01", input: "뒤로가기 버튼 안 5곳 탭(아이콘 가운데·네 모서리 4pt 안쪽)",
+               expected: "5곳 모두 onClose 1번", actual: results.joined(separator: ", "), failures: failures)
+    }
+
+    @Test("입력칸에 포커스가 있을 때 뒤로가기 한 번에 닫힘")
+    func backButtonWithKeyboard() async throws {
+        let counter = CloseCounter()
+        let window = try present(counter)
+        try await Task.sleep(for: .milliseconds(1200))
+        // 입력칸(가로 가운데, 안전 영역 위 + 252~308)을 눌러 포커스를 준다.
+        try await TouchSynthesizer.tap(CGPoint(x: window.bounds.midX, y: window.safeAreaInsets.top + 280), in: window)
+        try await wait(upTo: .seconds(3)) { firstResponderField(in: window) != nil }
+        // 키보드가 올라오는 애니메이션이 끝날 때까지
+        try await Task.sleep(for: .milliseconds(800))
+        let focusedBefore = firstResponderField(in: window) != nil
+        let corner = points(window)[4]
+        try await TouchSynthesizer.tap(corner.1, in: window)
+        try await wait(upTo: .seconds(3)) { counter.count > 0 }
+        try await Task.sleep(for: .milliseconds(300))
+        let focusedAfter = firstResponderField(in: window) != nil
+        window.isHidden = true
+        var failures: [Failure] = []
+        if !focusedBefore { failures.append(Failure(type: .displayText, message: "입력칸을 눌러도 포커스가 가지 않음(시험 준비 실패)")) }
+        if counter.count != 1 { failures.append(Failure(type: .displayText, message: "포커스가 있을 때 뒤로가기 \(corner.0)를 한 번 눌러 닫히지 않음(onClose \(counter.count)번)")) }
+        if focusedAfter { failures.append(Failure(type: .displayText, message: "닫은 뒤에도 입력칸 포커스가 남음")) }
+        report(suite: "운동 환산 뒤로가기", id: "H02", input: "입력칸 탭(포커스) → 뒤로가기 \(corner.0) 한 번 탭",
+               expected: "포커스 해제, onClose 1번",
+               actual: "탭 전 포커스 \(focusedBefore ? "있음" : "없음"), onClose \(counter.count)번, 탭 뒤 포커스 \(focusedAfter ? "남음" : "없음")",
+               failures: failures)
+    }
+}

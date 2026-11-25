@@ -81,9 +81,9 @@ struct ExerciseGameView: View {
         static let titleTop: CGFloat = 72
         /// 부제 윗변
         static let subtitleTop: CGFloat = 162
-        /// 입력칸(271×56) 윗변
+        /// 입력칸(Bowl Input 255×56, 가로 가운데, 375 기준 x 60) 윗변
         static let inputTop: CGFloat = 252
-        static let inputSize = CGSize(width: 271, height: 56)
+        static let inputSize = CGSize(width: 255, height: 56)
         /// 그릇 묶음(320×230) 윗변
         static let bowlTop: CGFloat = 324
         /// 작은 화면에서 그릇 위 간격(입력칸 아래에서)을 줄일 때 최소값
@@ -165,6 +165,8 @@ struct ExerciseGameView: View {
     /// 입력 상태에서만 버튼이 보이고(연출·결과에서는 숨김) 자리는 늘 유지해 제목이 위아래로 움직이지 않는다.
     private var header: some View {
         HStack {
+            // 화면 전체에 키보드를 내리는 배경 탭(onTapGesture)이 깔려 있어, contentShape가 없으면 아이콘 위를 눌러도
+            // 배경 탭이 먼저 잡아 닫히지 않았다(실기기 증상). 48×48 전체를 누르는 영역으로 둔다.
             Button {
                 isInputFocused = false
                 onClose()
@@ -174,6 +176,7 @@ struct ExerciseGameView: View {
                     .foregroundStyle(Color.white)
                     .frame(width: 24, height: 24)
                     .frame(width: 48, height: 48)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel("뒤로가기")
@@ -325,9 +328,13 @@ struct ExerciseGameView: View {
     }
 
     /// 입력칸(글자만 받는다). 확인(return) 키는 하단 "담기"와 같다.
+    /// 안내 문구·입력 글자·커서 모두 가로 가운데(좌우 안쪽 여백 22로 같게).
     private var inputField: some View {
-        TextField("", text: $text, prompt: Text("먹고 싶은 음식을 적어주세요").foregroundStyle(Color(hex: 0x9AA0AB)))
-            .font(.pretendardMedium(16))
+        TextField("", text: $text, prompt: Text("먹고 싶은 음식을 적어주세요")
+            .font(.pretendardSemiBold(16))
+            .foregroundStyle(Color(hex: 0x9AA0AB)))
+            .font(.pretendardSemiBold(16))
+            .multilineTextAlignment(.center)
             .foregroundStyle(Color(hex: 0x1D1D1D))
             .tint(Color.exerciseGreen)
             .submitLabel(.done)

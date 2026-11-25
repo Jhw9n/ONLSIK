@@ -167,13 +167,16 @@ struct SteamStyle {
     var startOffset: CGFloat
     /// 가운데 줄을 위로 올리는 양
     var middleLift: CGFloat = 0
+    /// 동작 줄이기일 때 멈춘 김의 위치
+    var restingOffset: CGFloat = 0
 
     /// 운동 환산 화면 그릇(값은 #49 첫 구현 그대로)
     static let large = SteamStyle(lineSize: CGSize(width: 14, height: 44), centerSpacing: 32, lineWidth: 5, blur: 3,
                                   maxOpacity: 0.22, rise: 22, startOffset: 10)
-    /// 홈 배너 미니 그릇(Figma 2337:543 Mini Steam 36×21: 줄 7.2×21, 간격 12, 가운데 줄 2.4 위)
+    /// 홈 배너 미니 그릇(Figma 2337:543 Mini Steam 36×21, 배너 y 17: 줄 7.2×21, 간격 12, 가운데 줄 2.4 위).
+    /// 틀 아래 끝(배너 y 38)이 국물 타원 윗면(배너 y 33)보다 5 아래라, 주기 시작 때 5 올려 줄 아래 끝이 국물 윗면에서 출발하게 한다.
     static let mini = SteamStyle(lineSize: CGSize(width: 7.2, height: 21), centerSpacing: 12, lineWidth: 2, blur: 1,
-                                 maxOpacity: 0.45, rise: 6, startOffset: 3, middleLift: 2.4)
+                                 maxOpacity: 0.45, rise: 6, startOffset: -5, middleLift: 2.4, restingOffset: -5)
 }
 
 /// 김: 흰색 S자 선 3줄. 0.2초 시간차로 올라왔다 사라지기를 반복한다(30fps 제한).
@@ -196,7 +199,7 @@ struct BowlSteamView: View {
                         .frame(width: style.lineSize.width, height: style.lineSize.height)
                         .blur(radius: style.blur)
                         .opacity(style.maxOpacity * sin(Double.pi * phase))
-                        .offset(y: (reduceMotion ? 0 : style.startOffset - style.rise * phase) - (index == 1 ? style.middleLift : 0))
+                        .offset(y: (reduceMotion ? style.restingOffset : style.startOffset - style.rise * phase) - (index == 1 ? style.middleLift : 0))
                 }
             }
         }
@@ -221,19 +224,23 @@ private struct SteamCurve: Shape {
 
 /// 홈 배너의 작은 그릇(56pt): 몸통 반원(#FFFFFF → #B9C3D6 세로 그라데이션, Figma 2314:610) + 안쪽 초록 타원, 흰 테두리 2pt
 struct ExerciseBowlBadge: View {
+    /// 국물 타원 윗변(56×56 틀 위에서). 흰 테두리 바깥이 틀 위 13 = 배너 y 33(Figma Mini Bowl, 배너 y 20)
+    static let soupTop: CGFloat = 14
+
     var body: some View {
         ZStack(alignment: .top) {
             BowlBodyShape()
                 .fill(LinearGradient(colors: [.white, Color(hex: 0xB9C3D6)], startPoint: .top, endPoint: .bottom))
                 .frame(width: 52, height: 26)
-                .offset(y: 16)
+                .offset(y: Self.soupTop + 8)
             Ellipse()
                 .fill(LinearGradient(colors: [Color(hex: 0x2E8F43), Color.exerciseLightGreen], startPoint: .top, endPoint: .bottom))
                 .overlay { Ellipse().stroke(Color.white, lineWidth: 2) }
                 .frame(width: 52, height: 16)
-                .offset(y: 8)
+                .offset(y: Self.soupTop)
         }
-        .frame(width: 56, height: 56)
+        // 내용을 틀 위에 붙인다(가운데 정렬이면 국물이 Figma보다 9pt 아래로 내려감).
+        .frame(width: 56, height: 56, alignment: .top)
         .accessibilityHidden(true)
     }
 }
