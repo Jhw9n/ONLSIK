@@ -11,6 +11,7 @@ struct SettingsView: View {
     @State private var unavailableItem: SettingsItem?
     @State private var isDeletingAccount = false
     @State private var isShowingDeletionError = false
+    @Environment(\.appRouter) private var router
 
     var body: some View {
         VStack(spacing: 0) {
@@ -23,6 +24,8 @@ struct SettingsView: View {
                     accountSection
                     divider
                     informationSection
+                    divider
+                    searchLogSection
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 12)
@@ -149,6 +152,19 @@ struct SettingsView: View {
                     .foregroundStyle(Color.gray03)
             }
             .frame(height: 30)
+        }
+    }
+
+    /// 전시용 검색 개선 기록(#51). 기기 안 기록만 보고·복사·지운다(식사 기록과 따로).
+    private var searchLogSection: some View {
+        // 설정 내용은 NoBounceScrollView 안이라, 라우터를 화면을 그릴 때 꺼내 둔다.
+        let router = self.router
+        return settingsSection(title: "전시") {
+            settingsRow(title: "검색 개선 기록") {
+                router.push(.searchImprovementLog) {
+                    SearchImprovementLogView(onBack: { router.pop(.searchImprovementLog) })
+                }
+            }
         }
     }
 

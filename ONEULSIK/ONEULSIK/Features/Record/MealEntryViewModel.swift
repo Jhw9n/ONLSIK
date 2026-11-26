@@ -37,11 +37,17 @@ final class MealEntryViewModel {
     @ObservationIgnored private var requestID: UUID?
     @ObservationIgnored private var retryChoice: MealEntryChoice?
     @ObservationIgnored private let analysisTimeout: Duration
+    /// 검색 개선 기록(#51). 화면에서 일어난 일을 덧붙이기만 하고 분석·저장에는 관여하지 않는다.
+    @ObservationIgnored private let searchLog: SearchImprovementLog
+    /// 보여 준 질문의 기록(사용자가 고르면 최종 행동과 함께 남긴다)
+    @ObservationIgnored private var pendingSearchLog: SearchImprovementEntry?
 
-    init(mealType: MealType, analyzer: (any MealEntryAnalyzing)? = nil, analysisTimeout: Duration = .seconds(60)) {
+    init(mealType: MealType, analyzer: (any MealEntryAnalyzing)? = nil, analysisTimeout: Duration = .seconds(60),
+         searchLog: SearchImprovementLog? = nil) {
         self.mealType = mealType
         self.analyzer = analyzer ?? AIMealEntryService()
         self.analysisTimeout = analysisTimeout
+        self.searchLog = searchLog ?? .shared
     }
 
     var canSubmit: Bool {
@@ -175,12 +181,17 @@ final class MealEntryViewModel {
                     try Task.checkCancellation()
                     guard let self, self.requestID == currentID else { return }
                     self.activeRowID = row.id
+                    let rowText = row.text.trimmingCharacters(in: .whitespacesAndNewlines)
                     let result: MealEntryAnalysis
+                    let isFreshAnalysis: Bool
                     if let choice, row.id == choiceRowID {
                         result = try await analyzer.resolve(choice)
+                        isFreshAnalysis = false
                     } else {
                         self.retryChoice = nil
-                        result = try await analyzer.analyze(row.text.trimmingCharacters(in: .whitespacesAndNewlines))
+                        self.flushPendingSearchLog()
+                        result = try await analyzer.analyze(rowText)
+                        isFreshAnalysis = true
                     }
                     try Task.checkCancellation()
                     guard self.requestID == currentID else { return }
@@ -194,6 +205,7 @@ final class MealEntryViewModel {
                         }
                         self.phase = .question(question)
                         self.retryChoice = nil
+                        self.recordQuestion(question, inputText: rowText)
                         self.finishAnalysis()
                         return
                     case .ready(let resultItems):
@@ -205,6 +217,7 @@ final class MealEntryViewModel {
                         }
                         self.rowResults[row.id] = resultItems
                         self.refreshItems()
+                        if isFreshAnalysis { self.recordAutomatic(resultItems, inputText: rowText) }
                     }
                 }
                 guard let self, self.requestID == currentID else { return }
@@ -217,6 +230,7 @@ final class MealEntryViewModel {
                 guard let self, self.requestID == currentID, !Task.isCancelled else { return }
                 let failure = error as? MealEntryError ?? .generationFailed
                 self.failedRowID = self.activeRowID
+                self.recordFailure(failure)
                 switch failure {
                 case .foodNotFound, .invalidResult, .generationFailed: self.showsSplitHint = true
                 default: self.showsSplitHint = false
@@ -230,6 +244,7 @@ final class MealEntryViewModel {
     func select(_ choice: MealEntryChoice) {
         guard case .question(let question) = phase,
               let currentChoice = question.choices.first(where: { $0.id == choice.id }) else { return }
+        recordSelection(currentChoice, in: question)
         beginAnalysis(choice: currentChoice)
     }
 
@@ -241,6 +256,7 @@ final class MealEntryViewModel {
               var input = choice.continuationInput else { return }
         input.details = details
         choice.continuationInput = input
+        flushPendingSearchLog(action: .typedDetails)
         beginAnalysis(choice: choice)
     }
 
@@ -350,6 +366,94 @@ final class MealEntryViewModel {
             MealDebugLog.log("오류: 화면 기록 검증 invalidResult(빈 기록, 잘못된 값 또는 중복)")
             throw MealEntryError.invalidResult
         }
+    }
+
+    // MARK: - 검색 개선 기록(#51)
+
+    /// 질문을 보여 줄 때: 비슷한 음식(b)·열량 확인(e)이면 경우를 붙여 두고, 사용자가 고를 때 최종 행동과 함께 남긴다.
+    private func recordQuestion(_ question: MealEntryQuestion, inputText: String) {
+        flushPendingSearchLog()
+        var reasons: [SearchImprovementEntry.Reason] = []
+        if question.title.contains("비슷한 음식") { reasons.append(.similarQuestion) }
+        if question.title.contains("열량이 높게") { reasons.append(.calorieCheck) }
+        let first = question.choices.first.map(Self.describe)
+        pendingSearchLog = SearchImprovementEntry(
+            date: .now, inputText: inputText,
+            foodName: question.choices.first?.selection?.input.name ?? question.clarification?.continuationInput?.name ?? inputText,
+            reasons: reasons, suggestedName: first?.name, suggestedKcal: first?.kcal, action: .noResponse)
+    }
+
+    /// 질문에서 고를 때: 첫 선택지면 수락, "목록에 없어요"(영양 추정)면 거절, 그 밖은 다른 항목(d).
+    private func recordSelection(_ choice: MealEntryChoice, in question: MealEntryQuestion) {
+        guard var entry = pendingSearchLog else { return }
+        pendingSearchLog = nil
+        let index = question.choices.firstIndex { $0.id == choice.id } ?? 0
+        if index == 0 {
+            entry.action = .accepted
+        } else {
+            entry.action = choice.estimateInput != nil ? .rejected : .otherItem
+            entry.reasons.append(.userChangedChoice)
+        }
+        let selected = Self.describe(choice)
+        entry.selectedName = selected.name
+        entry.selectedKcal = selected.kcal
+        guard !entry.reasons.isEmpty else { return }
+        searchLog.append(entry)
+    }
+
+    /// 보여 준 질문에 답하지 않고 넘어갔을 때(새 입력 분석, 화면 닫기). 경우가 붙은 질문만 남긴다.
+    func flushPendingSearchLog(action: SearchImprovementEntry.Action = .noResponse) {
+        guard var entry = pendingSearchLog else { return }
+        pendingSearchLog = nil
+        entry.action = action
+        guard !entry.reasons.isEmpty else { return }
+        searchLog.append(entry)
+    }
+
+    /// 질문 없이 기록된 줄: AI 영양 추정이면 a, 입력 이름과 고른 DB 항목 이름이 정규화 뒤에도 다르면 c.
+    /// 이름이 다르게 기록되면 저장 출처가 "{출처} · {DB 이름} 영양값 기준"이라 거기서 DB 이름을 읽는다(DB를 다시 조회하지 않음).
+    /// 기록 여부는 분석·저장 결과에 영향을 주지 않는다.
+    private func recordAutomatic(_ items: [MealEntryItem], inputText: String) {
+        for item in items {
+            var reasons: [SearchImprovementEntry.Reason] = []
+            if item.nutritionBasis == .estimated { reasons.append(.notFound) }
+            let databaseName = Self.databaseName(fromSource: item.food.source)
+            if item.nutritionBasis != .estimated, let databaseName,
+               FoodReferenceCatalog.normalized(databaseName) != FoodReferenceCatalog.normalized(item.food.name) {
+                reasons.append(.nameMismatch)
+            }
+            guard !reasons.isEmpty else { continue }
+            let kcal = item.nutrition.calories
+            searchLog.append(SearchImprovementEntry(
+                date: .now, inputText: inputText, foodName: item.food.name, reasons: reasons,
+                suggestedName: item.nutritionBasis == .estimated ? "AI 영양 추정" : (databaseName ?? item.food.name), suggestedKcal: kcal,
+                selectedName: item.food.name, selectedKcal: kcal,
+                action: .automatic))
+        }
+    }
+
+    /// "{출처} · {DB 이름} 영양값 기준" 형식의 저장 출처에서 DB 이름(업체 제품이면 "업체명 제품명")
+    static func databaseName(fromSource source: String) -> String? {
+        let suffix = " 영양값 기준"
+        guard source.hasSuffix(suffix), let separator = source.range(of: " · ", options: .backwards) else { return nil }
+        let name = source[separator.upperBound..<source.index(source.endIndex, offsetBy: -suffix.count)]
+        return name.isEmpty ? nil : String(name)
+    }
+
+    /// 영양정보를 찾지 못해 기록하지 못했을 때(a)
+    private func recordFailure(_ failure: MealEntryError) {
+        guard case .foodNotFound(let name) = failure else { return }
+        let inputText = inputRows.first { $0.id == activeRowID }?.text.trimmingCharacters(in: .whitespacesAndNewlines) ?? text
+        searchLog.append(SearchImprovementEntry(date: .now, inputText: inputText, foodName: name, reasons: [.notFound],
+                                                action: .failed))
+    }
+
+    private static func describe(_ choice: MealEntryChoice) -> (name: String, kcal: Double?) {
+        if let item = choice.items.first { return (item.food.name, item.nutrition.calories) }
+        if let food = choice.selection?.food {
+            return ("\(food.name)(\(food.baseAmount.formatted(.number.precision(.fractionLength(0))))\(food.amountUnit)당)", food.nutrition.calories)
+        }
+        return (choice.title, nil)
     }
 
     #if DEBUG
