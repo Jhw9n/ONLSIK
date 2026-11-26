@@ -102,7 +102,7 @@
 
 | 순서 | 규칙 | 코드·데이터 | 검색 화면 | AI 식사 입력 |
 |---|---|---|---|---|
-| 1 | 참고표 지정 자료 | `FoodReferences.json`의 referenceID. 검색에서는 `preferredID(for:)`로 같은 이름·단위 중 맨 앞에 둠 | 검색어가 참고표 이름과 같을 때만 | 입력 이름이 참고표 이름이면 항상(1-2의 7번) |
+| 1 | 참고표 지정 자료 | `FoodReferences.json`의 referenceID(`sameNameMedian`이 있으면 AI 식사 입력에서 영양값만 같은 이름 자료의 가운데 값, #51). 검색에서는 `preferredID(for:)`로 같은 이름·단위 중 맨 앞에 둠 | 검색어가 참고표 이름과 같을 때만 | 입력 이름이 참고표 이름이면 항상(1-2의 7번) |
 | 2 | 대표 분량표 별칭의 자료집 지정 자료 | `FoodPortion.guidePage(forName:)` → `GuideRepresentativeCatalog.entry(forName:)`. 참고표·술 표 지정이 없을 때 | 검색어가 별칭에 맞으면 첫 일반 음식 후보 | 입력 이름이 별칭에 맞으면 항상(1-2의 8번) |
 | 3 | 자료집 지정 자료 | `GuideRepresentatives.json`(53개). `searchExact`에서 같은 이름·단위 중 참고표 다음 | 적용 | 적용(검색 결과를 씀) |
 | 4 | 같은 요리의 g 자료 | `gramFood(sameNameAs:)`: 이름이 같거나 어순만 다른 g 자료(`FoodPortion.sameDishNames`, 규칙 1~4) | 적용 안 함 | 국물·면 mL 자료에 대표 분량을 쓰기 직전(`makeItem`), 참고표가 mL 자료를 가리킬 때(`preferredReferenceFood`) |

@@ -951,7 +951,8 @@ final class AIMealEntryService: MealEntryAnalyzing {
                let food = try await catalog.food(id: reference.referenceID) {
                 try Task.checkCancellation()
                 if reference.matches(food) {
-                    let food = try await preferredReferenceFood(reference, food: food)
+                    // 같은 이름 '음식' 자료가 여러 건이면 가운데 값(#51, 참고표 sameNameMedian)
+                    let food = reference.applyingSameNameMedian(to: try await preferredReferenceFood(reference, food: food))
                     if candidates(from: [food], input: input).first != nil {
                         return try await resolveSelection(MealFoodSelection(input: input, food: food, isSimilar: normalized(food.name) != normalized(input.name)), items: items, remaining: remaining)
                     }
@@ -1004,7 +1005,7 @@ final class AIMealEntryService: MealEntryAnalyzing {
             if !prefersProducts, input.details.isEmpty,
                let reference = FoodReferenceCatalog.entry(for: input.name),
                let referenced = compatible.first(where: reference.matches) {
-                let food = try await preferredReferenceFood(reference, food: referenced)
+                let food = reference.applyingSameNameMedian(to: try await preferredReferenceFood(reference, food: referenced))
                 return try await resolveSelection(MealFoodSelection(input: input, food: food, isSimilar: normalized(food.name) != normalized(input.name)), items: items, remaining: remaining)
             }
             let exact = compatible.filter { normalized($0.name) == normalized(query) }

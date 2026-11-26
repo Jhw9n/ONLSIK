@@ -16,7 +16,10 @@
    술 표(DrinkReferences.json) 이름·별칭, 포장제품 표 이름·별칭, 대표 분량표(FoodPortion.swift) 이름
 7. 서로 다른 두 이름에서 같은 별칭이 나옴
 남은 별칭은 같은 이름의 자료 중 앱 검색이 남기는 하나(대표 자료 지정 표 > priority > 최신 기준일 > 식품코드,
-g 자료 우선)를 가리킨다.
+g 자료 우선)를 가리킨다. 같은 이름 '음식' 자료(브랜드 없음)가 2건 이상이고 기준 단위(g·mL)가 모두 같으면
+sameNameMedian에 가운데 값(100g·100mL당 열량·탄수화물·단백질·지방)을 적는다(2026-11-27 사용자 결정, #51):
+100당 열량으로 정렬해 홀수면 가운데 자료, 짝수면 가운데 두 자료의 평균(영양소도 같은 자료로). 앱은 지정 자료의 영양값을
+이 값으로 바꿔 쓴다. 단위가 섞인 이름은 평균 내지 않고(sameNameMedian 없음) `mixed`로 목록을 낸다.
 
 사용법:
   python3 -B Scripts/build_dish_order_aliases.py report          # 개수·예시 출력
@@ -24,6 +27,8 @@ g 자료 우선)를 가리킨다.
   python3 -B Scripts/build_dish_order_aliases.py json            # 참고표 항목 형식(JSON)으로 출력
   python3 -B Scripts/build_dish_order_aliases.py apply           # FoodReferences.json 끝에 넣는다(이 스크립트가 넣은 항목은 바꿔 넣음)
   python3 -B Scripts/build_dish_order_aliases.py check           # FoodReferences.json의 생성 항목이 지금 결과와 같은지(다르면 종료 코드 1)
+  python3 -B Scripts/build_dish_order_aliases.py mixed           # 같은 이름 자료가 여러 건인데 g·mL가 섞여 가운데 값을 쓰지 않는 별칭
+  python3 -B Scripts/build_dish_order_aliases.py median <이름>   # DB 이름 하나의 가운데 값(손으로 넣는 항목용)
 
 생성 항목은 basisNote가 GENERATED_PREFIX로 시작한다. 앱은 다른 참고표 항목과 똑같이 쓰고, 테스트 L02(참고표 대표 분량 연결)는
 이 항목을 빼고 손으로 넣은 항목만 검사한다(항목이 많아 전체 분석 시간이 크게 늘어서, 2026-11-27 사용자 결정, #51).
@@ -65,6 +70,31 @@ def normalized(value):
         for variant in entry["variants"]:
             value = re.sub(r"\s*".join(map(re.escape, variant.replace(" ", ""))), entry["standard"], value)
     return "".join(character for character in value if character.isalnum())
+
+
+def same_name_median(rows):
+    """같은 이름 자료 묶음의 가운데 값. 2건 미만이면 None, 단위가 섞이면 "mixed"."""
+    if len(rows) < 2:
+        return None
+    units = {row["basis_unit"] for row in rows}
+    if len(units) > 1:
+        return "mixed"
+    ordered = sorted(rows, key=lambda row: (row["calories"], row["id"]))
+    middle = len(ordered) // 2
+    picked = ordered[middle:middle + 1] if len(ordered) % 2 else ordered[middle - 1:middle + 1]
+
+    def value(column):
+        return round(sum(row[column] for row in picked) / len(picked), 4)
+
+    return {
+        "count": len(rows),
+        "unit": next(iter(units)),
+        "calories": value("calories"),
+        "carbohydrates": value("carbohydrates"),
+        "protein": value("protein"),
+        "fat": value("fat"),
+        "ids": sorted(row["id"] for row in rows),
+    }
 
 
 def overlaps(left, right):
@@ -122,7 +152,7 @@ def build():
     for row in rows:
         by_name.setdefault(row["name"], []).append(row)
 
-    accepted, excluded = [], []
+    accepted, excluded, mixed = [], [], []
     alias_sources = {}
     for name in sorted(by_name):
         parts = name.split(" ")
@@ -162,7 +192,10 @@ def build():
         candidates = sorted(candidates, key=lambda row: (
             row["basis_unit"] != "g", row["id"] not in guides, row["priority"], "".join(chr(0x10FFFF - ord(c)) for c in row["source_date"]), row["id"]))
         chosen = candidates[0]
-        accepted.append({
+        median = same_name_median(by_name[name])
+        if median == "mixed":
+            mixed.append((alias, name, sorted({row["basis_unit"] for row in by_name[name]})))
+        entry = {
             "name": alias,
             "aliases": [],
             "referenceID": chosen["id"],
@@ -170,9 +203,15 @@ def build():
             "amountUnit": chosen["basis_unit"],
             "source": chosen["source"],
             "sourceDate": chosen["source_date"],
-            "basisNote": f"{GENERATED_PREFIX}: 식약처 음식 DB '{chosen['name']}'(분류 세부)를 사용자가 쓰는 '{alias}'(세부분류)로도 찾는다. 같은 이름 자료 {len(by_name[name])}건 중 앱 검색이 남기는 자료.",
-        })
-    return accepted, excluded, len(rows), len(by_name)
+            "basisNote": f"{GENERATED_PREFIX}: 식약처 음식 DB '{chosen['name']}'(분류 세부)를 사용자가 쓰는 '{alias}'(세부분류)로도 찾는다. "
+                         + (f"같은 이름 자료 {len(by_name[name])}건의 가운데 값(두 건이면 평균)을 쓴다." if isinstance(median, dict)
+                            else f"같은 이름 자료 {len(by_name[name])}건이 g·mL로 섞여 앱 검색이 남기는 자료 하나를 쓴다." if median == "mixed"
+                            else "같은 이름 자료 1건."),
+        }
+        if isinstance(median, dict):
+            entry["sameNameMedian"] = median
+        accepted.append(entry)
+    return accepted, excluded, len(rows), len(by_name), mixed
 
 
 def rendered(entries):
@@ -196,8 +235,18 @@ def manual_text():
 
 
 def main(argv):
-    accepted, excluded, record_count, name_count = build()
+    accepted, excluded, record_count, name_count, mixed = build()
     command = argv[1] if len(argv) > 1 else "report"
+    if command == "mixed":
+        for alias, name, units in mixed:
+            print(f"{alias}\t{name}\t{'/'.join(units)}")
+        return 0
+    if command == "median":
+        database = sqlite3.connect(f"file:{DATA / 'FoodCatalog.sqlite'}?mode=ro", uri=True)
+        database.row_factory = sqlite3.Row
+        rows = database.execute("SELECT * FROM foods WHERE category = '음식' AND brand = '' AND name = ?", (argv[2],)).fetchall()
+        print(json.dumps(same_name_median(rows), ensure_ascii=False))
+        return 0
     if command == "json":
         print(json.dumps(accepted, ensure_ascii=False, indent=2))
         return 0

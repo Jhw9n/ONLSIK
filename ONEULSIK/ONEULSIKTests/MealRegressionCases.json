@@ -973,14 +973,14 @@
       "expect": { "maxQuestions": 0, "recordedName": "마라탕", "sourceContains": "(주)프레시지 마라탕 영양값 기준" }
     },
     {
-      "id": "M182", "input": "선지해장국", "note": "#51: 식약처 '해장국 선지'(분류 세부)를 어순 별칭(참고표)으로 찾음. '선지해장국 내장'(mL) 비슷한 음식 질문이 나오면 안 됨",
+      "id": "M182", "input": "선지해장국", "note": "#51: 식약처 '해장국 선지'(분류 세부)를 어순 별칭(참고표)으로 찾음. 같은 이름 2건(29·31)의 가운데 값 30kcal/100g. '선지해장국 내장'(mL) 비슷한 음식 질문이 나오면 안 됨",
       "llm": { "food": "선지해장국" },
-      "expect": { "maxQuestions": 0, "recordedName": "선지해장국", "sourceContains": "해장국 선지 영양값 기준", "units": ["인분"], "amount": { "units": ["g"], "min": 580, "max": 620 }, "kcal": { "min": 165, "max": 185 } }
+      "expect": { "maxQuestions": 0, "recordedName": "선지해장국", "sourceContains": "해장국 선지 영양값 기준", "units": ["인분"], "amount": { "units": ["g"], "min": 580, "max": 620 }, "kcal": { "min": 172, "max": 188 } }
     },
     {
       "id": "M183", "input": "선지해장국 한 그릇", "note": "#51: 그릇 단위도 같은 자료",
       "llm": { "food": "선지해장국" },
-      "expect": { "maxQuestions": 0, "recordedName": "선지해장국", "sourceContains": "해장국 선지 영양값 기준", "units": ["그릇"], "amount": { "units": ["g"], "min": 580, "max": 620 }, "kcal": { "min": 165, "max": 185 } }
+      "expect": { "maxQuestions": 0, "recordedName": "선지해장국", "sourceContains": "해장국 선지 영양값 기준", "units": ["그릇"], "amount": { "units": ["g"], "min": 580, "max": 620 }, "kcal": { "min": 172, "max": 188 } }
     },
     {
       "id": "M184", "input": "우거지해장국", "note": "#51: 해장국 우거지",
@@ -988,19 +988,19 @@
       "expect": { "maxQuestions": 0, "recordedName": "우거지해장국", "sourceContains": "해장국 우거지 영양값 기준", "units": ["인분"], "amount": { "units": ["g"], "min": 580, "max": 620 }, "kcal": { "min": 145, "max": 165 } }
     },
     {
-      "id": "M185", "input": "참치회덮밥", "note": "#51: 회덮밥 참치",
+      "id": "M185", "input": "참치회덮밥", "note": "#51: 회덮밥 참치. 같은 이름 2건(108·79/100mL)의 가운데 값 93.5",
       "llm": { "food": "참치회덮밥" },
-      "expect": { "maxQuestions": 0, "recordedName": "참치회덮밥", "sourceContains": "회덮밥 참치 영양값 기준", "units": ["인분"], "amount": { "units": ["mL"], "min": 555, "max": 590 }, "kcal": { "min": 595, "max": 640 } }
+      "expect": { "maxQuestions": 0, "recordedName": "참치회덮밥", "sourceContains": "회덮밥 참치 영양값 기준", "units": ["인분"], "amount": { "units": ["mL"], "min": 555, "max": 590 }, "kcal": { "min": 520, "max": 550 } }
     },
     {
-      "id": "M186", "input": "옻닭", "note": "#51: DB에 없음. 옻을 넣은 닭백숙으로 보고 '음식' 자료 닭백숙 값 준용(내부 기준)",
+      "id": "M186", "input": "옻닭", "note": "#51: DB에 없음. 옻을 넣은 닭백숙으로 보고 '음식' 자료 닭백숙 값 준용(내부 기준). 닭백숙 2건(56·102/100mL)의 가운데 값 79",
       "llm": { "food": "옻닭" },
-      "expect": { "maxQuestions": 0, "recordedName": "옻닭", "sourceContains": "닭백숙 영양값 기준", "units": ["인분"], "amount": { "units": ["mL"], "min": 590, "max": 630 }, "kcal": { "min": 330, "max": 355 } }
+      "expect": { "maxQuestions": 0, "recordedName": "옻닭", "sourceContains": "닭백숙 영양값 기준", "units": ["인분"], "amount": { "units": ["mL"], "min": 590, "max": 630 }, "kcal": { "min": 470, "max": 495 } }
     },
     {
       "id": "M187", "input": "옻닭해장국", "note": "#51: 옻닭 별칭(닭백숙 값 준용)",
       "llm": { "food": "옻닭해장국" },
-      "expect": { "maxQuestions": 0, "recordedName": "옻닭해장국", "sourceContains": "닭백숙 영양값 기준", "units": ["인분"], "amount": { "units": ["mL"], "min": 590, "max": 630 }, "kcal": { "min": 330, "max": 355 } }
+      "expect": { "maxQuestions": 0, "recordedName": "옻닭해장국", "sourceContains": "닭백숙 영양값 기준", "units": ["인분"], "amount": { "units": ["mL"], "min": 590, "max": 630 }, "kcal": { "min": 470, "max": 495 } }
     }
   ]
 }
