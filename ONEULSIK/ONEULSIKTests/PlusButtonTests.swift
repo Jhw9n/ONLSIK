@@ -6,7 +6,7 @@ import Testing
 import UIKit
 @testable import ONEULSIK
 
-/// 기록 화면·음식 검색의 + 버튼 누르는 영역(#51). 초록 원(26×26) 바깥을 감싼 영역 전체가 눌리는지 실제 탭으로 본다.
+/// 기록 화면·음식 검색의 + 버튼 누르는 영역(#51). 초록 원(24×24) 바깥을 감싼 영역 전체가 눌리는지 실제 탭으로 본다.
 /// 창을 띄우는 묶음이라 운동 환산 창 탭 묶음(ExerciseGameTouchTests)과 같은 상위 묶음에서 차례로 돈다.
 extension ExerciseGameTouchTests {
 @MainActor
@@ -43,7 +43,7 @@ struct PlusButton {
         while !condition(), clock.now < deadline { try await Task.sleep(for: .milliseconds(50)) }
     }
 
-    /// 창 세로선 x에서 초록 원(green03 #4AC364)이 칠해진 구간의 가운데 y들(높이 16~34pt 구간만)
+    /// 창 세로선 x에서 초록 원(green03 #4AC364)이 칠해진 구간의 가운데 y들(높이 12~34pt 구간만)
     private func greenCircleCenters(_ window: UIWindow, x: CGFloat) -> [CGFloat] {
         // 원 바깥(왼쪽 22pt)도 초록이면 원이 아니라 초록 카드 안이다(기록 화면 위쪽 요약 카드)
         let outside = Set(greenRows(window, x: x - 22))
@@ -59,7 +59,7 @@ struct PlusButton {
         for (y, isGreen) in greenColumn(window, x: x).enumerated() where isGreen {
             if let last = runs.last, last.end == y - 1 { runs[runs.count - 1].end = y } else { runs.append((y, y)) }
         }
-        return runs.filter { (16...34).contains($0.end - $0.start + 1) }.map { CGFloat($0.start + $0.end + 1) / 2 }
+        return runs.filter { (12...34).contains($0.end - $0.start + 1) }.map { CGFloat($0.start + $0.end + 1) / 2 }
     }
 
     private func greenColumn(_ window: UIWindow, x: CGFloat) -> [Bool] {
@@ -92,7 +92,7 @@ struct PlusButton {
         try await Task.sleep(for: .milliseconds(1500))
         // + 원 가운데는 행 오른쪽 끝(창 오른쪽 - 가로 여백 16 - 줄 오른쪽 여백 2 - 56/2)
         let circleX = window.bounds.width - 16 - 2 - 28
-        // 원 가운데 세로선은 흰 + 모양에 걸려 초록이 끊기므로 8pt 옆 세로선으로 찾는다(반지름 13 → 초록 약 20pt)
+        // 원 가운데 세로선은 흰 + 모양에 걸려 초록이 끊기므로 8pt 옆 세로선으로 찾는다(반지름 12 → 초록 약 18pt)
         let centers = greenCircleCenters(window, x: circleX - 8)
         var results: [String] = []
         var failures: [Failure] = []

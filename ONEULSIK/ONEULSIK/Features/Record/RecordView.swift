@@ -254,15 +254,15 @@ struct RecordView: View {
             .buttonStyle(.plain)
             .accessibilityHint("\(mealType.title) 기록 상세 보기")
 
-            // 초록 원 26×26, 누르는 영역은 너비 56 × 줄 높이 전체(#51: 전에는 원 안쪽만 눌림).
+            // 초록 원 24×24, 누르는 영역은 너비 56 × 줄 높이 전체(#51: 전에는 원 안쪽만 눌림).
             // 왼쪽 끼니 상세 버튼과 같은 HStack 안에 나란히 있어 영역이 겹치지 않는다.
             Button {
                 openMealEntry(mealType)
             } label: {
                 Image(systemName: "plus")
-                    .font(.system(size: 13, weight: .bold))
+                    .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(Color.white)
-                    .frame(width: 26, height: 26)
+                    .frame(width: 24, height: 24)
                     .background(Color.green03, in: Circle())
                     .frame(width: 56, height: height)
                     .contentShape(Rectangle())

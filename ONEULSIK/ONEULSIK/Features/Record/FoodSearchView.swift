@@ -180,11 +180,11 @@ struct FoodSearchView: View {
             Button {
                 openQuantitySelection(food)
             } label: {
-                // 초록 원 26×26, 누르는 영역 44×48 전체(#51: 전에는 원 안쪽만 눌림)
+                // 초록 원 24×24, 누르는 영역 44×48 전체(#51: 전에는 원 안쪽만 눌림)
                 Image(systemName: "plus")
-                    .font(.system(size: 13, weight: .bold))
+                    .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(Color.white)
-                    .frame(width: 26, height: 26)
+                    .frame(width: 24, height: 24)
                     .background(Color.green03, in: Circle())
                     .frame(width: 44, height: 48)
                     .contentShape(Rectangle())
