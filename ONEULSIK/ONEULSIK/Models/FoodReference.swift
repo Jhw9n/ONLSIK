@@ -19,8 +19,35 @@ nonisolated struct FoodReference: Decodable, Sendable {
     /// true인 항목만 brand 있는 레코드를 referenceID로 쓸 수 있고, 이름·별칭이 맞는 업체명 없는 입력은 제품·비슷한 음식 질문 없이
     /// 그 제품의 영양값과 estimatedPortions 분량으로 기록한다(AIMealEntryService.resolveBrandedReference). 분류는 category로 적는다.
     let allowsBrandedProduct: Bool?
+    /// 같은 이름 '음식' 자료(브랜드 없음)가 여러 건일 때의 가운데 값(100g·100mL당, 2026-11-27 사용자 결정, #51).
+    /// 100당 열량으로 정렬해 홀수면 가운데 자료, 짝수면 가운데 두 자료의 평균(영양소도 같은 자료로). 단위가 섞인 이름은 없다.
+    /// 값은 Scripts/build_dish_order_aliases.py가 음식 DB에서 계산해 넣는다. 앱은 지정 자료의 영양값을 이 값으로 바꿔 쓴다.
+    let sameNameMedian: SameNameMedian?
+
+    nonisolated struct SameNameMedian: Decodable, Sendable {
+        let count: Int
+        let unit: String
+        let calories: Double
+        let carbohydrates: Double
+        let protein: Double
+        let fat: Double
+    }
 
     var allowsBranded: Bool { allowsBrandedProduct == true }
+
+    /// 지정 자료에 같은 이름 자료의 가운데 값을 적용한 자료. 지정 자료 그대로가 아니거나(같은 요리 g 자료로 바뀐 경우 등)
+    /// 단위가 다르면 그대로 둔다. 이름·출처·분량 정보는 그대로이고 영양값만 바뀐다.
+    func applyingSameNameMedian(to food: FoodCatalogItem) -> FoodCatalogItem {
+        guard let median = sameNameMedian, food.id == referenceID, food.amountUnit == median.unit, food.baseAmount > 0 else { return food }
+        let scale = food.baseAmount / 100
+        var result = FoodCatalogItem(id: food.id, name: food.name, servingUnit: food.servingUnit, servingGrams: food.servingGrams,
+            nutrition: NutritionValues(calories: median.calories * scale, carbohydrateGrams: median.carbohydrates * scale,
+                                       proteinGrams: median.protein * scale, fatGrams: median.fat * scale),
+            servingMilliliters: food.servingMilliliters, brand: food.brand, source: food.source, sourceDate: food.sourceDate,
+            category: food.category, packageAmount: food.packageAmount, categoryCode: food.categoryCode)
+        result.referencePortionUnit = food.referencePortionUnit
+        return result
+    }
 
     var names: [String] { [name] + aliases }
 
@@ -45,9 +72,25 @@ nonisolated enum FoodReferenceCatalog {
         return entries
     }()
 
+    /// 이름(정규화 키) → 항목. 같은 키가 여러 항목에 있으면 파일 앞쪽 항목(전과 같은 `first` 규칙).
+    /// 참고표가 수백 개라(어순 별칭, #51) 조회마다 모든 이름을 정규화하지 않도록 처음 한 번만 만든다. 결과는 전과 같다.
+    private static let entryByKey: [String: FoodReference] = {
+        var result: [String: FoodReference] = [:]
+        for entry in entries {
+            for name in entry.names where result[normalized(name)] == nil {
+                result[normalized(name)] = entry
+            }
+        }
+        return result
+    }()
+
+    /// 항목마다 정규화한 이름(spellingCandidates용, 항목 순서 그대로)
+    private static let normalizedNames: [(entry: FoodReference, keys: [String])] = entries.map { entry in
+        (entry, entry.names.map(normalized))
+    }
+
     static func entry(for name: String) -> FoodReference? {
-        let key = normalized(name)
-        return entries.first { $0.names.contains { normalized($0) == key } }
+        entryByKey[normalized(name)]
     }
 
     /// 비교용 키: 표기 변형(SpellingVariants.json)을 맞추고 소문자·글자·숫자만 남긴다.
@@ -83,14 +126,13 @@ nonisolated enum FoodReferenceCatalog {
     static func spellingCandidates(for name: String) -> [FoodReference] {
         let query = normalized(name)
         guard query.count >= 4 else { return [] }
-        return entries.filter { entry in
-            entry.names.contains { candidate in
-                let key = normalized(candidate)
+        return normalizedNames.filter { _, keys in
+            keys.contains { key in
                 guard key.count >= 4, abs(key.count - query.count) <= 1,
                       !query.hasPrefix(key), !key.hasPrefix(query) else { return false }
                 return distance(query, key) == 1
             }
-        }.prefix(3).map { $0 }
+        }.prefix(3).map(\.entry)
     }
 
     static func similarDishQuery(for name: String) -> String? {

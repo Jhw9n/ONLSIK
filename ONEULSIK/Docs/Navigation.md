@@ -14,7 +14,7 @@
 
 ## 라우터(`ONEULSIK/App/AppRouter.swift`)
 
-- `AppRoute`: 경로 이름 — `weeklyReport`, `exerciseGame`, `mealEntry`, `foodSearch`, `foodQuantity`, `profileEdit(항목)`, `settings`.
+- `AppRoute`: 경로 이름 — `weeklyReport`, `exerciseGame`, `mealEntry`, `foodSearch`, `foodQuantity`, `profileEdit(항목)`, `settings`, `searchImprovementLog`(설정 > 검색 개선 기록, #51).
 - `AppRouteEntry`: 스택에 올린 화면 하나(경로, 화면을 만드는 클로저, `onPop`).
 - `AppRouter`(@Observable): `path`(NavigationStack에 묶음), `push(경로, onPop:) { 화면 }`, `pop()`, `pop(경로)`, `popToRoot()`, `contains(경로)`.
   `MainTabView`가 하나 만들어 `environment(\.appRouter)`로 내려 준다. 화면은 연 곳에서 만들어 넘긴다(그 화면의 값·콜백을 그대로 쓰기 위해).

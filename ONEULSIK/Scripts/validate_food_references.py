@@ -40,6 +40,20 @@ def main():
                 raise ValueError(f"Not a general food of the declared category: {entry['name']}")
             if any(not math.isfinite(row[column]) or row[column] < 0 for column in ("calories", "carbohydrates", "protein", "fat")):
                 raise ValueError(f"Invalid nutrition: {entry['name']}")
+            # 같은 이름 '음식' 자료의 가운데 값(#51): 음식 DB에서 다시 계산해 같아야 한다(단위가 섞이면 없어야 한다).
+            if "sameNameMedian" in entry:
+                same = database.execute(
+                    "SELECT * FROM foods WHERE category = '음식' AND brand = '' AND name = ?", (row["name"],)).fetchall()
+                units = {item["basis_unit"] for item in same}
+                ordered = sorted(same, key=lambda item: (item["calories"], item["id"]))
+                middle = len(ordered) // 2
+                picked = ordered[middle:middle + 1] if len(ordered) % 2 else ordered[middle - 1:middle + 1]
+                median = entry["sameNameMedian"]
+                expected = {column: round(sum(item[column] for item in picked) / len(picked), 4)
+                            for column in ("calories", "carbohydrates", "protein", "fat")}
+                if (len(same) < 2 or len(units) != 1 or median["unit"] != entry["amountUnit"] or median["count"] != len(same)
+                        or any(abs(median[column] - value) > 1e-6 for column, value in expected.items())):
+                    raise ValueError(f"Invalid sameNameMedian: {entry['name']}")
             for unit, amount in entry.get("estimatedPortions", {}).items():
                 if unit not in {"인분", "그릇", "접시"} or not isinstance(amount, (int, float)) or not math.isfinite(amount) or not 0.1 <= amount <= 5000:
                     raise ValueError(f"Invalid estimated portion: {entry['name']}")

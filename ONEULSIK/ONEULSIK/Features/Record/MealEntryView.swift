@@ -67,7 +67,11 @@ struct MealEntryView: View {
             guard !isPreview else { return }
             loadRecentMeals()
         }
-        .onDisappear { viewModel.cancelAnalysis() }
+        .onDisappear {
+            viewModel.cancelAnalysis()
+            // 보여 준 질문에 답하지 않고 화면을 닫았으면 검색 개선 기록에 "응답 없음"으로 남긴다(#51)
+            viewModel.flushPendingSearchLog()
+        }
         // 저장 중·AI 분석 중에는 스와이프 뒤로가기를 막는다(뒤로가기 버튼은 지금처럼 분석을 취소하고 닫는다).
         .popGestureDisabled(!canSwipeBack)
         .alert("안내", isPresented: Binding(

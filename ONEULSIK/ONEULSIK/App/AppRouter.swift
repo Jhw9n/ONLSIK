@@ -11,6 +11,8 @@ enum AppRoute: Hashable {
     case foodQuantity
     case profileEdit(String)
     case settings
+    /// 설정 > 검색 개선 기록(#51)
+    case searchImprovementLog
 }
 
 /// 스택에 올린 화면 하나. 화면은 연 곳에서 만들어 넘기고(그 화면의 값·콜백을 그대로 쓰기 위해),
