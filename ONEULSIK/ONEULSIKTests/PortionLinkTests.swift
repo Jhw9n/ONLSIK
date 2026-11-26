@@ -101,7 +101,11 @@ struct PortionLinkTests {
 
     @Test("참고표(FoodReferences.json)")
     func referenceTable() async {
+        // 스크립트로 만든 어순 별칭(basisNote가 "어순 별칭(#51)"로 시작, Scripts/build_dish_order_aliases.py)은 수백 개라
+        // 항목마다 분석하면 전체 테스트가 크게 느려져 빼고, 손으로 넣은 항목만 본다(2026-11-27 사용자 결정, #51).
+        // 어순 별칭은 회귀 케이스(A 케이스)로 표본을 확인한다.
         await Self.check(id: "L02", input: "FoodReferences.json 항목(항목의 대표 이름으로 검사)",
-                         rows: FoodReferenceCatalog.entries.map(\.names), groupsDishes: false)
+                         rows: FoodReferenceCatalog.entries.filter { !($0.basisNote ?? "").hasPrefix("어순 별칭(#51)") }.map(\.names),
+                         groupsDishes: false)
     }
 }

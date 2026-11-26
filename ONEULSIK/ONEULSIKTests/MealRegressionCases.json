@@ -47,7 +47,8 @@
     { "id": "S06", "query": "김치찌개", "expect": { "topGeneralContains": "김치찌개", "within": 1 } },
     { "id": "S07", "query": "오뎅", "expect": { "topGeneralContains": "어묵", "within": 3 } },
     { "id": "S08", "query": "막걸리", "note": "술(탁주) 항목이 일반 항목 중 첫 번째여야 함. 막걸리 발효 찐빵이 아님", "expect": { "topGeneralContains": "탁주", "within": 1 } },
-    { "id": "S09", "query": "바나나우유", "note": "같은 이름 제품 후보는 분류 코드 다수결(가공유 128)이 먼저. 식품코드 순으로 과자 분류(1) 항목이 첫째가 되지 않아야 함(2026-11-17)", "expect": { "firstProductCategoryCode": 128 } }
+    { "id": "S09", "query": "바나나우유", "note": "같은 이름 제품 후보는 분류 코드 다수결(가공유 128)이 먼저. 식품코드 순으로 과자 분류(1) 항목이 첫째가 되지 않아야 함(2026-11-17)", "expect": { "firstProductCategoryCode": 128 } },
+    { "id": "S10", "query": "선지해장국", "note": "#51: 어순 별칭(참고표)으로 '해장국 선지'가 첫 일반 항목이어야 함. '선지해장국 내장'(mL)이 위로 오면 안 됨", "expect": { "topGeneralContains": "해장국 선지", "within": 1 } }
   ],
   "plausibility": [
     { "id": "P01", "unit": "인분", "food": "소주", "amount": 1000, "amountUnit": "g", "expect": false },
@@ -970,6 +971,36 @@
       "id": "M181", "input": "마라탕", "note": "#47: 참고표 업체 제품(allowsBrandedProduct)은 이미 입력 이름으로 기록, 그대로",
       "llm": { "food": "마라탕", "portion": { "amount": 500 } },
       "expect": { "maxQuestions": 0, "recordedName": "마라탕", "sourceContains": "(주)프레시지 마라탕 영양값 기준" }
+    },
+    {
+      "id": "M182", "input": "선지해장국", "note": "#51: 식약처 '해장국 선지'(분류 세부)를 어순 별칭(참고표)으로 찾음. '선지해장국 내장'(mL) 비슷한 음식 질문이 나오면 안 됨",
+      "llm": { "food": "선지해장국" },
+      "expect": { "maxQuestions": 0, "recordedName": "선지해장국", "sourceContains": "해장국 선지 영양값 기준", "units": ["인분"], "amount": { "units": ["g"], "min": 580, "max": 620 }, "kcal": { "min": 165, "max": 185 } }
+    },
+    {
+      "id": "M183", "input": "선지해장국 한 그릇", "note": "#51: 그릇 단위도 같은 자료",
+      "llm": { "food": "선지해장국" },
+      "expect": { "maxQuestions": 0, "recordedName": "선지해장국", "sourceContains": "해장국 선지 영양값 기준", "units": ["그릇"], "amount": { "units": ["g"], "min": 580, "max": 620 }, "kcal": { "min": 165, "max": 185 } }
+    },
+    {
+      "id": "M184", "input": "우거지해장국", "note": "#51: 해장국 우거지",
+      "llm": { "food": "우거지해장국" },
+      "expect": { "maxQuestions": 0, "recordedName": "우거지해장국", "sourceContains": "해장국 우거지 영양값 기준", "units": ["인분"], "amount": { "units": ["g"], "min": 580, "max": 620 }, "kcal": { "min": 145, "max": 165 } }
+    },
+    {
+      "id": "M185", "input": "참치회덮밥", "note": "#51: 회덮밥 참치",
+      "llm": { "food": "참치회덮밥" },
+      "expect": { "maxQuestions": 0, "recordedName": "참치회덮밥", "sourceContains": "회덮밥 참치 영양값 기준", "units": ["인분"], "amount": { "units": ["mL"], "min": 555, "max": 590 }, "kcal": { "min": 595, "max": 640 } }
+    },
+    {
+      "id": "M186", "input": "옻닭", "note": "#51: DB에 없음. 옻을 넣은 닭백숙으로 보고 '음식' 자료 닭백숙 값 준용(내부 기준)",
+      "llm": { "food": "옻닭" },
+      "expect": { "maxQuestions": 0, "recordedName": "옻닭", "sourceContains": "닭백숙 영양값 기준", "units": ["인분"], "amount": { "units": ["mL"], "min": 590, "max": 630 }, "kcal": { "min": 330, "max": 355 } }
+    },
+    {
+      "id": "M187", "input": "옻닭해장국", "note": "#51: 옻닭 별칭(닭백숙 값 준용)",
+      "llm": { "food": "옻닭해장국" },
+      "expect": { "maxQuestions": 0, "recordedName": "옻닭해장국", "sourceContains": "닭백숙 영양값 기준", "units": ["인분"], "amount": { "units": ["mL"], "min": 590, "max": 630 }, "kcal": { "min": 330, "max": 355 } }
     }
   ]
 }

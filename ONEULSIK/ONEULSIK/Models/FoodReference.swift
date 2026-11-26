@@ -45,9 +45,25 @@ nonisolated enum FoodReferenceCatalog {
         return entries
     }()
 
+    /// 이름(정규화 키) → 항목. 같은 키가 여러 항목에 있으면 파일 앞쪽 항목(전과 같은 `first` 규칙).
+    /// 참고표가 수백 개라(어순 별칭, #51) 조회마다 모든 이름을 정규화하지 않도록 처음 한 번만 만든다. 결과는 전과 같다.
+    private static let entryByKey: [String: FoodReference] = {
+        var result: [String: FoodReference] = [:]
+        for entry in entries {
+            for name in entry.names where result[normalized(name)] == nil {
+                result[normalized(name)] = entry
+            }
+        }
+        return result
+    }()
+
+    /// 항목마다 정규화한 이름(spellingCandidates용, 항목 순서 그대로)
+    private static let normalizedNames: [(entry: FoodReference, keys: [String])] = entries.map { entry in
+        (entry, entry.names.map(normalized))
+    }
+
     static func entry(for name: String) -> FoodReference? {
-        let key = normalized(name)
-        return entries.first { $0.names.contains { normalized($0) == key } }
+        entryByKey[normalized(name)]
     }
 
     /// 비교용 키: 표기 변형(SpellingVariants.json)을 맞추고 소문자·글자·숫자만 남긴다.
@@ -83,14 +99,13 @@ nonisolated enum FoodReferenceCatalog {
     static func spellingCandidates(for name: String) -> [FoodReference] {
         let query = normalized(name)
         guard query.count >= 4 else { return [] }
-        return entries.filter { entry in
-            entry.names.contains { candidate in
-                let key = normalized(candidate)
+        return normalizedNames.filter { _, keys in
+            keys.contains { key in
                 guard key.count >= 4, abs(key.count - query.count) <= 1,
                       !query.hasPrefix(key), !key.hasPrefix(query) else { return false }
                 return distance(query, key) == 1
             }
-        }.prefix(3).map { $0 }
+        }.prefix(3).map(\.entry)
     }
 
     static func similarDishQuery(for name: String) -> String? {
